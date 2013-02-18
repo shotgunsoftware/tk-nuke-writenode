@@ -1,0 +1,97 @@
+#
+# Copyright (c) 2013 Shotgun Software, Inc
+# ----------------------------------------------------
+#
+# Metadata defining the behaviour and requirements for this app
+
+# expected fields in the configuration file for this app
+configuration:
+
+    # tank write nodes paths
+    write_nodes:
+        type: list
+        description: "A list of dictionaries in which you define the Tank write nodes that
+                     are supported in this configuration. Each dictionary entry needs to have
+                     the following keys: name - a descriptive name for this node. file_type -
+                     the file type to use for the renders (exr, cin, dpx etc). This will be
+                     passed to the Nuke write node when rendering. settings - configuration
+                     settings for the given file type, as a dictionary. This too will be
+                     passed to the write node when rendering. Lastly, you need two entries
+                     named render_template and publish_template
+                     - these control the locations where data is written to at various stages
+                     of the workflow. These templates need to include the fields
+                     name and version, and can optionally include the fields width, height
+                     (which reflect the image resolution of the render) and channel (which
+                     differenciates different write nodes). If you are doing stereo
+                     rendering and want to use Nuke's %V flag, include an eye field.
+                     This will be replaced by %V in the paths when the tank write node
+                     computes them."
+        allows_empty: True
+        values:
+            type: dict
+            items:
+                name: { type: str }
+                file_type: { type: str }
+                settings: { type: dict }
+                tank_type: { type: tank_type }
+                render_template:
+                    type: template
+                    required_fields: [version,SEQ]
+                    optional_fields: [channel,name,width,height,eye]
+                publish_template:
+                    type: template
+                    required_fields: [version,SEQ]
+                    optional_fields: [channel,name,width,height,eye,TankType]
+
+    # snapshot paths
+    template_work:
+        type: template
+        description: A reference to a template which locates a work file on disk.
+        required_fields: [version]
+        optional_fields: [name]
+    template_snapshot:
+        type: template
+        description: A reference to a template which defines the location where snapshot
+                     backups will end up on disk.
+        required_fields: [version, timestamp]
+        optional_fields: [name]
+
+    # publish paths
+    template_publish:
+        type: template
+        required_fields: [version]
+        optional_fields: [name, TankType]
+        description: Defines where publishes should go on disk.
+
+    published_script_tank_type:
+        type: tank_type
+        description: The string value of the TankType used for published Nuke scripts.
+
+    # hooks
+    hook_publish_file:
+        type: hook
+        description: Called when a file is published, e.g. copied from a work area to a publish area.
+        parameters: [source_path, target_path]
+        default_value: nuke_publish_file
+
+
+# the Shotgun fields that this app needs in order to operate correctly
+requires_shotgun_fields:
+
+
+# More verbose description of this item 
+display_name: "Publish and Snapshot"
+description: "Publishing, Snapshotting and Version Control in Nuke."
+
+# Required minimum versions for this item to run
+requires_shotgun_version:
+requires_core_version: "v0.12.5"
+requires_engine_version: "v0.2.3"
+
+# the engines that this app can operate in:
+supported_engines: [tk-nuke]
+
+# the frameworks required to run this app
+frameworks:
+    - {"name": "tk-framework-widget", "version": "v0.1.3"}
+    
