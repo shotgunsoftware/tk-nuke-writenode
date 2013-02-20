@@ -20,10 +20,17 @@ class NukeWriteNode(tank.platform.Application):
         Called as the application is being initialized
         """
 
+        # import module and get handler
         tk_nuke_writenode = self.import_module("tk_nuke_writenode")
         self.write_node_handler = tk_nuke_writenode.TankWriteNodeHandler(self)
 
-        """
+        # patch handler onto nuke module for access in WriteNode knobs
+        nuke._tank_write_node_handler = self.write_node_handler
+
+        # add WriteNodes to nuke menu
+        self.__add_write_nodes()
+
+        """ OLD
         tk_nuke_writenode = self.import_module("tk_nuke_writenode")
         
         # park this module with Nuke so that the snapshot history UI
@@ -61,19 +68,10 @@ class NukeWriteNode(tank.platform.Application):
                                      {"type": "custom_pane",
                                       "panel_id": tk_nuke_publish.snapshot_history.PANEL_UNIQUE_ID})
         """
-        self.__add_write_nodes()
+        
 
     def destroy_app(self):
         self.log_debug("Destroying tk-nuke-writenode")
-
-    def __generate_create_node_callback_fn(self, name, render_templ, publish_templ, file_type, file_settings):
-        """
-        Helper
-        Creates a callback function for the tank write node
-        """
-        cb_fn = (lambda n=name, rt=render_templ, pt=publish_templ, ft=file_type, ts=file_settings:
-                 self.write_node_handler.create_new_node(n, rt, pt, ft, ts))
-        return cb_fn
 
     def __add_write_nodes(self):
         """
@@ -115,13 +113,8 @@ class NukeWriteNode(tank.platform.Application):
                     raise TankError("Configuration Error: The required field '%s' is missing"
                                          "from the template %s" % (x, publish_template))
 
-            # add stuff to toolbar menu
-            cb_fn = self.__generate_create_node_callback_fn(name,
-                                                            render_template,
-                                                            publish_template,
-                                                            file_type,
-                                                            file_settings)
-            self.engine.register_command("Tank Write: %s" % name,
-                                          cb_fn,
-                                          {"type": "node", "icon": write_node_icon})
+            # add to toolbar menu
+            cb_fn = (lambda n=name, rt=render_template, pt=publish_template, ft=file_type, ts=file_settings:
+                        self.write_node_handler.create_new_node(n, rt, pt, ft, ts))
+            self.engine.register_command("Tank Write: %s" % name, cb_fn, {"type": "node", "icon": write_node_icon})
 

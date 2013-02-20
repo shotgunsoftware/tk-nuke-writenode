@@ -1,5 +1,5 @@
 """
-Copyright (c) 2012 Shotgun Software, Inc
+Copyright (c) 2013 Shotgun Software, Inc
 ----------------------------------------------------
 
 """
@@ -14,7 +14,6 @@ import tank
 from tank import TankError
 from tank.platform import constants
 
-
 # Special exception raised when the work file cannot be resolved.
 class TankWorkFileError(TankError):
     pass
@@ -26,7 +25,34 @@ class TankWriteNodeHandler(object):
 
     def __init__(self, app):
         self._app = app
-        self._work_template = self._app.get_template("template_work")
+        self._work_template = self._app.get_template("template_script_work")
+
+    def get_publishable_items(self):
+        """
+        Utility method to return all write nodes as publishable items
+        for multi-publish
+        """
+        from . import publish
+        items = []
+        for node in handler.get_nodes():
+            items.append(publish.WriteNodePublishable(self, node))
+        return items
+
+    def _get_current_file_fields(self):        
+        """
+        Extract some specific fields from the current work file:
+        """
+        curr_filename = nuke.root().name().replace("/", os.path.sep)
+        
+        details = {} 
+        if self._work_template and self._work_template.validate(curr_filename):
+            work_fields = self._work_template.get_fields(curr_filename)
+            if "name" in work_fields:
+                details["name"] = work_fields["name"]
+            if "version" in work_fields:
+                details["version"] = work_fields["version"]
+                
+        return details
 
     def get_render_template(self, node):
         """
@@ -56,6 +82,18 @@ class TankWriteNodeHandler(object):
         node.knob("label").setValue(label)
 
         # now try to set the nuke node name - fail gracefully
+        work_file_fields = self._get_current_file_fields()
+        if work_file_fields:
+            chan_name = node.knob("tank_channel").evaluate()
+            
+            # preview: myscene output3 v032
+            # alt:     myscene v032
+            node_name = "%s " % work_file_fields.get("name")
+            if chan_name != "":
+                node_name += "%s " % chan_name
+            node_name += "v%03d" % work_file_fields.get("version")
+            node.knob("name").setValue(node_name)
+        """
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         # get fields from curr open nuke script
         if self._work_template.validate(curr_filename):
@@ -70,8 +108,8 @@ class TankWriteNodeHandler(object):
                 node_name += "%s " % chan_name
             node_name += "v%03d" % work_file_fields.get("version")
             node.knob("name").setValue(node_name)
-
-
+        """
+        
         # normalize the path for os platform
         norm_path = path.replace("/", os.sep)
 
@@ -213,12 +251,14 @@ class TankWriteNodeHandler(object):
             return
 
         # make sure that the file is a proper tank work path
+        """ (AD) - TODO - decide if this check is needed
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         if not self._work_template.validate(curr_filename):
             nuke.message("This file is not a Tank work file. Please do a snapshot as in order "
                          "to save it as a Tank work file.")
             return
-
+        """
+        
         # if the render template does not contain channel then only one node
         # for that template is allowed
         if "channel" not in render_template.keys:
@@ -264,15 +304,22 @@ class TankWriteNodeHandler(object):
             if cached_path:
                 return cached_path
         
+        work_file_fields = self._get_current_file_fields()
+        # (AD) - TODO - Is this test required?
+        if not work_file_fields:
+            raise TankWorkFileError("Not a Tank Work File!")
+        
+        """
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         if not self._work_template.validate(curr_filename):
             raise TankWorkFileError("Not a Tank Work File!")
 
-        # get the template
-        template = self.get_render_template(node)
-
         # get fields from curr open nuke script
         work_file_fields = self._work_template.get_fields(curr_filename)
+        """
+        
+        # get the template
+        template = self.get_render_template(node)
 
         # create fields dict with all the metadata
         fields = {}

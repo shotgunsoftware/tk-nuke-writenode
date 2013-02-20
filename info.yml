@@ -34,6 +34,10 @@ configuration:
                 file_type: { type: str }
                 settings: { type: dict }
                 tank_type: { type: tank_type }
+                #work_template:
+                #    type: template
+                #    required_fields: [version,SEQ]
+                #    optional_fields: [channel,name,width,height,eye]
                 render_template:
                     type: template
                     required_fields: [version,SEQ]
@@ -43,45 +47,57 @@ configuration:
                     required_fields: [version,SEQ]
                     optional_fields: [channel,name,width,height,eye,TankType]
 
-    # snapshot paths
-    template_work:
+    template_script_work:
         type: template
-        description: A reference to a template which locates a work file on disk.
+        description: "A reference to a template which locates a nuke script work file on disk. This
+                     is used to drive the version and optionally the name of renders."
         required_fields: [version]
         optional_fields: [name]
-    template_snapshot:
-        type: template
-        description: A reference to a template which defines the location where snapshot
-                     backups will end up on disk.
-        required_fields: [version, timestamp]
-        optional_fields: [name]
 
-    # publish paths
-    template_publish:
-        type: template
-        required_fields: [version]
-        optional_fields: [name, TankType]
-        description: Defines where publishes should go on disk.
-
-    published_script_tank_type:
-        type: tank_type
-        description: The string value of the TankType used for published Nuke scripts.
-
-    # hooks
-    hook_publish_file:
+    hook_find_publishables:
         type: hook
-        description: Called when a file is published, e.g. copied from a work area to a publish area.
-        parameters: [source_path, target_path]
-        default_value: nuke_publish_file
+        description: Find publishables
+        parameters: []
+        default_value: nuke_writenode_find_publishables
+
+#    # snapshot paths
+#    template_work:
+#        type: template
+#        description: A reference to a template which locates a work file on disk.
+#        required_fields: [version]
+#        optional_fields: [name]
+#    template_snapshot:
+#        type: template
+#        description: A reference to a template which defines the location where snapshot
+#                     backups will end up on disk.
+#        required_fields: [version, timestamp]
+#        optional_fields: [name]
+#
+#    # publish paths
+#    template_publish:
+#        type: template
+#        required_fields: [version]
+#        optional_fields: [name, TankType]
+#        description: Defines where publishes should go on disk.
+#
+#    published_script_tank_type:
+#        type: tank_type
+#        description: The string value of the TankType used for published Nuke scripts.
+#
+#    # hooks
+#    hook_publish_file:
+#        type: hook
+#        description: Called when a file is published, e.g. copied from a work area to a publish area.
+#        parameters: [source_path, target_path]
+#        default_value: nuke_publish_file
 
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
-
 # More verbose description of this item 
-display_name: "Publish and Snapshot"
-description: "Publishing, Snapshotting and Version Control in Nuke."
+display_name: "WriteNode"
+description: "Support for the Tank Write Node in Nuke."
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
@@ -93,5 +109,4 @@ supported_engines: [tk-nuke]
 
 # the frameworks required to run this app
 frameworks:
-    - {"name": "tk-framework-widget", "version": "v0.1.3"}
     
