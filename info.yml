@@ -50,12 +50,6 @@ configuration:
         required_fields: [version]
         optional_fields: [name]
 
-    hook_find_publishables:
-        type: hook
-        description: Find publishables
-        parameters: []
-        default_value: nuke_writenode_find_publishables
-
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
