@@ -25,34 +25,48 @@ class TankWriteNodeHandler(object):
 
     def __init__(self, app):
         self._app = app
-        self._work_template = self._app.get_template("template_script_work")
+        self._script_template = self._app.get_template("template_script_work")
 
-    def get_publishable_items(self):
+    def get_node_name(self, node):
         """
-        Utility method to return all write nodes as publishable items
-        for multi-publish
+        Return the name for the specified node
         """
-        from . import publish
-        items = []
-        for node in handler.get_nodes():
-            items.append(publish.WriteNodePublishable(self, node))
-        return items
+        return node.name()
 
-    def _get_current_file_fields(self):        
+    def get_node_profile_name(self, node):
         """
-        Extract some specific fields from the current work file:
+        Return the name of the profile the specified node is using
+        """
+        return node.knob("profile_name").value()
+    
+    def get_node_render_template(self, node):
+        """
+        Return the render template for the specified node
+        """
+        return self.get_render_template(node)
+    
+    def get_node_tank_type(self, node):
+        """
+        Return the tank type for the specified node
+        """
+        profile_name = self.get_node_profile_name(node)
+        if profile_name:
+            app_settings = self._app.get_setting("write_nodes", {})
+            for setting in app_settings:
+                if setting["name"] == profile_name:
+                    return setting["tank_type"]
+
+    def _get_current_script_fields(self):        
+        """
+        Extract some specific fields from the current script:
         """
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         
-        details = {} 
-        if self._work_template and self._work_template.validate(curr_filename):
-            work_fields = self._work_template.get_fields(curr_filename)
-            if "name" in work_fields:
-                details["name"] = work_fields["name"]
-            if "version" in work_fields:
-                details["version"] = work_fields["version"]
+        work_fields = {}
+        if self._script_template and self._script_template.validate(curr_filename):
+            work_fields = self._script_template.get_fields(curr_filename)
                 
-        return details
+        return work_fields
 
     def get_render_template(self, node):
         """
@@ -82,7 +96,7 @@ class TankWriteNodeHandler(object):
         node.knob("label").setValue(label)
 
         # now try to set the nuke node name - fail gracefully
-        work_file_fields = self._get_current_file_fields()
+        work_file_fields = self._get_current_script_fields()
         if work_file_fields:
             chan_name = node.knob("tank_channel").evaluate()
             
@@ -93,22 +107,6 @@ class TankWriteNodeHandler(object):
                 node_name += "%s " % chan_name
             node_name += "v%03d" % work_file_fields.get("version")
             node.knob("name").setValue(node_name)
-        """
-        curr_filename = nuke.root().name().replace("/", os.path.sep)
-        # get fields from curr open nuke script
-        if self._work_template.validate(curr_filename):
-
-            work_file_fields = self._work_template.get_fields(curr_filename)
-            chan_name = node.knob("tank_channel").evaluate()
-            
-            # preview: myscene output3 v032
-            # alt:     myscene v032
-            node_name = "%s " % work_file_fields.get("name")
-            if chan_name != "":
-                node_name += "%s " % chan_name
-            node_name += "v%03d" % work_file_fields.get("version")
-            node.knob("name").setValue(node_name)
-        """
         
         # normalize the path for os platform
         norm_path = path.replace("/", os.sep)
@@ -251,13 +249,11 @@ class TankWriteNodeHandler(object):
             return
 
         # make sure that the file is a proper tank work path
-        """ (AD) - TODO - decide if this check is needed
         curr_filename = nuke.root().name().replace("/", os.path.sep)
-        if not self._work_template.validate(curr_filename):
+        if not self._script_template.validate(curr_filename):
             nuke.message("This file is not a Tank work file. Please do a snapshot as in order "
                          "to save it as a Tank work file.")
             return
-        """
         
         # if the render template does not contain channel then only one node
         # for that template is allowed
@@ -304,19 +300,9 @@ class TankWriteNodeHandler(object):
             if cached_path:
                 return cached_path
         
-        work_file_fields = self._get_current_file_fields()
-        # (AD) - TODO - Is this test required?
+        work_file_fields = self._get_current_script_fields()
         if not work_file_fields:
             raise TankWorkFileError("Not a Tank Work File!")
-        
-        """
-        curr_filename = nuke.root().name().replace("/", os.path.sep)
-        if not self._work_template.validate(curr_filename):
-            raise TankWorkFileError("Not a Tank Work File!")
-
-        # get fields from curr open nuke script
-        work_file_fields = self._work_template.get_fields(curr_filename)
-        """
         
         # get the template
         template = self.get_render_template(node)
@@ -342,6 +328,9 @@ class TankWriteNodeHandler(object):
 
         # get a path from tank
         render_path = template.apply_fields(fields)
+        
+        # make slahes uniform:
+        render_path = render_path.replace(os.path.sep, "/")
 
         return render_path
 
@@ -379,9 +368,6 @@ class TankWriteNodeHandler(object):
                        "any changes to it.<br>"
                        "</i>")
         else:
-            # and back to slash notation for paths again
-            render_path = render_path.replace(os.path.sep, "/")
-
             if not cached_path:
                 # cache the new render path
                 node.knob("cached_path").setValue(render_path)
@@ -569,15 +555,6 @@ class TankWriteNodeHandler(object):
         note that the node parameter represents the write node inside of the gizmo.
         """
 
-        def create_folders(out_dir):
-            # create folders! also nested functions ftw
-            hook_name = constants.CREATE_FOLDERS_CORE_HOOK_NAME
-            try:
-                self._app.tank.execute_hook(hook_name, path=out_dir)
-            except Exception, e:
-                raise TankError("Error creating folder %s - the %s hook "
-                                "reported the following error: %s" % (out_dir, hook_name, e))
-
         views = node.knob("views").value().split()
 
         if len(views) < 2:
@@ -589,7 +566,8 @@ class TankWriteNodeHandler(object):
                 out_file = node.knob("file").evaluate()
 
             out_dir = os.path.dirname(out_file)
-            create_folders(out_dir)
+            self._app.ensure_folder_exists(out_dir)
+            
         else:
             # stereo or odd number of views...
             for view in views:
@@ -600,4 +578,4 @@ class TankWriteNodeHandler(object):
                     out_file = node.knob("file").evaluate(view=view)
 
                 out_dir = os.path.dirname(out_file)
-                create_folders(out_dir)
+                self._app.ensure_folder_exists(out_dir)

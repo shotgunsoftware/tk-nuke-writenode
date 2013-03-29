@@ -7,9 +7,7 @@ Tank Write Node for Nuke
 """
 
 import os
-
 import nuke
-
 import tank
 from tank import TankError
 
@@ -30,49 +28,68 @@ class NukeWriteNode(tank.platform.Application):
         # add WriteNodes to nuke menu
         self.__add_write_nodes()
 
-        """ OLD
-        tk_nuke_writenode = self.import_module("tk_nuke_writenode")
-        
-        # park this module with Nuke so that the snapshot history UI
-        # pane code can find it later on.
-        nuke._tk_nuke_publish = tk_nuke_publish
-
-        # validate template_work and template_publish have the same extension
-        _, work_ext = os.path.splitext(self.get_template("template_work").definition)
-        _, pub_ext = os.path.splitext(self.get_template("template_publish").definition)
-
-        if work_ext != pub_ext:
-            # disable app
-            self.log_error("'template_work' and 'template_publish' have different file extensions.")
-            return
-
-        # create handlers for our various commands
-        self.write_node_handler = tk_nuke_publish.TankWriteNodeHandler(self)
-        # immediately attach it to the nuke API so that the gizmos can reach it
-        nuke._tank_write_node_handler = self.write_node_handler
-        self.snapshot_handler = tk_nuke_publish.TankSnapshotHandler(self,
-                                                                    self.write_node_handler)
-        self.publish_handler = tk_nuke_publish.TankPublishHandler(self,
-                                                                  self.snapshot_handler,
-                                                                  self.write_node_handler)
-
-        # add stuff to main menu
-        self.engine.register_command("Snapshot As...", self.snapshot_handler.snapshot_as)
-        self.engine.register_command("Snapshot", self.snapshot_handler.snapshot)
-        self.engine.register_command("Publish...", self.publish_handler.publish)
-        self.engine.register_command("Version up Work file...", self.snapshot_handler.manual_version_up)
-
-         # custom panes
-        self.engine.register_command("Tank Snapshot History",
-                                     tk_nuke_publish.snapshot_history.create_new_panel,
-                                     {"type": "custom_pane",
-                                      "panel_id": tk_nuke_publish.snapshot_history.PANEL_UNIQUE_ID})
-        """
-        
-
     def destroy_app(self):
         self.log_debug("Destroying tk-nuke-writenode")
 
+
+    # interface for other apps to query write node info:
+    #
+    
+    def get_write_nodes(self):
+        """
+        Return list of all write nodes
+        """
+        return self.write_node_handler.get_nodes()
+    
+    def get_node_name(self, node):
+        """
+        Return the name for the specified node
+        """
+        return self.write_node_handler.get_node_name(node)
+
+    def get_node_profile_name(self, node):
+        """
+        Return the name of the profile the specified node
+        is using
+        """
+        return self.write_node_handler.get_node_profile_name(node)
+    
+    def get_node_render_files(self, node):
+        """
+        Return the list of rendered files for the node
+        """
+        return self.write_node_handler.get_files_on_disk(node)
+    
+    def get_node_render_template(self, node):
+        """
+        Return the render template for the specified node
+        """
+        return self.write_node_handler.get_render_template(node)
+    
+    def get_node_publish_template(self, node):
+        """
+        Return the publish template for the specified node
+        """
+        return self.write_node_handler.get_publish_template(node)
+    
+    def get_node_tank_type(self, node):
+        """
+        Return the tank type for the specified node
+        """
+        return self.write_node_handler.get_node_tank_type(node)
+    
+    def get_node_render_path(self, node):
+        """
+        Return the render path for the specified node
+        """
+        return self.write_node_handler.compute_path(node)
+    
+    def generate_node_thumbnail(self, node):
+        """
+        Generate a thumnail for the specified node
+        """
+        return self.write_node_handler.generate_thumbnail(node)
+    
     def __add_write_nodes(self):
         """
         Creates write node menu entries for all write node configurations
