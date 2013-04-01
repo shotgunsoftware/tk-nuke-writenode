@@ -90,6 +90,14 @@ class NukeWriteNode(tank.platform.Application):
         """
         return self.write_node_handler.generate_thumbnail(node)
     
+    def reset_node_render_path(self, node):
+        """
+        Reset the render path of the specified node.  This
+        will force the render path to be updated based on
+        the current script path and configuraton
+        """
+        self.write_node_handler.reset_render_path(node)
+
     def __add_write_nodes(self):
         """
         Creates write node menu entries for all write node configurations
