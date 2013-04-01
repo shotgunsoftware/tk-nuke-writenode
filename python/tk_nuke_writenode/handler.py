@@ -58,7 +58,8 @@ class TankWriteNodeHandler(object):
 
     def _get_current_script_fields(self):        
         """
-        Extract some specific fields from the current script:
+        Extract fields from the current script using the script
+        template
         """
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         
