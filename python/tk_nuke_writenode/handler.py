@@ -246,13 +246,13 @@ class TankWriteNodeHandler(object):
         """
         if nuke.root().name() == "Root":
             # must snapshot first!
-            nuke.message("Please snapshot the file first!")
+            nuke.message("Please save the file first!")
             return
 
         # make sure that the file is a proper tank work path
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         if not self._script_template.validate(curr_filename):
-            nuke.message("This file is not a Tank work file. Please do a snapshot as in order "
+            nuke.message("This file is not a Tank work file. Please save it with Tank in order "
                          "to save it as a Tank work file.")
             return
         
@@ -396,6 +396,11 @@ class TankWriteNodeHandler(object):
         return render_path
     
     def reset_render_path(self, node):
+        """
+        Reset the render path of the specified node.  This
+        will force the render path to be updated based on
+        the current script path and configuraton
+        """        
         node.knob("cached_path").setValue("")
         # callback to refresh cached path and update node:
         self.on_compute_path_gizmo_callback(node)   
