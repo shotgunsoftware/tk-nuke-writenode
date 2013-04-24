@@ -97,6 +97,17 @@ class NukeWriteNode(tank.platform.Application):
         the current script path and configuraton
         """
         self.write_node_handler.reset_render_path(node)
+        
+    def is_node_render_path_locked(self, node):
+        """
+        Determine if the render path for the specified node
+        is locked.  The path will become locked if the cached
+        version of the path no longer matches the computed
+        path (using the appropriate render template).  This
+        can happen if the file is moved on disk or if the template
+        is changed.
+        """
+        return self.write_node_handler.render_path_is_locked(node)
 
     def __add_write_nodes(self):
         """
