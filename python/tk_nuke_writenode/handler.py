@@ -39,22 +39,13 @@ class TankWriteNodeHandler(object):
         """
         return node.knob("profile_name").value()
     
-    def get_node_render_template(self, node):
-        """
-        Return the render template for the specified node
-        """
-        return self.get_render_template(node)
-    
     def get_node_tank_type(self, node):
         """
         Return the tank type for the specified node
         """
-        profile_name = self.get_node_profile_name(node)
-        if profile_name:
-            app_settings = self._app.get_setting("write_nodes", {})
-            for setting in app_settings:
-                if setting["name"] == profile_name:
-                    return setting["tank_type"]
+        settings = self._get_node_profile_settings(node)
+        if settings:
+            return settings["tank_type"]
 
     def _get_current_script_fields(self):        
         """
@@ -69,21 +60,49 @@ class TankWriteNodeHandler(object):
                 
         return work_fields
 
+    def _get_node_profile_settings(self, node):
+        """
+        Find the profile settings for the specified node
+        """
+        profile_name = self.get_node_profile_name(node)
+        if profile_name:
+            app_settings = self._app.get_setting("write_nodes", {})
+            for profile in app_settings:
+                if profile["name"] == profile_name:
+                    return profile
+
+    def _get_template(self, node, name):
+        """
+        Get the named template for the specified node.
+        """
+        template_name = None
+        
+        # get the template from the nodes profile settings:
+        settings = self._get_node_profile_settings(node)
+        if settings:
+            template_name = settings[name]
+            if template_name:
+                # update the cached setting:
+                node.knob(name).setValue(template_name)
+        else:
+            # the profile probably doesn't exist any more so
+            # try to use the cached version
+            template_name = node.knob(name).value()
+            
+        return self._app.get_template_by_name(template_name)
+        
     def get_render_template(self, node):
         """
         helper function. Returns the associated render template obj for a node
         """
-        templ_name = node.knob("render_template").value()
-
-        return self._app.get_template_by_name(templ_name)
+        return self._get_template(node, "render_template")
 
     def get_publish_template(self, node):
         """
         helper function. Returns the associated pub template obj for a node
         """
-        templ_name = node.knob("publish_template").value()
-        return self._app.get_template_by_name(templ_name)
-
+        return self._get_template(node, "publish_template")
+    
     def _update_path_preview(self, node, path):
         """
         Updates the path preview fields on the tank write node.
