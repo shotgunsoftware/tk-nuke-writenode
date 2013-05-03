@@ -329,8 +329,8 @@ class TankWriteNodeHandler(object):
 
         # create fields dict with all the metadata
         fields = {}
-        fields["width"] = nuke.root().width()
-        fields["height"] = nuke.root().height()
+        fields["width"] = node.width()
+        fields["height"] = node.height()
         fields["name"] = work_file_fields.get("name")
         fields["version"] = work_file_fields["version"]
         fields["SEQ"] = "FORMAT: %d"
