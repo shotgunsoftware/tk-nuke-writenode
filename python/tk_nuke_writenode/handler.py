@@ -112,7 +112,7 @@ class TankWriteNodeHandler(object):
         # this will be displayed on the node in the graph
         # useful to tell what type of node it is
         pn = node.knob("profile_name").value()
-        label = "Tank Write %s" % pn
+        label = "Shotgun Write %s" % pn
         node.knob("label").setValue(label)
 
         # now try to set the nuke node name - fail gracefully
@@ -238,7 +238,7 @@ class TankWriteNodeHandler(object):
         # now have to read it back and check that the value is what we
         # expect. Cheers Nuke.
         if write_node.knob("file_type").value() != file_type:
-            self._app.log_error("Tank write node configuration refers to an invalid file "
+            self._app.log_error("Shotgun write node configuration refers to an invalid file "
                                 "format '%s'! Will revert to auto-detect mode." % file_type)
             write_node.knob("file_type").setValue("  ")
             return
@@ -271,8 +271,8 @@ class TankWriteNodeHandler(object):
         # make sure that the file is a proper tank work path
         curr_filename = nuke.root().name().replace("/", os.path.sep)
         if not self._script_template.validate(curr_filename):
-            nuke.message("This file is not a Tank work file. Please save it with Tank in order "
-                         "to save it as a Tank work file.")
+            nuke.message("This file is not a Shotgun work file. Please use Shotgun Save-As in order "
+                         "to save the file as a valid work file.")
             return
         
         # if the render template does not contain channel then only one node
@@ -280,13 +280,13 @@ class TankWriteNodeHandler(object):
         if "channel" not in render_template.keys:
             if self.__node_type_exists(render_template):
                 nuke.message("Only one node of this type is allowed.  Add channel "
-                        "to the Tank template for this node type to change that.")
+                        "to the Shotgun template for this node type to change that.")
                 return
 
         # new node please!
         node = nuke.createNode("WriteTank")
 
-        self._app.log_debug("Created Tank Write Node %s" % node.name())
+        self._app.log_debug("Created Shotgun Write Node %s" % node.name())
 
         # auto-populate channel name based on template
         self.__populate_channel_name(render_template, node)
@@ -322,7 +322,7 @@ class TankWriteNodeHandler(object):
         
         work_file_fields = self._get_current_script_fields()
         if not work_file_fields:
-            raise TankWorkFileError("Not a Tank Work File!")
+            raise TankWorkFileError("Not a Shotgun Work File!")
         
         # get the template
         template = self.get_render_template(node)
@@ -383,7 +383,7 @@ class TankWriteNodeHandler(object):
             path_warning = ("<i style='color:orange'>"
                        "Path is currently frozen because the Nuke file has <br>"
                        "been moved outside the area of the file system that <br>"
-                       "Tank recognizes. <br>"
+                       "Shotgun recognizes. <br>"
                        "You can still render this node, but you cannot make <br>"
                        "any changes to it.<br>"
                        "</i>")
@@ -395,7 +395,7 @@ class TankWriteNodeHandler(object):
             elif render_path != cached_path:
                 # render path does not match the cached path - the template has probably changed!
                 path_warning = ("<i style='color:orange'>"
-                                "The path does not match the current Tank work area.  You<br>"
+                                "The path does not match the current Shotgun Work Area.  You<br>"
                                 "can still render but you will not be able to publish this node.<br>"
                                 "<br>"
                                 "The path will be automatically reset next time you version-up,<br>"

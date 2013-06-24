@@ -10,7 +10,7 @@ configuration:
     # tank write nodes paths
     write_nodes:
         type: list
-        description: "A list of dictionaries in which you define the Tank write nodes that
+        description: "A list of dictionaries in which you define the Shotgun Write nodes that
                      are supported in this configuration. Each dictionary entry needs to have
                      the following keys: name - a descriptive name for this node. file_type -
                      the file type to use for the renders (exr, cin, dpx etc). This will be
@@ -24,7 +24,7 @@ configuration:
                      (which reflect the image resolution of the render) and channel (which
                      differenciates different write nodes). If you are doing stereo
                      rendering and want to use Nuke's %V flag, include an eye field.
-                     This will be replaced by %V in the paths when the tank write node
+                     This will be replaced by %V in the paths when the Shotgun Write node
                      computes them."
         allows_empty: True
         values:
@@ -55,7 +55,7 @@ requires_shotgun_fields:
 
 # More verbose description of this item 
 display_name: "Write Node"
-description: "Support for the Tank Write Node in Nuke."
+description: "Support for the Shotgun Write Node in Nuke."
 
 # Required minimum versions for this item to run
 requires_shotgun_version:

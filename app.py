@@ -152,5 +152,5 @@ class NukeWriteNode(tank.platform.Application):
             # add to toolbar menu
             cb_fn = (lambda n=name, rt=render_template, pt=publish_template, ft=file_type, ts=file_settings:
                         self.write_node_handler.create_new_node(n, rt, pt, ft, ts))
-            self.engine.register_command("Tank Write: %s" % name, cb_fn, {"type": "node", "icon": write_node_icon})
+            self.engine.register_command("Shotgun Write: %s" % name, cb_fn, {"type": "node", "icon": write_node_icon})
 
