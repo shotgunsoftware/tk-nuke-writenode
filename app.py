@@ -82,6 +82,15 @@ class NukeWriteNode(tank.platform.Application):
     def get_node_tank_type(self, node):
         """
         Return the tank type for the specified node
+        
+        Note: Legacy version with old 'Tank Type' name - use
+        get_node_published_file_type instead!
+        """
+        return self.write_node_handler.get_node_tank_type(node)
+
+    def get_node_published_file_type(self, node):
+        """
+        Return the published file type for the specified node
         """
         return self.write_node_handler.get_node_tank_type(node)
     
