@@ -500,6 +500,10 @@ class TankWriteNodeHandler(object):
         # first, try to just use the current cached path:
         render_path = self.compute_path(node)
         if render_path:
+            # the above method returns nuke style slashes, so ensure these
+            # are pointing correctly
+            render_path = render_path.replace("/", os.path.sep)
+            
             dir_name = os.path.dirname(render_path)
             if os.path.exists(dir_name):
                 render_dir = dir_name
@@ -535,7 +539,7 @@ class TankWriteNodeHandler(object):
             self._app.log_debug("Executing command '%s'" % cmd)
             exit_code = os.system(cmd)
             if exit_code != 0:
-                self.log_error("Failed to launch '%s'!" % cmd)
+                nuke.message("Failed to launch '%s'!" % cmd)
 
     def get_files_on_disk(self, node):
         """
@@ -553,7 +557,7 @@ class TankWriteNodeHandler(object):
        
         # make sure we don't look for any eye - %V or SEQ - %04d stuff
         frames = self._app.tank.paths_from_template(template, fields, ["SEQ", "eye"])
-
+        
         return frames
 
     def exists_on_disk(self, node):
