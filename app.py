@@ -155,16 +155,7 @@ class NukeWriteNode(tank.platform.Application):
             publish_template = self.get_template_by_name(pts)
             if publish_template is None:
                 raise TankError("Configuration Error: Could not find publish template: %s" % x)
-
-            # make sure that all required fields exist in the templates
-            for x in ["version", "name"]:
-                if x not in render_template.keys.keys():
-                    raise TankError("Configuration Error: The required field '%s' is missing"
-                                         "from the template %s" % (x, render_template))
-                if x not in publish_template.keys.keys():
-                    raise TankError("Configuration Error: The required field '%s' is missing"
-                                         "from the template %s" % (x, publish_template))
-
+            
             # add to toolbar menu
             cb_fn = (lambda n=name, rt=render_template, pt=publish_template, ft=file_type, ts=file_settings:
                         self.write_node_handler.create_new_node(n, rt, pt, ft, ts))
