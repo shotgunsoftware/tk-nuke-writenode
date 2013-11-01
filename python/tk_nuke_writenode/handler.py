@@ -130,6 +130,11 @@ class TankWriteNodeHandler(object):
             if chan_name != "":
                 node_name += "%s " % chan_name
             node_name += "v%03d" % work_file_fields.get("version")
+            
+            # replace spaces with underscores to conform
+            # with nuke naming convention:
+            node_name = node_name.replace(" ", "_")
+            
             node.knob("name").setValue(node_name)
         
         # normalize the path for os platform
