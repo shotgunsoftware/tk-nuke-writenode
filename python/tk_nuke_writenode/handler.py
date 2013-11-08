@@ -127,7 +127,7 @@ class TankWriteNodeHandler(object):
             # preview: myscene output3 v032
             # alt:     myscene v032
             node_name = "%s " % work_file_fields.get("name")
-            if chan_name != "":
+            if chan_name:
                 node_name += "%s " % chan_name
             node_name += "v%03d" % work_file_fields.get("version")
             
@@ -188,6 +188,13 @@ class TankWriteNodeHandler(object):
         """
         Create a suitable channel name for a node
         """
+        # first, check that channel is actually used in the 
+        # template!
+        channel_key = template.keys.get("channel")
+        if not channel_key:
+            # Nothing to do!
+            return
+        
         # look at all other nodes to determine the channel
         # name so that we don't produce a duplicate and
         # to check if we are the first write for a given
@@ -205,24 +212,18 @@ class TankWriteNodeHandler(object):
             return not key in required_keys
 
         # try to get default channel name from template
-        nk = template.keys.get("channel")
-        if nk is None:
-            # disable channel if it is not in the template.
-            channel_name_base = ''
-            channel_knob.setEnabled(False)
-            channel_knob.setVisible(False)
-        else:
-            channel_name_base = nk.default
-            if channel_name_base is None:
-                # no default name - use hard coded built in
-                channel_name_base = "output"
-            if is_optional(template, "channel"):
-                if not self.__node_type_exists(template):
-                    # first optional node gets an empty channel name
-                    channel_name_base = ''
-                else:
-                    # not the first, pretend there is at least one default named node
-                    channel_names.append(channel_name_base)
+        channel_name_base = channel_key.default
+        if channel_name_base is None:
+            # no default name - use hard coded built in
+            channel_name_base = "output"
+        
+        if is_optional(template, "channel"):
+            if not self.__node_type_exists(template):
+                # first optional node gets an empty channel name
+                channel_name_base = ''
+            else:
+                # not the first, pretend there is at least one default named node
+                channel_names.append(channel_name_base)
 
         # look at other nodes to ensure uniqueness
         counter = 0
@@ -421,6 +422,14 @@ class TankWriteNodeHandler(object):
         node.knob("path_warning").setValue(path_warning)
         node.knob("path_warning").setVisible(bool(path_warning))
         
+        # also update channel knob visibility depending if channel is a key
+        # in the render template or not:
+        render_template = self.get_render_template(node)
+        have_channel_key = "channel" in render_template.keys
+        channel_knob = node.knob("tank_channel")
+        channel_knob.setEnabled(have_channel_key)
+        channel_knob.setVisible(have_channel_key)
+
         return render_path
     
     def reset_render_path(self, node):
@@ -577,8 +586,12 @@ class TankWriteNodeHandler(object):
         returns the channel for a tank write node.
         May return None if no value has been defined.
         """
-        channel_knob = node.knob("tank_channel")
-        return channel_knob.value() or None
+        render_template = self.get_render_template(node)
+        if "channel" in render_template.keys:
+            channel_knob = node.knob("tank_channel")
+            return channel_knob.value() or None
+        else:
+            return None
 
     def get_nodes(self):
         """
