@@ -14,6 +14,7 @@ Tank Write Node for Nuke
 """
 
 import os
+import json
 import nuke
 import tank
 from tank import TankError
@@ -35,9 +36,46 @@ class NukeWriteNode(tank.platform.Application):
         # add WriteNodes to nuke menu
         self.__add_write_nodes()
 
+        # add callback to check for Hiero-generated nodes
+        nuke.addOnScriptLoad(self.process_hiero_nodes, args=(), kwargs={}, nodeClass='Root')
+
     def destroy_app(self):
         self.log_debug("Destroying tk-nuke-writenode")
 
+    def process_hiero_nodes(self):
+        """
+        Convert any nodes created by a Hiero export to TK Write Nodes
+        """
+        node_found = False
+        self.log_debug("Looking for Hiero nodes to process...")
+        for n in nuke.allNodes("ModifyMetaData"):
+            if not n.name().startswith('HieroWriteTank'):
+                continue
+            
+            self.log_debug("Found HieroWriteTank node: %s" % n)
+            metadata = n.metadata()
+            name = metadata.get('name')
+            file_type = metadata.get('file_type')
+            render_template = self.get_template_by_name(metadata.get('render_template'))
+            publish_template = self.get_template_by_name(metadata.get('publish_template'))
+            file_settings = json.loads(metadata.get('file_settings').replace('\\"', '"'))
+            
+            # for creating a new node, unicode bad. string good. 
+            for k,v in file_settings.iteritems():
+                if isinstance(v, unicode):
+                    file_settings[k] = str(v)
+
+            # try and ensure we're connected to the tree after we delete the
+            # HieroTankWrite Nodes
+            if not node_found:
+                node_found = True
+                try:
+                    n.dependencies()[0].setSelected(True)
+                except:
+                    pass
+                    
+            self.write_node_handler.create_new_node(name, render_template, publish_template, file_type, file_settings)
+            nuke.delete(n)
 
     # interface for other apps to query write node info:
     #
