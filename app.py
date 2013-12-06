@@ -40,6 +40,7 @@ class NukeWriteNode(tank.platform.Application):
 
     def destroy_app(self):
         self.log_debug("Destroying tk-nuke-writenode")
+        nuke.removeOnScriptLoad(self.process_placeholder_nodes)
 
     def process_placeholder_nodes(self):
         """
