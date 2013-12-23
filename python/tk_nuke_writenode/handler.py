@@ -87,7 +87,7 @@ class TankWriteNodeHandler(object):
             template_name = settings[name]
             if template_name:
                 # update the cached setting:
-                node.knob(name).setValue(template_name)
+                self.__update_knob_value(node, name, template_name)
         else:
             # the profile probably doesn't exist any more so
             # try to use the cached version
@@ -107,17 +107,26 @@ class TankWriteNodeHandler(object):
         """
         return self._get_template(node, "publish_template")
     
+    def __update_knob_value(self, node, name, new_value):
+        """
+        Update the value for the specified knob on the specified node
+        but only if it is different to the current value to avoid 
+        unneccesarily invalidating the cache
+        """
+        current_value = node.knob(name).value()
+        if new_value != current_value:
+            node.knob(name).setValue(new_value)
+    
     def _update_path_preview(self, node, path):
         """
         Updates the path preview fields on the tank write node.
         """
-
         # first set up the node label
         # this will be displayed on the node in the graph
         # useful to tell what type of node it is
         pn = node.knob("profile_name").value()
         label = "Shotgun Write %s" % pn
-        node.knob("label").setValue(label)
+        self.__update_knob_value(node, "label", label)
 
         # now try to set the nuke node name - fail gracefully
         work_file_fields = self._get_current_script_fields()
@@ -135,7 +144,7 @@ class TankWriteNodeHandler(object):
             # with nuke naming convention:
             node_name = node_name.replace(" ", "_")
             
-            node.knob("name").setValue(node_name)
+            self.__update_knob_value(node, "name", node_name)
         
         # normalize the path for os platform
         norm_path = path.replace("/", os.sep)
@@ -168,12 +177,9 @@ class TankWriteNodeHandler(object):
             # context_path:   /mnt/proj/shotXYZ/renders/v003
             # local_path:
 
-        pn = node.knob("path_context")
-        pn.setValue(context_path)
-        pn = node.knob("path_local")
-        pn.setValue(local_path)
-        pn = node.knob("path_filename")
-        pn.setValue(filename)
+        self.__update_knob_value(node, "path_context", context_path)
+        self.__update_knob_value(node, "path_local", local_path)
+        self.__update_knob_value(node, "path_filename", filename)
 
     def __node_type_exists(self, render_template):
         """
@@ -323,7 +329,6 @@ class TankWriteNodeHandler(object):
         :returns: a path based on the node settings
         """
         # note! Nuke has got pretty good error handling so don't try to catch any exceptions.
-
         if not force_compute:
             # if there is a cached path then just return that:
             cached_path = node.knob("cached_path").toScript()
@@ -375,7 +380,7 @@ class TankWriteNodeHandler(object):
         
         # get the cached path without evaluating (so it should be the value that originally set):
         cached_path = node.knob("cached_path").toScript()
-        
+    
         # compute path:
         reset_path_button_visible = False
         path_warning = ""
@@ -401,7 +406,6 @@ class TankWriteNodeHandler(object):
             if not cached_path:
                 # cache the new render path
                 node.knob("cached_path").setValue(render_path)
-                #node.knob("path_warning").setValue("")
             elif render_path != cached_path:
                 # render path does not match the cached path - the template has probably changed!
                 path_warning = ("<i style='color:orange'>"
@@ -417,9 +421,9 @@ class TankWriteNodeHandler(object):
             
         # update preview:
         self._update_path_preview(node, render_path)
-        
+
         node.knob("reset_path").setVisible(reset_path_button_visible)
-        node.knob("path_warning").setValue(path_warning)
+        self.__update_knob_value(node, "path_warning", path_warning)        
         node.knob("path_warning").setVisible(bool(path_warning))
         
         # also update channel knob visibility depending if channel is a key
@@ -605,7 +609,6 @@ class TankWriteNodeHandler(object):
         callback from nuke whenever a tank write node is about to be rendered.
         note that the node parameter represents the write node inside of the gizmo.
         """
-
         views = node.knob("views").value().split()
 
         if len(views) < 2:
