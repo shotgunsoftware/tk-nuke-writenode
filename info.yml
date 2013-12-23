@@ -42,19 +42,16 @@ configuration:
                 tank_type: { type: tank_type }
                 render_template:
                     type: template
-                    required_fields: [version,SEQ]
-                    optional_fields: [channel,name,width,height,eye]
+                    fields: context, version, SEQ, [channel], [name], [width], [height], [eye], *
                 publish_template:
                     type: template
-                    required_fields: [version,SEQ]
-                    optional_fields: [channel,name,width,height,eye,TankType]
+                    fields: context, version, SEQ, [channel], [name], [width], [height], [eye], [TankType], *
 
     template_script_work:
         type: template
         description: "A reference to a template which locates a nuke script work file on disk. This
                      is used to drive the version and optionally the name of renders."
-        required_fields: [version]
-        optional_fields: [name]
+        fields: context, version, [name], *
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
@@ -65,7 +62,7 @@ description: "Support for the Shotgun Write Node in Nuke."
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.12.5"
+requires_core_version: "v0.14.34"
 requires_engine_version: "v0.2.3"
 
 # the engines that this app can operate in:
