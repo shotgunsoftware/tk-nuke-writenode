@@ -309,13 +309,13 @@ class TankWriteNodeHandler(object):
         # auto-populate channel name based on template
         self.__populate_channel_name(render_template, node)
 
+        # set the format
+        self.__populate_format_settings(node, file_type, file_settings)
+
         # write the template name to the node so that we know it later
         node.knob("render_template").setValue(render_template.name)
         node.knob("publish_template").setValue(pub_template.name)
         node.knob("profile_name").setValue(name)
-
-        # set the format
-        self.__populate_format_settings(node, file_type, file_settings)
 
         # calculate the preview path
         self._update_path_preview(node, self.compute_path(node))
@@ -379,7 +379,12 @@ class TankWriteNodeHandler(object):
         
         It also updates the preview fields on the node. and the UI
         """
-        
+        # depending on how the node is created, this method may get called before everything
+        # has finished being initialized on the node.
+        # If this happens then we should stop before trying to do anything!
+        if not node.knob("profile_name").value():
+            return
+
         # get the cached path without evaluating (so it should be the value that originally set):
         cached_path = node.knob("cached_path").toScript()
     
