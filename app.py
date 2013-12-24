@@ -33,64 +33,22 @@ class NukeWriteNode(tank.platform.Application):
         nuke._tank_write_node_handler = self.write_node_handler
 
         # add WriteNodes to nuke menu
-        self.__add_write_nodes()
+        self.__add_write_node_commands()
 
-        # add callback to check for placeholder nodes
-        nuke.addOnScriptLoad(self.process_placeholder_nodes, args=(), kwargs={}, nodeClass='Root')
+        # add callbacks:
+        self.write_node_handler.add_callbacks()
 
     def destroy_app(self):
         self.log_debug("Destroying tk-nuke-writenode")
-        nuke.removeOnScriptLoad(self.process_placeholder_nodes)
-
+        
+        # remove any callbacks that were registered by the handler:
+        self.write_node_handler.remove_callbacks()
+        
     def process_placeholder_nodes(self):
         """
         Convert any placeholder nodes to TK Write Nodes
         """
-        node_found = False
-        self.log_debug("Looking for placeholder nodes to process...")
-        for n in nuke.allNodes("ModifyMetaData"):
-            if not n.name().startswith('ShotgunWriteNodePlaceholder'):
-                continue
-
-            self.log_debug("Found ShotgunWriteNodePlaceholder node: %s" % n)
-            metadata = n.metadata()
-            name = metadata.get('name')
-
-            # Find the settings that match this node
-            matched_profile = None
-            for profile in self.get_setting("write_nodes", []):
-                profile_name = profile.get("name", "unknown")
-                if profile_name == name:
-                    matched_profile = profile
-                    break
-
-            if matched_profile is None:
-                self.log_warning("Unknown write node profile in file, skipping: %s" % name)
-                continue
-
-            file_type = matched_profile.get("file_type")
-            file_settings = matched_profile.get("settings", {})
-            rts = matched_profile.get("render_template")
-            pts = matched_profile.get("publish_template")
-            render_template = self.get_template_by_name(rts)
-            publish_template = self.get_template_by_name(pts)
-
-            # try and ensure we're connected to the tree after we delete the nodes
-            if not node_found:
-                node_found = True
-                try:
-                    n.dependencies()[0].setSelected(True)
-                except:
-                    pass
-
-            new_node = self.write_node_handler.create_new_node(name, render_template,
-                publish_template, file_type, file_settings)
-            new_node.knob("tank_channel").setValue(metadata.get('channel'))
-            self.reset_node_render_path(new_node)
-
-            # And remove the original metadata
-            nuke.delete(n)
-
+        self.write_node_handler.process_placeholder_nodes()
 
     # interface for other apps to query write node info:
     #
@@ -178,7 +136,7 @@ class NukeWriteNode(tank.platform.Application):
         """
         return self.write_node_handler.render_path_is_locked(node)
 
-    def __add_write_nodes(self):
+    def __add_write_node_commands(self):
         """
         Creates write node menu entries for all write node configurations
         """

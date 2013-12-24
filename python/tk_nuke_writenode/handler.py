@@ -27,6 +27,8 @@ class TankWriteNodeHandler(object):
     Handles requests and processing from a tank write node.
     """
 
+    SG_WRITE_NODE_CLASS = "WriteTank"
+
     def __init__(self, app):
         self._app = app
         self._script_template = self._app.get_template("template_script_work")
@@ -185,7 +187,7 @@ class TankWriteNodeHandler(object):
         """
         Returns True if there is already a node in the scene with the given render template.
         """
-        for n in nuke.allNodes("WriteTank"):
+        for n in nuke.allNodes(TankWriteNodeHandler.SG_WRITE_NODE_CLASS):
             if self.get_render_template(n) == render_template:
                 return True
         return False
@@ -206,7 +208,7 @@ class TankWriteNodeHandler(object):
         # to check if we are the first write for a given
         # profile
         channel_names = []
-        for n in nuke.allNodes("WriteTank"):
+        for n in nuke.allNodes(TankWriteNodeHandler.SG_WRITE_NODE_CLASS):
             ch_knob = n.knob("tank_channel")
             channel_names.append(ch_knob.evaluate())
 
@@ -300,7 +302,7 @@ class TankWriteNodeHandler(object):
                 return
 
         # new node please!
-        node = nuke.createNode("WriteTank")
+        node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
         self._app.log_debug("Created Shotgun Write Node %s" % node.name())
 
@@ -384,7 +386,6 @@ class TankWriteNodeHandler(object):
         # compute path:
         reset_path_button_visible = False
         path_warning = ""
-        
         try:
             render_path = self.compute_path(node, True)
         except TankWorkFileError:
@@ -465,11 +466,11 @@ class TankWriteNodeHandler(object):
         # get thumbnail node
 
         th_node = node.node("create_thumbnail")
-        th_node.knob('disable').setValue(False)
         if th_node is None:
             # write gizmo that does not have the create thumbnail node
             return None
-
+        th_node.knob('disable').setValue(False)
+        
         png_path = tempfile.NamedTemporaryFile(suffix=".png", prefix="tanktmp", delete=False).name
 
         # set render output - make sure to use a path with slashes on all OSes
@@ -601,7 +602,7 @@ class TankWriteNodeHandler(object):
         """
         Returns a list of tank write nodes
         """
-        return nuke.allNodes("WriteTank")
+        return nuke.allNodes(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
 
     def on_before_render(self, node):
@@ -633,3 +634,127 @@ class TankWriteNodeHandler(object):
 
                 out_dir = os.path.dirname(out_file)
                 self._app.ensure_folder_exists(out_dir)
+                
+                
+    def add_callbacks(self):
+        """
+        Add callbacks to watch for certain events:
+        """
+        # add callback to check for placeholder nodes
+        nuke.addOnScriptLoad(self.process_placeholder_nodes, nodeClass="Root")
+    
+        # callbacks for when Shotgun Write nodes are created & destroyed:
+        nuke.addOnCreate(self._on_node_created, nodeClass = TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+        nuke.addOnDestroy(self._on_node_destroyed, nodeClass = TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+        
+        # for all existing nodes, add knob changed callback:
+        for n in nuke.allNodes(filter = TankWriteNodeHandler.SG_WRITE_NODE_CLASS):
+            self._app.log_debug("Adding callback to '%s' to watch for knob changes" % n.name())
+            nuke.addKnobChanged(self._on_knob_changed, node = n)
+        
+    def remove_callbacks(self):
+        """
+        Removed previously added callbacks
+        """
+        # remove callback that checks for placeholder nodes
+        nuke.removeOnScriptLoad(self.process_placeholder_nodes, nodeClass="Root")
+        
+        # remove callbacks for when Shotgun Write nodes are created & destroyed:
+        nuke.removeOnCreate(self._on_node_created, nodeClass = TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+        nuke.removeOnDestroy(self._on_node_destroyed, nodeClass = TankWriteNodeHandler.SG_WRITE_NODE_CLASS)  
+          
+        # for all existing nodes, remove knob changed callback:
+        for n in nuke.allNodes(filter = TankWriteNodeHandler.SG_WRITE_NODE_CLASS):
+            self._app.log_debug("Removing callback from '%s' that watched for knob changes" % n.name())
+            nuke.removeKnobChanged(self._on_knob_changed, node = n)
+          
+    def _on_node_created(self):
+        """
+        Called when a Shotgun Write Node is created
+        """
+        # add a callback to the newly created Shotgun write node to watch
+        # for knobs being changed
+        self._app.log_debug("Adding callback to '%s' to watch for knob changes" % nuke.thisNode().name())
+        nuke.addKnobChanged(self._on_knob_changed, node = nuke.thisNode())
+    
+    def _on_node_destroyed(self):
+        """
+        Called when a Shotgun Write Node is deleted
+        """
+        self._app.log_debug("Removing callback from '%s' that watched for knob changes" % nuke.thisNode().name())
+        nuke.removeKnobChanged(self._on_knob_changed, node = nuke.thisNode())
+          
+    def _on_knob_changed(self):
+        """
+        Propogate changes to certain knobs from the gizmo/group to the
+        encapsulated Write node.
+        """
+        knobs_to_propogate = ["disable"]
+        
+        # check if the value for this knob should be propogated:
+        knob_name = nuke.thisKnob().name()
+        if knob_name not in knobs_to_propogate:
+            return
+    
+        # find the enclosed write node:
+        grp = nuke.thisGroup()
+        write_node = grp.node("Write1")
+        if not write_node:
+            return
+    
+        # propogate the value:
+        self._app.log_debug("Propogating value for '%s.%s' to '%s.%s.%s'" 
+                            % (grp.name(), knob_name, grp.name(), write_node.name(), knob_name))
+        
+        write_node.knob(knob_name).setValue(nuke.thisKnob().value())   
+          
+    def process_placeholder_nodes(self):
+        """
+        Convert any placeholder nodes to TK Write Nodes
+        """
+        self._app.log_debug("Looking for placeholder nodes to process...")
+        
+        node_found = False
+        for n in nuke.allNodes("ModifyMetaData"):
+            if not n.name().startswith('ShotgunWriteNodePlaceholder'):
+                continue
+
+            self._app.log_debug("Found ShotgunWriteNodePlaceholder node: %s" % n)
+            metadata = n.metadata()
+            name = metadata.get('name')
+
+            # Find the settings that match this node
+            matched_profile = None
+            for profile in self._app.get_setting("write_nodes", []):
+                profile_name = profile.get("name", "unknown")
+                if profile_name == name:
+                    matched_profile = profile
+                    break
+
+            if matched_profile is None:
+                self._app.log_warning("Unknown write node profile in file, skipping: %s" % name)
+                continue
+
+            file_type = matched_profile.get("file_type")
+            file_settings = matched_profile.get("settings", {})
+            rts = matched_profile.get("render_template")
+            pts = matched_profile.get("publish_template")
+            render_template = self._app.get_template_by_name(rts)
+            publish_template = self._app.get_template_by_name(pts)
+
+            # try and ensure we're connected to the tree after we delete the nodes
+            if not node_found:
+                node_found = True
+                try:
+                    n.dependencies()[0].setSelected(True)
+                except:
+                    pass
+
+            new_node = self.create_new_node(name, render_template,
+                publish_template, file_type, file_settings)
+            new_node.knob("tank_channel").setValue(metadata.get('channel'))
+            self._app.reset_render_path(new_node)
+
+            # And remove the original metadata
+            nuke.delete(n)
+          
