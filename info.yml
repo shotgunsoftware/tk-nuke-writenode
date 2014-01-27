@@ -36,16 +36,31 @@ configuration:
         values:
             type: dict
             items:
-                name: { type: str }
-                file_type: { type: str }
-                settings: { type: dict }
-                tank_type: { type: tank_type }
+                name:
+                    type: str
+                file_type:
+                    type: str
+                settings:
+                    type: dict
+                tank_type:
+                    type: tank_type
                 render_template:
                     type: template
                     fields: context, version, SEQ, [channel], [name], [width], [height], [eye], *
                 publish_template:
                     type: template
                     fields: context, version, SEQ, [channel], [name], [width], [height], [eye], [TankType], *
+                proxy_render_template:
+                    type: template
+                    fields: context, version, SEQ, [channel], [name], [width], [height], [eye], *                    
+                    allows_empty: True
+                    default_value: null
+                proxy_publish_template:
+                    type: template
+                    fields: context, version, SEQ, [channel], [name], [width], [height], [eye], [TankType], *
+                    allows_empty: True
+                    default_value: null                    
+
 
     template_script_work:
         type: template
