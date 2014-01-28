@@ -357,7 +357,7 @@ class TankWriteNodeHandler(object):
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             new_wn["file_type"].setValue(int_wn["file_type"].value())
         
-            # copy across and knob values from the internal write node.
+            # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():
                 # skip knobs we don't want to copy:
                 if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
@@ -370,6 +370,10 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+        
+            # copy across select knob values from the Shotgun Write node:
+            for knob_name in ["tile_color", "postage_stamp", "label"]:
+                new_wn[knob_name].setValue(sg_wn[knob_name].value())
         
             # Store Toolkit specific information on write node
             # so that we can reverse this process later
@@ -476,7 +480,8 @@ class TankWriteNodeHandler(object):
             for knob_name, knob in wn.knobs().iteritems():
                 # skip knobs we don't want to copy:
                 if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
-                              "name", "xpos", "ypos", "disable"]:
+                              "name", "xpos", "ypos", "disable", "tile_color", "postage_stamp",
+                              "label"]:
                     continue
                 
                 if knob_name in int_wn.knobs():
@@ -486,8 +491,9 @@ class TankWriteNodeHandler(object):
                         # ignore type errors:
                         pass
         
-            # explicitly copy disabled setting to the new Write Node:
-            new_sg_wn["disable"].setValue(wn["disable"].value())
+            # explicitly copy some settings to the new Shotgun Write Node instead:
+            for knob_name in ["disable", "tile_color", "postage_stamp"]:
+                new_sg_wn[knob_name].setValue(wn[knob_name].value())
                 
             # delete original node:
             nuke.delete(wn)
