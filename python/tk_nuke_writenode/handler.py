@@ -1309,7 +1309,7 @@ class TankWriteNodeHandler(object):
         would be different to the cached path ignoring the width & height fields. 
         """
         # get the render template:
-        render_template = self.get_render_template(node)
+        render_template = self.__get_render_template(node, is_proxy)
         if not render_template:
             return True        
         
