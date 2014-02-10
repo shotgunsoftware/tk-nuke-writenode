@@ -113,8 +113,7 @@ class TankWriteNodeHandler(object):
         helper function. Returns the associated render proxy template obj for a node.
         If this hasn't been defined then it falls back to the regular render template.
         """
-        return (self.__get_render_template(node, True)
-                or self.__get_render_template(node, False))
+        return self.__get_render_template(node, is_proxy=True, fallback_to_render=True)
 
     def get_proxy_publish_template(self, node):
         """
@@ -729,14 +728,20 @@ class TankWriteNodeHandler(object):
             
         return self._app.get_template_by_name(template_name)
     
-    def __get_render_template(self, node, is_proxy=False):
+    def __get_render_template(self, node, is_proxy=False, fallback_to_render=False):
         """
         Get a specific render template for the current profile
+        
+        :param is_proxy:            Specifies which of the two
+        :param fallback_to_render:  If true and proxy template is null then the
+                                    render template will be returned instead.
         """
         if is_proxy:
-            return self.__get_template(node, "proxy_render_template")
-        else:
-            return self.__get_template(node, "render_template") 
+            template = self.__get_template(node, "proxy_render_template")
+            if template or not fallback_to_render:
+                return template
+
+        return self.__get_template(node, "render_template") 
     
     def __get_publish_template(self, node, is_proxy=False):
         """
@@ -749,9 +754,11 @@ class TankWriteNodeHandler(object):
     
     def __is_channel_used(self, node):
         """
+        Determine if channel is used in either the render or the proxy render
+        templates
         """
-        render_template = self.__get_render_template(node, False)
-        proxy_render_template = self.__get_render_template(node, True)
+        render_template = self.__get_render_template(node, is_proxy=False)
+        proxy_render_template = self.__get_render_template(node, is_proxy=True)
         
         for template in [render_template, proxy_render_template]:
             if not template:
@@ -1152,7 +1159,7 @@ class TankWriteNodeHandler(object):
         Returns the files on disk associated with this node
         """
         file_name = self.__get_render_path(node, is_proxy)
-        template = self.__get_render_template(node, is_proxy)
+        template = self.__get_render_template(node, is_proxy, fallback_to_render=True)
 
         if not template.validate(file_name):
             raise Exception("Could not resolve the files on disk for node %s."
@@ -1234,6 +1241,10 @@ class TankWriteNodeHandler(object):
             if not render_template:
                 # we don't have a proxy template so fall back to render template.
                 # there will be a warning in the UI for this
+                #
+                # Note: to retain backwards compatibility, if no proxy template has
+                # been specified then the full-res dimensions will be used instead
+                # of the proxy dimensions.
                 return self.__compute_render_path(node, False)
             
             # width & height are set to the proxy dimensions:
@@ -1309,7 +1320,7 @@ class TankWriteNodeHandler(object):
         would be different to the cached path ignoring the width & height fields. 
         """
         # get the render template:
-        render_template = self.__get_render_template(node, is_proxy)
+        render_template = self.__get_render_template(node, is_proxy, fallback_to_render=True)
         if not render_template:
             return True        
         
