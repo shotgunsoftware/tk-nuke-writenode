@@ -56,6 +56,8 @@ class TankWriteNodeHandler(object):
             self._profiles[name] = profile
             
         self.__currently_rendering_nodes = set()
+        self.__node_computed_path_settings_cache = {}
+        self.__path_preview_cache = {}
             
     ################################################################################################
     # Properties
@@ -803,51 +805,66 @@ class TankWriteNodeHandler(object):
         channel_knob.setVisible(channel_is_used)
         name_as_channel_knob.setVisible(channel_is_used)    
     
-    def __update_path_preview(self, node):
+    def __update_path_preview(self, node, is_proxy):
         """
         Updates the path preview fields on the tank write node.
         """
-        is_proxy = node.proxy()
-        path = self.__get_render_path(node, is_proxy)
-        
         # first set up the node label
         # this will be displayed on the node in the graph
         # useful to tell what type of node it is
         pn = node.knob("profile_name").value()
         label = "Shotgun Write %s" % pn
         self.__update_knob_value(node, "label", label)
-        
-        # normalize the path for os platform
-        norm_path = path.replace("/", os.sep)
 
-        # get the file name
-        filename = os.path.basename(norm_path)
-        render_dir = os.path.dirname(norm_path)
+        # get the render path:
+        path = self.__get_render_path(node, is_proxy)
 
-        # now get the context path
-        context_path = None
-        for x in self._app.context.entity_locations:
-            if render_dir.startswith(x):
-                context_path = x
+        # calculate the parts:
+        context_path = local_path = file_name = ""
 
-        if context_path:
-            # found a context path!
-            # chop off this bit from the normalized path
-            local_path = render_dir[len(context_path):]
-            # drop start slash
-            if local_path.startswith(os.sep):
-                local_path = local_path[len(os.sep):]
-            # e.g. for path   /mnt/proj/shotXYZ/renders/v003/hello.%04d.exr
-            # context_path:   /mnt/proj/shotXYZ
-            # local_path:     renders/v003
+        # check to see if we have cached the various pieces for this node:
+        cache_key = (path, self._app.context)
+        cached_path_preview = self.__path_preview_cache.get(cache_key)
+        if cached_path_preview:
+            context_path = cached_path_preview["context_path"]
+            local_path = cached_path_preview["local_path"]
+            file_name = cached_path_preview["file_name"]
         else:
-            # skip the local path
-            context_path = render_dir
-            local_path = ""
-            # e.g. for path   /mnt/proj/shotXYZ/renders/v003/hello.%04d.exr
-            # context_path:   /mnt/proj/shotXYZ/renders/v003
-            # local_path:
-
+            # normalize the path for os platform
+            norm_path = path.replace("/", os.sep)
+    
+            # get the file name
+            file_name = os.path.basename(norm_path)
+            render_dir = os.path.dirname(norm_path)
+    
+            # now get the context path
+            context_path = None
+            for x in self._app.context.entity_locations:
+                if render_dir.startswith(x):
+                    context_path = x
+    
+            if context_path:
+                # found a context path!
+                # chop off this bit from the normalized path
+                local_path = render_dir[len(context_path):]
+                # drop start slash
+                if local_path.startswith(os.sep):
+                    local_path = local_path[len(os.sep):]
+                # e.g. for path   /mnt/proj/shotXYZ/renders/v003/hello.%04d.exr
+                # context_path:   /mnt/proj/shotXYZ
+                # local_path:     renders/v003
+            else:
+                # skip the local path
+                context_path = render_dir
+                local_path = ""
+                # e.g. for path   /mnt/proj/shotXYZ/renders/v003/hello.%04d.exr
+                # context_path:   /mnt/proj/shotXYZ/renders/v003
+                # local_path:
+    
+            self.__path_preview_cache[cache_key] = {"context_path":context_path, 
+                                                    "local_path":local_path, 
+                                                    "file_name":file_name}
+    
         # update the preview knobs - note, not sure why but
         # under certain circumstances the property editor doesn't
         # update correctly - hiding and showing the knob seems to
@@ -861,7 +878,7 @@ class TankWriteNodeHandler(object):
         
         set_path_knob("path_context", context_path)
         set_path_knob("path_local", local_path)
-        set_path_knob("path_filename", filename)
+        set_path_knob("path_filename", file_name)
         
 
     def __set_profile(self, node, profile_name):
@@ -1041,8 +1058,31 @@ class TankWriteNodeHandler(object):
         path_warning = ""
         render_path = None
         try:
-            # compute the render path:
-            render_path = self.__compute_render_path(node, is_proxy)
+            # gather the render settings to use when computing the path:
+            render_template, width, height, channel_name = self.__gather_render_settings(node, is_proxy)
+            
+            # experimental settings cache to avoid re-computing the path
+            # if nothing has changed...
+            old_cache_entry = self.__node_computed_path_settings_cache.get((node, is_proxy))
+            new_cache_entry = {
+                "ctx":self._app.context,
+                "width":width,
+                "height":height,
+                "channel":channel_name,
+                "script_path":nuke.root().name()
+            }
+            
+            if (not force_reset) and old_cache_entry and new_cache_entry == old_cache_entry:
+                # nothing of relevance has changed since the last time the path was
+                # computed so just return the cached path:
+                render_path = cached_path
+            else:
+                # update cache:
+                self.__node_computed_path_settings_cache[(node, is_proxy)] = new_cache_entry
+            
+                # compute the render path:
+                render_path = self.__compute_render_path_from(node, render_template, width, height, channel_name)
+                
         except TkComputePathError, e:
             # render path could not be computed for some reason - display warning
             # to the user in the property editor:
@@ -1090,7 +1130,11 @@ class TankWriteNodeHandler(object):
             if force_reset or not last_known_script_knob.value():
                 last_known_script_knob.setValue(nuke.root().name())
 
+        # Note that this method can get called to update the proxy render path when the node 
+        # isn't in proxy mode!  Because we only want to update the UI to represent the 'actual'
+        # state then we check for that here:  
         if is_proxy == node.proxy():
+            
             # update warning displayed to the user:
             if path_warning:
                 path_warning = "<i style='color:orange'><b><br>Warning</b><br>%s</i><br>" % path_warning
@@ -1124,9 +1168,9 @@ class TankWriteNodeHandler(object):
             
             # update channel knobs:
             self.__update_channel_knobs(node)
-    
+
             # finally, update preview:
-            self.__update_path_preview(node)
+            self.__update_path_preview(node, is_proxy)
 
         return render_path           
         
@@ -1225,18 +1269,19 @@ class TankWriteNodeHandler(object):
         return (scaled_format.width(), scaled_format.height())
         
 
-    def __compute_render_path(self, node, is_proxy=False):
+    def __gather_render_settings(self, node, is_proxy=False):
         """
-        Computes the render path for a node.
-
-        :param node: current write node
-        :param is_proxy: if True then compute the proxy path, otherwise compute the standard render path
-        :returns: a path based on the node settings        
-        """
+        Gather the render template, width, height and channel name required
+        to compute the render path for the specified node.
         
-        # find the template, width & height depending to use:
+        :param node:         The current Shotgun Write node
+        :param is_proxy:     If True then compute the proxy path, otherwise compute the standard render path
+        :returns:            Tuple containing (render template, width, height, channel name)
+        """
         render_template = self.__get_render_template(node, is_proxy)
         width = height = 0
+        channel_name = ""
+        
         if is_proxy:
             if not render_template:
                 # we don't have a proxy template so fall back to render template.
@@ -1245,16 +1290,50 @@ class TankWriteNodeHandler(object):
                 # Note: to retain backwards compatibility, if no proxy template has
                 # been specified then the full-res dimensions will be used instead
                 # of the proxy dimensions.
-                return self.__compute_render_path(node, False)
+                return self.__gather_render_settings(node, False)
             
             # width & height are set to the proxy dimensions:
             width, height = self.__calculate_proxy_dimensions(node)
         else:
-            if not render_template:
-                raise TkComputePathError("Unable to determine the render template to use!")
-            
             # width & height are set to the node's dimensions:
             width, height = node.width(), node.height()
+        
+        if "channel" in render_template.keys:
+            channel_name = node.knob("tank_channel").value()
+            
+        return (render_template, width, height, channel_name)
+
+
+    def __compute_render_path(self, node, is_proxy=False):
+        """
+        Computes the render path for a node.
+
+        :param node:         The current Shotgun Write node
+        :param is_proxy:     If True then compute the proxy path, otherwise compute the standard render path
+        :returns:            The computed render path        
+        """
+        
+        # gather the render settings to use:
+        render_template, width, height, channel_name = self.__gather_render_settings(node, is_proxy)
+
+        # compute the render path:
+        return self.__compute_render_path_from(node, render_template, width, height, channel_name)
+
+    def __compute_render_path_from(self, node, render_template, width, height, channel_name):
+        """
+        Computes the render path for a node using the specified settings
+
+        :param node:               The current Shotgun Write node
+        :param render_template:    The render template to use to construct the render path
+        :param width:              The width of the rendered images
+        :param height:             The height of the rendered images
+        :param channel_name:       The toolkit channel name specified by the user for this node
+        :returns:                  The computed render path        
+        """
+
+        # make sure we have a valid template:
+        if not render_template:
+            raise TkComputePathError("Unable to determine the render template to use!")
         
         # make sure we have a valid nuke root node: 
         root_node = nuke.root()
@@ -1286,7 +1365,6 @@ class TankWriteNodeHandler(object):
         if "channel" in fields:
             del(fields["channel"])
         if "channel" in render_template.keys:
-            channel_name = node.knob("tank_channel").value()
             if not channel_name:
                 if not render_template.is_optional("channel"):
                     raise TkComputePathError("A valid channel is required by this profile!")
