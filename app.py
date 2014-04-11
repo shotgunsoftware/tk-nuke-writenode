@@ -193,6 +193,19 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.convert_nuke_to_sg_write_nodes()
         
+    def disable_all_path_evaluation(self):
+        """
+        Block path evaluation for all Shotgun Write nodes.  This may result in render
+        paths becoming out of sync and should only be used for debugging.
+        """
+        self.__write_node_handler.toggle_all_path_evaluation(False)
+        
+    def enable_all_path_evaluation(self):
+        """
+        Enable path evaluation for all Shotgun Write nodes.
+        """
+        self.__write_node_handler.toggle_all_path_evaluation(True)        
+        
     # Private methods
     #
     def __add_write_node_commands(self):

@@ -58,6 +58,8 @@ class TankWriteNodeHandler(object):
         self.__currently_rendering_nodes = set()
         self.__node_computed_path_settings_cache = {}
         self.__path_preview_cache = {}
+        
+        self.__enable_path_evaluation = True
             
     ################################################################################################
     # Properties
@@ -506,6 +508,32 @@ class TankWriteNodeHandler(object):
 
             # run this one last time to ensure the profile list is constructed correctly:
             self.__setup_new_node(new_sg_wn)
+
+    def toggle_all_path_evaluation(self, enable_evaluation):
+        """
+        Toggle path evaluation for all Shotgun Write nodes.
+        
+        :param enable_evaluation:   If False, path evaluation will be blocked for all Write nodes.  If
+                                    True then it will be unblocked.
+        """
+        if enable_evaluation == self.__enable_path_evaluation:
+            # nothing to do!
+            return
+
+        if not enable_evaluation:
+            # disabling so first make sure that all paths are up to date:
+            for n in self.get_nodes():
+                self.__update_render_path(n, False, False)
+                self.__update_render_path(n, False, True)
+        
+        # toggle evaluation:
+        self.__enable_path_evaluation = enable_evaluation
+        
+        if enable_evaluation:
+            # update all paths as evaluation was previously disabled!
+            for n in self.get_nodes():
+                self.__update_render_path(n, True, False)
+                self.__update_render_path(n, True, True)
 
 
     ################################################################################################
@@ -1047,11 +1075,16 @@ class TankWriteNodeHandler(object):
         cached_path = (node.knob("tk_cached_proxy_path").toScript() if is_proxy
                                 else node.knob("cached_path").toScript())
 
-        if node in self.__currently_rendering_nodes:
+        if not self.__enable_path_evaluation or node in self.__currently_rendering_nodes:
             # when rendering we don't want to re-evaluate the paths as doing
             # so can cause problems!  Specifically, I found that accessing
             # width, height or format on a node can cause the evaluation
             # of the internal Write node file/proxy to not be evaluated!!
+            if not self.__enable_path_evaluation:
+                # this will get printed a lot but it is only for debug purposes so that should be fine!
+                self._app.log_debug("Path evaluation is currently disabled - this may result in the render & "
+                                    "proxy render paths becoming out of sync with the current context and "
+                                    "other settings.")
             return cached_path
             
         reset_path_button_visible = False
