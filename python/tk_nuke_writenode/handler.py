@@ -32,6 +32,9 @@ class TankWriteNodeHandler(object):
     SG_WRITE_DEFAULT_NAME = "ShotgunWrite"
     WRITE_NODE_NAME = "Write1"
 
+    OUTPUT_KNOB_NAME = "tank_channel"
+    USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
+
     ################################################################################################
     # Construction
 
@@ -225,12 +228,13 @@ class TankWriteNodeHandler(object):
         
         node_found = False
         for n in nuke.allNodes("ModifyMetaData"):
-            if not n.name().startswith('ShotgunWriteNodePlaceholder'):
+            if not n.name().startswith("ShotgunWriteNodePlaceholder"):
                 continue
 
             self._app.log_debug("Found ShotgunWriteNodePlaceholder node: %s" % n)
             metadata = n.metadata()
-            profile_name = metadata.get('name')
+            profile_name = metadata.get("name")
+            output_name = metadata.get("output") or metadata.get("channel") # for backwards compatibility 
 
             # Make sure the profile is valid:
             if profile_name not in self._profiles:
@@ -248,8 +252,8 @@ class TankWriteNodeHandler(object):
             # create the node:
             new_node = self.create_new_node(profile_name)
 
-            # set the channel:            
-            self.__set_channel(new_node, metadata.get('channel'))
+            # set the output:
+            self.__set_output(new_node, output_name)
             
             # And remove the original metadata
             nuke.delete(n)
@@ -268,7 +272,7 @@ class TankWriteNodeHandler(object):
         if th_node is None:
             # write gizmo that does not have the create thumbnail node
             return None
-        th_node.knob('disable').setValue(False)
+        th_node.knob("disable").setValue(False)
         
         png_path = tempfile.NamedTemporaryFile(suffix=".png", prefix="tanktmp", delete=False).name
 
@@ -303,7 +307,7 @@ class TankWriteNodeHandler(object):
             # reset paths
             th_node.knob("file").setValue("")
             th_node.knob("proxy").setValue("")
-            th_node.knob('disable').setValue(True)
+            th_node.knob("disable").setValue(True)
 
         return png_path
 
@@ -384,14 +388,14 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["profile_name"].value())
             new_wn.addKnob(knob)
             
-            # channel
-            knob = nuke.String_Knob("tk_channel")
-            knob.setValue(sg_wn["tank_channel"].value())
+            # output
+            knob = nuke.String_Knob("tk_output")
+            knob.setValue(sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].value())
             new_wn.addKnob(knob)
             
-            # use node name for channel
-            knob = nuke.Boolean_Knob("tk_use_name_as_channel")
-            knob.setValue(sg_wn["tk_use_name_as_channel"].value())
+            # use node name for output
+            knob = nuke.Boolean_Knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
+            knob.setValue(sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].value())
             new_wn.addKnob(knob)
         
             # templates
@@ -434,16 +438,16 @@ class TankWriteNodeHandler(object):
         
             # look for additional toolkit knobs:
             profile_knob = wn.knob("tk_profile_name")
-            channel_knob = wn.knob("tk_channel")
-            use_name_as_channel_knob = wn.knob("tk_use_name_as_channel")
+            output_knob = wn.knob("tk_output")
+            use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
             render_template_knob = wn.knob("tk_render_template")
             publish_template_knob = wn.knob("tk_publish_template")
             proxy_render_template_knob = wn.knob("tk_proxy_render_template")
             proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
         
             if (not profile_knob
-                or not channel_knob
-                or not use_name_as_channel_knob
+                or not output_knob
+                or not use_name_as_output_knob
                 or not render_template_knob
                 or not publish_template_knob
                 or not proxy_render_template_knob
@@ -468,10 +472,10 @@ class TankWriteNodeHandler(object):
             new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
             new_sg_wn["proxy_publish_template"].setValue(proxy_publish_template_knob.value())
             
-            # set the profile & channel - this will cause the paths to be reset:
+            # set the profile & output - this will cause the paths to be reset:
             new_sg_wn["profile_name"].setValue(profile_knob.value())
-            new_sg_wn["tank_channel"].setValue(channel_knob.value())
-            new_sg_wn["tk_use_name_as_channel"].setValue(use_name_as_channel_knob.value())
+            new_sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].setValue(output_knob.value())
+            new_sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].setValue(use_name_as_output_knob.value())
 
             # make sure file_type is set properly:
             int_wn = new_sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
@@ -607,11 +611,11 @@ class TankWriteNodeHandler(object):
 
             # run the app
             if system == "linux2":
-                cmd = 'xdg-open "%s"' % render_dir
+                cmd = "xdg-open \"%s\"" % render_dir
             elif system == "darwin":
                 cmd = "open '%s'" % render_dir
             elif system == "win32":
-                cmd = 'cmd.exe /C start "Folder" "%s"' % render_dir
+                cmd = "cmd.exe /C start \"Folder\" \"%s\"" % render_dir
             else:
                 raise Exception("Platform '%s' is not supported." % system)
 
@@ -658,7 +662,7 @@ class TankWriteNodeHandler(object):
 
         if len(views) < 2:
             # check if proxy render or not
-            if nuke.root()['proxy'].value():
+            if nuke.root()["proxy"].value():
                 # proxy mode
                 out_file = node.knob("proxy").evaluate()
             else:
@@ -670,7 +674,7 @@ class TankWriteNodeHandler(object):
         else:
             # stereo or odd number of views...
             for view in views:
-                if nuke.root()['proxy'].value():
+                if nuke.root()["proxy"].value():
                     # proxy mode
                     out_file = node.knob("proxy").evaluate(view=view)
                 else:
@@ -754,9 +758,9 @@ class TankWriteNodeHandler(object):
         else:
             return self.__get_template(node, "publish_template")
     
-    def __is_channel_used(self, node):
+    def __is_output_used(self, node):
         """
-        Determine if channel is used in either the render or the proxy render
+        Determine if output key is used in either the render or the proxy render
         templates
         """
         render_template = self.__get_render_template(node, is_proxy=False)
@@ -765,20 +769,11 @@ class TankWriteNodeHandler(object):
         for template in [render_template, proxy_render_template]:
             if not template:
                 continue
-            if "channel" in template.keys:
+            # check for output key and also channel for backwards compatibility!
+            if "output" in template.keys or "channel" in template.keys:
                 return True
             
         return False
-    
-    def __get_channel_for_node(self, node):
-        """
-        returns the channel for a tank write node.
-        May return None if no value has been defined.
-        """
-        if self.__is_channel_used(node):
-            return node.knob("tank_channel") or None
-        else:
-            return None
     
     def __update_knob_value(self, node, name, new_value):
         """
@@ -790,20 +785,20 @@ class TankWriteNodeHandler(object):
         if new_value != current_value: 
             node.knob(name).setValue(new_value)
     
-    def __update_channel_knobs(self, node):
+    def __update_output_knobs(self, node):
         """
-        Update channel knob visibility depending if channel is a key
+        Update output knob visibility depending if output is a key
         in the render template or not
         """
-        channel_knob = node.knob("tank_channel")
-        name_as_channel_knob = node.knob("tk_use_name_as_channel")
+        output_knob = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME)
+        name_as_output_knob = node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
         
-        channel_is_used = self.__is_channel_used(node)
-        name_as_channel = name_as_channel_knob.value() 
+        output_is_used = self.__is_output_used(node)
+        name_as_output = name_as_output_knob.value() 
         
-        channel_knob.setEnabled(channel_is_used and not name_as_channel)
-        channel_knob.setVisible(channel_is_used)
-        name_as_channel_knob.setVisible(channel_is_used)    
+        output_knob.setEnabled(output_is_used and not name_as_output)
+        output_knob.setVisible(output_is_used)
+        name_as_output_knob.setVisible(output_is_used)    
     
     def __update_path_preview(self, node, is_proxy):
         """
@@ -917,8 +912,8 @@ class TankWriteNodeHandler(object):
         # set the format
         self.__populate_format_settings(node, file_type, file_settings)
 
-        # auto-populate channel name based on template
-        self.__populate_initial_channel_name(render_template, node)
+        # auto-populate output name based on template
+        self.__populate_initial_output_name(render_template, node)
 
         # write the template name to the node so that we know it later
         self.__update_knob_value(node, "render_template", render_template.name)
@@ -931,48 +926,58 @@ class TankWriteNodeHandler(object):
         # reset the render path:
         self.reset_render_path(node)
 
-    def __populate_initial_channel_name(self, template, node):
+    def __populate_initial_output_name(self, template, node):
         """
-        Create a suitable channel name for a node based on it's profile and
+        Create a suitable output name for a node based on it's profile and
         the other nodes that already exist in the scene.
         """
-        if node.knob("tank_channel").value():
+        if node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value():
             # don't want to modify the current value if there is one
             return
         
-        # first, check that channel is actually used in the 
-        # template!
-        channel_key = template.keys.get("channel")
-        if not channel_key:
+        # first, check that output is actually used in the template and determine 
+        # the default value and if the key is optional.
+        # (check for the 'channel' key as well for backwards compatibility)
+        have_output_key = False
+        output_default = None
+        output_is_optional = True
+        for key_name in ["output", "channel"]:
+            key = template.keys.get(key_name)
+            if key:
+                have_output_key = True
+                if output_default is None:
+                    output_default = key.default
+                if output_is_optional:
+                    output_is_optional = template.is_optional(key_name)                
+        if not have_output_key:
             # Nothing to do!
             return
-
-        # try to get default channel name from template
-        channel_name_base = channel_key.default
-        if channel_name_base is None:
-            # no default name - use hard coded built in
-            channel_name_base = "output"
         
-        # get the channels for all other nodes that are using the same profile
-        used_channel_names = set()
+        if output_default is None:
+            # no default name - use hard coded built in
+            output_default = "output"
+        
+        # get the output names for all other nodes that are using the same profile
+        used_output_names = set()
         node_profile = self.get_node_profile_name(node)
         for n in self.get_nodes():
             if n != node and self.get_node_profile_name(n) == node_profile:
-                used_channel_names.add(n.knob("tank_channel").value())
+                used_output_names.add(n.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value())
 
-        # handle if channel is optional:
-        if template.is_optional("channel") and "" not in used_channel_names:
-            channel_name_base = ""
+        # handle if output is optional:
+        if output_is_optional and "" not in used_output_names:
+            # default should be an empty string:
+            output_default = ""
 
-        # now ensure channel name is unique:
+        # now ensure output name is unique:
         postfix = 1
-        channel_name = channel_name_base
-        while channel_name in used_channel_names:
-            channel_name = "%s%d" % (channel_name_base, postfix)
+        output_name = output_default
+        while output_name in used_output_names:
+            output_name = "%s%d" % (output_default, postfix)
             postfix += 1
         
-        # finally, set the channel name:
-        node.knob("tank_channel").setValue(channel_name)
+        # finally, set the output name on the knob:
+        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setValue(output_name)
 
     def __populate_format_settings(self, node, file_type, file_settings):
         """
@@ -1004,14 +1009,14 @@ class TankWriteNodeHandler(object):
                 self._app.log_error("Could not set %s file format setting %s to '%s'. Instead the value was set to '%s'" 
                                     % (file_type, setting_name, setting_value, knob.value()))
 
-    def __set_channel(self, node, channel_name):
+    def __set_output(self, node, output_name):
         """
-        Set the channel on the specified node from user interaction.
+        Set the output on the specified node from user interaction.
         """
-        self._app.log_debug("Changing the channel for node '%s' to: %s" % (node.name(), channel_name))
+        self._app.log_debug("Changing the output for node '%s' to: %s" % (node.name(), output_name))
         
-        # update channel knob:
-        self.__update_knob_value(node, "tank_channel", channel_name)
+        # update output knob:
+        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, output_name)
         
         # reset the render path:
         self.reset_render_path(node)
@@ -1057,33 +1062,39 @@ class TankWriteNodeHandler(object):
         reset_path_button_visible = False
         path_warning = ""
         render_path = None
+        cache_entry = None
         try:
             # gather the render settings to use when computing the path:
-            render_template, width, height, channel_name = self.__gather_render_settings(node, is_proxy)
+            render_template, width, height, output_name = self.__gather_render_settings(node, is_proxy)
             
             # experimental settings cache to avoid re-computing the path
             # if nothing has changed...
-            old_cache_entry = self.__node_computed_path_settings_cache.get((node, is_proxy))
-            new_cache_entry = {
+            old_cache_entry, compute_path_error = (self.__node_computed_path_settings_cache.get((node, is_proxy))
+                                                   or (None, ""))
+            cache_entry = {
                 "ctx":self._app.context,
                 "width":width,
                 "height":height,
-                "channel":channel_name,
+                "output":output_name,
                 "script_path":nuke.root().name()
             }
             
-            if (not force_reset) and old_cache_entry and new_cache_entry == old_cache_entry:
+            if (not force_reset) and old_cache_entry and cache_entry == old_cache_entry:
                 # nothing of relevance has changed since the last time the path was
-                # computed so just return the cached path:
+                # computed so just use the cached path:
                 render_path = cached_path
+                
+                # if there was previously an error then raise it so that it gets reported properly:
+                if compute_path_error:
+                    raise TkComputePathError(compute_path_error)
             else:
-                # update cache:
-                self.__node_computed_path_settings_cache[(node, is_proxy)] = new_cache_entry
-            
                 # compute the render path:
-                render_path = self.__compute_render_path_from(node, render_template, width, height, channel_name)
+                render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
                 
         except TkComputePathError, e:
+            # update cache:
+            self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e))
+            
             # render path could not be computed for some reason - display warning
             # to the user in the property editor:
             path_warning += "<br>".join(self.__wrap_text(
@@ -1103,6 +1114,9 @@ class TankWriteNodeHandler(object):
             
             render_path = cached_path
         else:
+            # update cache:
+            self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, "")
+            
             path_is_locked = False
             if not force_reset:
                 path_is_locked = self.__is_render_path_locked(node, render_path, cached_path, is_proxy)
@@ -1166,8 +1180,8 @@ class TankWriteNodeHandler(object):
                 self.__update_knob_value(node, "tk_render_warning", "")
                 node.knob("tk_render_warning").setVisible(False)
             
-            # update channel knobs:
-            self.__update_channel_knobs(node)
+            # update output knobs:
+            self.__update_output_knobs(node)
 
             # finally, update preview:
             self.__update_path_preview(node, is_proxy)
@@ -1271,16 +1285,16 @@ class TankWriteNodeHandler(object):
 
     def __gather_render_settings(self, node, is_proxy=False):
         """
-        Gather the render template, width, height and channel name required
+        Gather the render template, width, height and output name required
         to compute the render path for the specified node.
         
         :param node:         The current Shotgun Write node
         :param is_proxy:     If True then compute the proxy path, otherwise compute the standard render path
-        :returns:            Tuple containing (render template, width, height, channel name)
+        :returns:            Tuple containing (render template, width, height, output name)
         """
         render_template = self.__get_render_template(node, is_proxy)
         width = height = 0
-        channel_name = ""
+        output_name = ""
         
         if is_proxy:
             if not render_template:
@@ -1298,10 +1312,12 @@ class TankWriteNodeHandler(object):
             # width & height are set to the node's dimensions:
             width, height = node.width(), node.height()
         
-        if "channel" in render_template.keys:
-            channel_name = node.knob("tank_channel").value()
+        if render_template:
+            # check for 'channel' for backwards compatibility
+            if "output" in render_template.keys or "channel" in render_template.keys:
+                output_name = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value()
             
-        return (render_template, width, height, channel_name)
+        return (render_template, width, height, output_name)
 
 
     def __compute_render_path(self, node, is_proxy=False):
@@ -1314,12 +1330,12 @@ class TankWriteNodeHandler(object):
         """
         
         # gather the render settings to use:
-        render_template, width, height, channel_name = self.__gather_render_settings(node, is_proxy)
+        render_template, width, height, output_name = self.__gather_render_settings(node, is_proxy)
 
         # compute the render path:
-        return self.__compute_render_path_from(node, render_template, width, height, channel_name)
+        return self.__compute_render_path_from(node, render_template, width, height, output_name)
 
-    def __compute_render_path_from(self, node, render_template, width, height, channel_name):
+    def __compute_render_path_from(self, node, render_template, width, height, output_name):
         """
         Computes the render path for a node using the specified settings
 
@@ -1327,7 +1343,7 @@ class TankWriteNodeHandler(object):
         :param render_template:    The render template to use to construct the render path
         :param width:              The width of the rendered images
         :param height:             The height of the rendered images
-        :param channel_name:       The toolkit channel name specified by the user for this node
+        :param output_name:        The toolkit output name specified by the user for this node
         :returns:                  The computed render path        
         """
 
@@ -1361,17 +1377,20 @@ class TankWriteNodeHandler(object):
         fields["width"] = width
         fields["height"] = height
 
-        # validate the channel name
-        if "channel" in fields:
-            del(fields["channel"])
-        if "channel" in render_template.keys:
-            if not channel_name:
-                if not render_template.is_optional("channel"):
-                    raise TkComputePathError("A valid channel is required by this profile!")
-            else:
-                if not render_template.keys["channel"].validate(channel_name):                
-                    raise TkComputePathError("The channel name '%s' contains illegal characters!" % channel_name)
-                fields["channel"] = channel_name
+        # validate the output name - be backwards compatible with 'channel' as well
+        for key_name in ["output", "channel"]:
+            if key_name in fields:
+                del(fields[key_name])
+            
+            if key_name in render_template.keys:
+                if not output_name:
+                    if not render_template.is_optional(key_name):
+                        raise TkComputePathError("A valid output name is required by this profile for the '%s' field!"
+                                                 % key_name)
+                else:
+                    if not render_template.keys[key_name].validate(output_name):                
+                        raise TkComputePathError("The output name '%s' contains illegal characters!" % output_name)
+                    fields[key_name] = output_name            
          
         # update with additional fields from the context:       
         fields.update(self._app.context.as_template_fields(render_template))
@@ -1503,27 +1522,27 @@ class TankWriteNodeHandler(object):
             new_profile_name = knob.value()
             self.__set_profile(node, new_profile_name)
             
-        elif knob.name() == "tank_channel":
-            # internal cached channel has been changed!
-            new_channel_name = knob.value()
-            if node.knob("tk_use_name_as_channel").value():
-                # force channel name to be the node name:
-                new_channel_name = node.knob("name").value()
-            self.__set_channel(node, new_channel_name)
+        elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
+            # internal cached output has been changed!
+            new_output_name = knob.value()
+            if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
+                # force output name to be the node name:
+                new_output_name = node.knob("name").value()
+            self.__set_output(node, new_output_name)
             
         elif knob.name() == "name":
             # node name has changed:
-            if node.knob("tk_use_name_as_channel").value():
-                # set the channel to the node name:
-                self.__set_channel(node, knob.value())
+            if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
+                # set the output to the node name:
+                self.__set_output(node, knob.value())
                 
-        elif knob.name() == "tk_use_name_as_channel":
-            # checkbox controlling if the name should be used as the channel has been toggled
-            name_as_channel = knob.value()
-            node.knob("tank_channel").setEnabled(not name_as_channel)
-            if name_as_channel:
-                # update channel to reflect the node name:
-                self.__set_channel(node, node.knob("name").value())
+        elif knob.name() == TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME:
+            # checkbox controlling if the name should be used as the output has been toggled
+            name_as_output = knob.value()
+            node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(not name_as_output)
+            if name_as_output:
+                # update output to reflect the node name:
+                self.__set_output(node, node.knob("name").value())
                 
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
