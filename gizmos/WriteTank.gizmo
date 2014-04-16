@@ -44,14 +44,14 @@ Gizmo {
  }
  addUserKnob {
     1 tank_channel 
-    l "Channel" 
-    t "The channel is a name you give to the write node to help identify it when you are using more than one output in your scene." 
+    l "Output" 
+    t "Choose an output name for this Write Node to help identify it when you have more than one output in your scene." 
     +STARTLINE
  }
  addUserKnob {
     6 tk_use_name_as_channel 
     l "Use node name" 
-    t "Use the node name in place of the channel name" 
+    t "Use the node name in place of the output name" 
     -STARTLINE
  }
  addUserKnob {
