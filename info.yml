@@ -25,8 +25,8 @@ configuration:
                      passed to the write node when rendering. Next, you need two entries
                      named 'render_template' and 'publish_template'
                      - these control the locations where data is written to at various stages
-                     of the workflow. These templates need to include the fields
-                     'name' and 'version', and can optionally include the fields 'width', 'height'
+                     of the workflow. These templates need to include the 'version' field
+                     and can optionally include the fields 'name', 'width', 'height'
                      (which reflect the image resolution of the render) and 'output' (which
                      differenciates different write nodes). If you are doing stereo
                      rendering and want to use Nuke's %V flag, include an 'eye' field.
@@ -35,7 +35,7 @@ configuration:
                      and 'proxy_publish_template' these have the same requirements as the regular 
                      render and pubish templates but are used when rendering in proxy mode.  If
                      these are missing (set to null) then the regular templates will be used 
-                     instead"
+                     instead."
         allows_empty: True
         values:
             type: dict
@@ -63,7 +63,16 @@ configuration:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
                     allows_empty: True
-                    default_value: null                    
+                    default_value: null
+                tile_color:
+                    type: list     
+                    values:
+                        type: int
+                    description:    "Specify a list of 3 values in the range 0-255 that represent the RGB values to be
+                                     set for the node background/tile_color in the node graph when this profile is used.
+                                     Specify an empty list to use the default colour."
+                    allows_empty: True
+                    default_value: []
 
 
     template_script_work:
