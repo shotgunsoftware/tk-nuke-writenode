@@ -899,6 +899,7 @@ class TankWriteNodeHandler(object):
         proxy_publish_template = self._app.get_template_by_name(profile["proxy_publish_template"])
         file_type = profile["file_type"]
         file_settings = profile["settings"]
+        tile_color = profile["tile_color"]
 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
@@ -925,6 +926,25 @@ class TankWriteNodeHandler(object):
 
         # reset the render path:
         self.reset_render_path(node)
+        
+        # Finally, if a node's tile_color was defined in the profile then set it:
+        if not tile_color or len(tile_color) != 3:
+            if tile_color:
+                # don't have exactly three values for RGB so log a warning:
+                self._app.log_warning(("The tile_color setting for profile '%s' must contain 3 values (RGB) - this "
+                                    "setting will be ignored!") % profile_name)
+            
+            # reset tile_color knob value back to default:
+            default_value = int(node["tile_color"].defaultValue())
+            self.__update_knob_value(node, "tile_color", default_value)
+        else:
+            # build packed RGB
+            # (Red << 24) + (Green << 16) + (Blue << 8)
+            packed_rgb = 0
+            for element in tile_color:
+                packed_rgb = (packed_rgb + min(max(element, 0), 255)) << 8 
+        
+            self.__update_knob_value(node, "tile_color", packed_rgb)
 
     def __populate_initial_output_name(self, template, node):
         """
