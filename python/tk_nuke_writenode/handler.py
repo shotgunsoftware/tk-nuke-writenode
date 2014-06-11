@@ -953,7 +953,7 @@ class TankWriteNodeHandler(object):
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
-        self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings or {}))
+        self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
 
         # auto-populate output name based on template
         self.__populate_initial_output_name(render_template, node)
