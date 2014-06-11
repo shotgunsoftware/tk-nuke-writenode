@@ -110,7 +110,19 @@ Gizmo {
     t "The last known script this Write node was saved in - used to determine if the script is being saved as a new file or not"
     +INVISIBLE
  }  
- 
+ addUserKnob {
+    1 tk_file_type
+    l "File Type"
+    t "The file type to be used for the write node output - this cached value is used if the profile can't be determined"
+    +INVISIBLE
+ } 
+ addUserKnob {
+    1 tk_file_type_settings
+    l "File Type Settings"
+    t "A dictionary of file type settings to be applied to the Write node - this cached value is used if the profile can't be determined"
+    +INVISIBLE
+ }  
+  
  addUserKnob {
     26 "" 
     l "" 

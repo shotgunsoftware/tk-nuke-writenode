@@ -11,6 +11,7 @@
 import os
 import sys
 import tempfile
+import ast
 
 import nuke
 import nukescripts
@@ -876,23 +877,59 @@ class TankWriteNodeHandler(object):
         set_path_knob("path_filename", file_name)
         
 
+    def __apply_cached_file_format_settings(self, node):
+        """
+        Apply the file_type and settings that have been cached on the node to the internal
+        Write node.  This mechanism is used when the settings can't be retrieved from the
+        profile for some reason.
+        
+        :param node:    The Shotgun write node to retrieve and apply the settings on
+        """
+        file_type = node["tk_file_type"].value()
+        if not file_type:
+            return
+        
+        file_settings_str = node["tk_file_type_settings"].value()
+        file_settings = {}
+        try:
+            # file_settings_str is just a str(dict) so use ast.literal_eval to safely
+            # convert it back to a dictionary:
+            file_settings = ast.literal_eval(file_settings_str)
+        except ValueError, e:
+            self._app.log_warning("Failed to extract cached file settings from node '%s' - %s" 
+                              % node.name(), e)
+        self.__populate_format_settings(node, file_type, file_settings)        
+        
+
     def __set_profile(self, node, profile_name):
         """
-        Set the current profile for the specified node 
+        Set the current profile for the specified node.
+        
+        :param node:            The Shotgun Write node to set the profile on
+        :param profile_name:    The name of the profile to set on the node
         """
         # can't change the profile if this isn't a valid profile:
         if profile_name not in self._profiles:
+            # at the very least, try to restore the file format settings from the cached values:
+            self.__apply_cached_file_format_settings(node)
             return
 
-        # check if the new profile is different to the old profile:
-        current_profile = node.knob("profile_name").value()
-        if profile_name == current_profile:
+        # get the profile details:
+        profile = self._profiles.get(profile_name)
+        if not profile:
+            # this shouldn't really every happen!
+            self._app.log_warning("Failed to find a write node profile called '%s' for node '%s'!" 
+                                  % profile_name, node.name())
+            # at the very least, try to restore the file format settings from the cached values:
+            self.__apply_cached_file_format_settings(node)            
             return
 
         self._app.log_debug("Changing the profile for node '%s' to: %s" % (node.name(), profile_name))
 
-        # get the profile details:
-        profile = self._profiles[profile_name]
+        # keep track of the old profile name:
+        old_profile_name = node.knob("profile_name").value()
+        
+        # pull settings from profile:
         render_template = self._app.get_template_by_name(profile["render_template"])
         publish_template = self._app.get_template_by_name(profile["publish_template"])
         proxy_render_template = self._app.get_template_by_name(profile["proxy_render_template"])
@@ -912,6 +949,10 @@ class TankWriteNodeHandler(object):
         
         # set the format
         self.__populate_format_settings(node, file_type, file_settings)
+        # cache the type and settings on the root node so that 
+        # they get serialized with the script:
+        self.__update_knob_value(node, "tk_file_type", file_type)
+        self.__update_knob_value(node, "tk_file_type_settings", str(file_settings or {}))
 
         # auto-populate output name based on template
         self.__populate_initial_output_name(render_template, node)
@@ -924,10 +965,7 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "proxy_publish_template", 
                                  proxy_publish_template.name if proxy_publish_template else "")
 
-        # reset the render path:
-        self.reset_render_path(node)
-        
-        # Finally, if a node's tile_color was defined in the profile then set it:
+        # If a node's tile_color was defined in the profile then set it:
         if not tile_color or len(tile_color) != 3:
             if tile_color:
                 # don't have exactly three values for RGB so log a warning:
@@ -945,6 +983,12 @@ class TankWriteNodeHandler(object):
                 packed_rgb = (packed_rgb + min(max(element, 0), 255)) << 8 
         
             self.__update_knob_value(node, "tile_color", packed_rgb)
+
+        # Reset the render path but only if the named profile has changed - this will only
+        # be the case if the user has changed the profile through the UI so this will avoid
+        # the node automagically updating without the users knowledge.
+        if profile_name != old_profile_name:
+            self.reset_render_path(node)
 
     def __populate_initial_output_name(self, template, node):
         """
@@ -1494,6 +1538,8 @@ class TankWriteNodeHandler(object):
         if current_profile_name:
             # ensure that the correct entry is selected from the list:
             self.__update_knob_value(node, "tk_profile_list", current_profile_name)
+            # and make sure the node is up-to-date with the profile:
+            self.__set_profile(node, current_profile_name)
         
         # ensure that the disable value properly propogates to the internal write node:
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
