@@ -11,7 +11,7 @@
 import os
 import sys
 import tempfile
-import ast
+import pickle
 
 import nuke
 import nukescripts
@@ -892,12 +892,13 @@ class TankWriteNodeHandler(object):
         file_settings_str = node["tk_file_type_settings"].value()
         file_settings = {}
         try:
-            # file_settings_str is just a str(dict) so use ast.literal_eval to safely
-            # convert it back to a dictionary:
-            file_settings = ast.literal_eval(file_settings_str)
-        except ValueError, e:
+            # file_settings_str is a pickled dictionary so convert it back to a dictionary:
+            file_settings = pickle.loads(file_settings_str) or {}
+        except Exception, e:
             self._app.log_warning("Failed to extract cached file settings from node '%s' - %s" 
                               % node.name(), e)
+        
+        # update the node:
         self.__populate_format_settings(node, file_type, file_settings)        
         
 
@@ -952,7 +953,7 @@ class TankWriteNodeHandler(object):
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
-        self.__update_knob_value(node, "tk_file_type_settings", str(file_settings or {}))
+        self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings or {}))
 
         # auto-populate output name based on template
         self.__populate_initial_output_name(render_template, node)
