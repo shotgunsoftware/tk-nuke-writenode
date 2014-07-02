@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 import pickle
+import datetime
 
 import nuke
 import nukescripts
@@ -1442,6 +1443,12 @@ class TankWriteNodeHandler(object):
         fields["width"] = width
         fields["height"] = height
 
+        # add in date values for YYYY, MM, DD
+        today = datetime.date.today()
+        fields["YYYY"] = today.year
+        fields["MM"] = today.month
+        fields["DD"] = today.day
+
         # validate the output name - be backwards compatible with 'channel' as well
         for key_name in ["output", "channel"]:
             if key_name in fields:
@@ -1511,7 +1518,7 @@ class TankWriteNodeHandler(object):
                             path_is_locked = True
                             break
                         
-                        if name in ["width", "height"]:
+                        if name in ["width", "height", "YYYY", "MM", "DD"]:
                             # ignore these as they are free to change!
                             continue
                         elif prev_fields[name] != value:
