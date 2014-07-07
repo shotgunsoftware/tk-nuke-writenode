@@ -50,7 +50,7 @@ configuration:
                     type: tank_type
                 render_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
+                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [YYYY], [MM], [DD], *
                 publish_template:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
