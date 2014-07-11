@@ -218,7 +218,7 @@ class TankWriteNodeHandler(object):
         self._app.log_debug("Created Shotgun Write Node %s" % node.name())
 
         # set the profile:
-        self.__set_profile(node, profile_name)
+        self.__set_profile(node, profile_name, reset_all_settings=True)
 
         return node
 
@@ -903,12 +903,16 @@ class TankWriteNodeHandler(object):
         self.__populate_format_settings(node, file_type, file_settings)        
         
 
-    def __set_profile(self, node, profile_name):
+    def __set_profile(self, node, profile_name, reset_all_settings=False):
         """
         Set the current profile for the specified node.
         
-        :param node:            The Shotgun Write node to set the profile on
-        :param profile_name:    The name of the profile to set on the node
+        :param node:                The Shotgun Write node to set the profile on
+        :param profile_name:        The name of the profile to set on the node
+        :param reset_all_settings:  If true then all settings from the profile will be reset on the node.  If 
+                                    false, only those that _aren't_ propagated up to the Shotgun Write node will 
+                                    be reset.  For example, if colorspace has been set in the profile and force
+                                    is False then the knob won't get reset to the value from the profile.
         """
         # can't change the profile if this isn't a valid profile:
         if profile_name not in self._profiles:
@@ -950,7 +954,8 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_profile_list", profile_name)
         
         # set the format
-        self.__populate_format_settings(node, file_type, file_settings)
+        self.__populate_format_settings(node, file_type, file_settings, reset_all_settings)
+        
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
@@ -1045,9 +1050,16 @@ class TankWriteNodeHandler(object):
         # finally, set the output name on the knob:
         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setValue(output_name)
 
-    def __populate_format_settings(self, node, file_type, file_settings):
+    def __populate_format_settings(self, node, file_type, file_settings, reset_all_settings=False):
         """
         Controls the file format of the write node
+        
+        :param node:                The Shotgun Write node to set the profile on
+        :param file_type:           The file type to set on the internal Write node
+        :param file_settings:       A dictionary of settings to set on the internal Write node
+        :param reset_all_settings:  Determines if all settings should be set on the internal Write 
+                                    node (True) or just those that aren't propagated to the Shotgun
+                                    Write node (False) 
         """
         # get the embedded write node
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
@@ -1062,8 +1074,23 @@ class TankWriteNodeHandler(object):
             write_node.knob("file_type").setValue("  ")
             return
 
+        # get a list of the settings we shouldn't update:
+        knobs_to_skip = set()
+        if not reset_all_settings:
+            # Skip setting any knobs on the internal Write node that are represented by knobs on the 
+            # containing Shotgun Write node.  These knobs are typically only set at first creation 
+            # time or when the profile is changed as the artist is then free to change them.
+            for knob_name in node.knobs():
+                knob = node.knob(knob_name)
+                if knob.node() == write_node:
+                    knobs_to_skip.add(knob_name)
+
         # now apply file format settings
         for setting_name, setting_value in file_settings.iteritems():
+            if setting_name in knobs_to_skip:
+                # skip this setting:
+                continue
+            
             knob = write_node.knob(setting_name)
             if knob is None:
                 self._app.log_error("%s is not a valid setting for file format %s. It will be ignored." 
@@ -1541,7 +1568,10 @@ class TankWriteNodeHandler(object):
             # profile no longer exists but we need to handle this:
             current_profile_name = "%s [Invalid]" % current_profile_name
             profile_names.insert(0, current_profile_name)
-        node.knob("tk_profile_list").setValues(profile_names)
+            
+        list_profiles = node.knob("tk_profile_list").values()
+        if list_profiles != profile_names:            
+            node.knob("tk_profile_list").setValues(profile_names)
         
         if current_profile_name:
             # ensure that the correct entry is selected from the list:
@@ -1594,7 +1624,7 @@ class TankWriteNodeHandler(object):
         if knob.name() == "tk_profile_list":
             # change the profile for the specified node:
             new_profile_name = knob.value()
-            self.__set_profile(node, new_profile_name)
+            self.__set_profile(node, new_profile_name, reset_all_settings=True)
             
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
@@ -1653,8 +1683,12 @@ class TankWriteNodeHandler(object):
             return        
         
         for n in self.get_nodes():
-            # check to see if the script is being saved to a new file or the same file: 
-            last_known_path = n.knob("tk_last_known_script").value()
+            # check to see if the script is being saved to a new file or the same file:
+            knob = n.knob("tk_last_known_script")
+            if not knob:
+                continue
+             
+            last_known_path = knob.value()
             if last_known_path != save_file_path:
                 # we're saving to a new file so reset the render path:
                 try:
