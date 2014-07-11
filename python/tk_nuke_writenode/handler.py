@@ -218,7 +218,7 @@ class TankWriteNodeHandler(object):
         self._app.log_debug("Created Shotgun Write Node %s" % node.name())
 
         # set the profile:
-        self.__set_profile(node, profile_name, True)
+        self.__set_profile(node, profile_name, reset_all_settings=True)
 
         return node
 
@@ -1624,7 +1624,7 @@ class TankWriteNodeHandler(object):
         if knob.name() == "tk_profile_list":
             # change the profile for the specified node:
             new_profile_name = knob.value()
-            self.__set_profile(node, new_profile_name, True)
+            self.__set_profile(node, new_profile_name, reset_all_settings=True)
             
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
