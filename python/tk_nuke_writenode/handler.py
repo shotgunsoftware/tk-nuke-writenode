@@ -189,13 +189,14 @@ class TankWriteNodeHandler(object):
 
         :returns: a node object.
         """
-        if nuke.root().name() == "Root":
-            # must snapshot first!
+        try:
+            curr_filename = nuke.scriptName()
+        except:
             nuke.message("Please save the file first!")
             return
 
         # make sure that the file is a proper tank work path
-        curr_filename = nuke.root().name().replace("/", os.path.sep)
+        curr_filename = curr_filename.replace("/", os.path.sep)
         if not self._script_template.validate(curr_filename):
             nuke.message("This file is not a Shotgun work file. Please use Shotgun Save-As in order "
                          "to save the file as a valid work file.")
@@ -323,6 +324,10 @@ class TankWriteNodeHandler(object):
         # script save callback used to reset paths whenever
         # a script is saved as a new name
         nuke.addOnScriptSave(self.__on_script_save)
+        
+        # user create callback that gets executed whenever a Shotgun Write Node
+        # is created by the user
+        nuke.addOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
         # set up all existing nodes:
         for n in self.get_nodes():
@@ -334,6 +339,7 @@ class TankWriteNodeHandler(object):
         """
         nuke.removeOnScriptLoad(self.process_placeholder_nodes, nodeClass="Root")
         nuke.removeOnScriptSave(self.__on_script_save)
+        nuke.removeOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
     def convert_sg_to_nuke_write_nodes(self):
         """
@@ -526,7 +532,9 @@ class TankWriteNodeHandler(object):
 
     def on_node_created_gizmo_callback(self):
         """
-        Called when a new instance of a Shotgun Write Node is created
+        Called when an instance of a Shotgun Write Node is created.  This can
+        be when the node is created for the first time or when it is loaded
+        or imported/pasted from an existing script.
         """
         self.__setup_new_node(nuke.thisNode())
 
@@ -961,9 +969,6 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_file_type", file_type)
         self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
 
-        # auto-populate output name based on template
-        self.__populate_initial_output_name(render_template, node)
-
         # write the template name to the node so that we know it later
         self.__update_knob_value(node, "render_template", render_template.name)
         self.__update_knob_value(node, "publish_template", publish_template.name)
@@ -1151,6 +1156,13 @@ class TankWriteNodeHandler(object):
             # width, height or format on a node can cause the evaluation
             # of the internal Write node file/proxy to not be evaluated!!
             return cached_path
+
+        # get the current script path:
+        script_path = None
+        try:
+            script_path = nuke.scriptName()
+        except:
+            pass
             
         reset_path_button_visible = False
         path_warning = ""
@@ -1169,7 +1181,7 @@ class TankWriteNodeHandler(object):
                 "width":width,
                 "height":height,
                 "output":output_name,
-                "script_path":nuke.root().name()
+                "script_path":script_path
             }
             
             if (not force_reset) and old_cache_entry and cache_entry == old_cache_entry:
@@ -1235,7 +1247,7 @@ class TankWriteNodeHandler(object):
             # as a new file or as the same file in the onScriptSave callback
             last_known_script_knob = node.knob("tk_last_known_script")
             if force_reset or not last_known_script_knob.value():
-                last_known_script_knob.setValue(nuke.root().name())
+                last_known_script_knob.setValue(script_path)
 
         # Note that this method can get called to update the proxy render path when the node 
         # isn't in proxy mode!  Because we only want to update the UI to represent the 'actual'
@@ -1331,10 +1343,10 @@ class TankWriteNodeHandler(object):
         this currently doesn't work if there is an upstream reformat node set to
         anything other than a format (e.g. scale, box)!
         """
-        root = nuke.root()
-        if not root:
+        if not nuke.root():
             return
-    
+        root = nuke.root()
+        
         # calculate scale and offset to apply for proxy    
         scale_x = scale_y = 1.0
         offset_x = offset_y = 0.0
@@ -1444,10 +1456,10 @@ class TankWriteNodeHandler(object):
         if not render_template:
             raise TkComputePathError("Unable to determine the render template to use!")
         
-        # make sure we have a valid nuke root node: 
+        # make sure we have a valid nuke root node:
+        if not nuke.root():
+            return "" 
         root_node = nuke.root()
-        if not root_node:
-            return ""
 
         # create fields dict with all the metadata
         #
@@ -1558,26 +1570,46 @@ class TankWriteNodeHandler(object):
         """
         Setup a node when it's created (either directly or as a result of loading a script).  This
         allows us to dynamically populate the profile list.
+        
+        :param node:    The Shotgun Write Node to set up
         """
+        # check that this node is actually a Gizmo.  It might not be if 
+        # it was created/loaded when the Gizmo wasn't available!
+        if not isinstance(node, nuke.Gizmo):
+            return
+        
+        if self.__is_node_fully_constructed(node):
+            # node has already been constructed for this session!
+            return
+        
         self._app.log_debug("Setting up new node...")
         
-        # populate the profiles list as this isn't stored with the file:
+        # populate the profiles list as this isn't stored with the file and is
+        # dynamic based on the users configuration
         profile_names = list(self._profile_names)
         current_profile_name = self.get_node_profile_name(node)
         if current_profile_name and current_profile_name not in self._profiles:
-            # profile no longer exists but we need to handle this:
+            # profile no longer exists but we need to handle this so add it
+            # to the list:
             current_profile_name = "%s [Invalid]" % current_profile_name
             profile_names.insert(0, current_profile_name)
             
         list_profiles = node.knob("tk_profile_list").values()
-        if list_profiles != profile_names:            
+        if list_profiles != profile_names:
             node.knob("tk_profile_list").setValues(profile_names)
         
-        if current_profile_name:
-            # ensure that the correct entry is selected from the list:
-            self.__update_knob_value(node, "tk_profile_list", current_profile_name)
-            # and make sure the node is up-to-date with the profile:
-            self.__set_profile(node, current_profile_name)
+        reset_all_profile_settings = False
+        if not current_profile_name:
+            # default to first profile:
+            current_profile_name = node.knob("tk_profile_list").value()
+            # and as this node has never had a profile set, lets make
+            # sure we reset all settings 
+            reset_all_profile_settings = True 
+        
+        # ensure that the correct entry is selected from the list:
+        self.__update_knob_value(node, "tk_profile_list", current_profile_name)
+        # and make sure the node is up-to-date with the profile:
+        self.__set_profile(node, current_profile_name, reset_all_settings=reset_all_profile_settings)
         
         # ensure that the disable value properly propogates to the internal write node:
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
@@ -1594,12 +1626,10 @@ class TankWriteNodeHandler(object):
         mechanism allows the code to ignore other callbacks that may fail because things aren't set
         up correctly (e.g. knobChanged calls for default values when loading a script).
         """
-        try:
-            return node.knob("tk_is_fully_constructed").value()            
-        except ValueError:
-            # it seems that nuke sometimes calls callbacks before it's finished setting
-            # up a node enough to be accessed - this catches that error and ignores it
+        if not node.knob("tk_is_fully_constructed"):
             return False
+        
+        return node.knob("tk_is_fully_constructed").value()
     
     def __on_knob_changed(self):
         """
@@ -1677,10 +1707,11 @@ class TankWriteNodeHandler(object):
         Iterates over the Shotgun write nodes in the scene.  If the script is being saved as
         a new file then it resets all render paths before saving
         """
-        save_file_path = nuke.root().name()
-        if save_file_path == "Root":
-            # don't think this should ever be the case!
-            return        
+        try:
+            save_file_path = nuke.scriptName()
+        except:
+            # script has never been saved as anything!
+            return
         
         for n in self.get_nodes():
             # check to see if the script is being saved to a new file or the same file:
@@ -1696,4 +1727,32 @@ class TankWriteNodeHandler(object):
                 except:
                     # don't want any exceptions to stop the save!
                     pass
+                
+    def __on_user_create(self):
+        """
+        Called when the user creates a Shotgun Write node.  Not called when loading
+        or pasting a script.
+        """
+        node = nuke.thisNode()
+        
+        # check that this node is actually a Gizmo.  It might not be if 
+        # it was created/loaded when the Gizmo wasn't available!
+        if not isinstance(node, nuke.Gizmo):
+            # it's not so we can't do anything!
+            return
+        
+        # setup the new node:
+        self.__setup_new_node(node)
+        
+        # populate the initial output name based on the render template:
+        render_template = self.get_render_template(node)
+        self.__populate_initial_output_name(render_template, node)
 
+
+
+
+
+
+
+        
+        

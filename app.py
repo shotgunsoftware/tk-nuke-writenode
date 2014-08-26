@@ -24,7 +24,6 @@ class NukeWriteNode(tank.platform.Application):
         """
         Called as the application is being initialized
         """
-
         # import module and create handler
         tk_nuke_writenode = self.import_module("tk_nuke_writenode")
         self.__write_node_handler = tk_nuke_writenode.TankWriteNodeHandler(self)
