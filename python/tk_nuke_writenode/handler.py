@@ -63,7 +63,9 @@ class TankWriteNodeHandler(object):
         self.__currently_rendering_nodes = set()
         self.__node_computed_path_settings_cache = {}
         self.__path_preview_cache = {}
-        self.__updating_flags = [False, False]
+        # flags to track when the render and proxy paths are being updated.
+        self.__is_updating_render_path = False
+        self.__is_updating_proxy_path = False
             
     ################################################################################################
     # Properties
@@ -82,7 +84,12 @@ class TankWriteNodeHandler(object):
         """
         Returns a list of tank write nodes
         """
-        return nuke.allNodes(group=nuke.root(), filter=TankWriteNodeHandler.SG_WRITE_NODE_CLASS, recurseGroups = True)
+        if nuke.exists("root"):
+            return nuke.allNodes(group=nuke.root(), 
+                                 filter=TankWriteNodeHandler.SG_WRITE_NODE_CLASS, 
+                                 recurseGroups = True)
+        else:
+            return []
             
     def get_node_name(self, node):
         """
@@ -196,7 +203,6 @@ class TankWriteNodeHandler(object):
             return
 
         # make sure that the file is a proper tank work path
-        curr_filename = curr_filename.replace("/", os.path.sep)
         if not self._script_template.validate(curr_filename):
             nuke.message("This file is not a Shotgun work file. Please use Shotgun Save-As in order "
                          "to save the file as a valid work file.")
@@ -1170,11 +1176,16 @@ class TankWriteNodeHandler(object):
             # and proxy paths to be re-evaluated causing this function to be called recursively which
             # can break things!  In case that happens we use some flags to track it so that the path
             # only gets updated once.
-            fi = 1 if is_proxy else 0
-            if self.__updating_flags[fi]:
-                # we're already in the process of updating the path!
-                return cached_path
-            self.__updating_flags[fi] = True
+            if is_proxy:
+                if self.__is_updating_proxy_path:
+                    return cached_path
+                else:
+                    self.__is_updating_proxy_path = True
+            else:
+                if self.__is_updating_render_path:
+                    return cached_path
+                else:
+                    self.__is_updating_render_path = True
     
             # get the current script path:
             script_path = self.__get_current_script_path()
@@ -1189,8 +1200,8 @@ class TankWriteNodeHandler(object):
                 
                 # experimental settings cache to avoid re-computing the path
                 # if nothing has changed...
-                old_cache_entry, compute_path_error = (self.__node_computed_path_settings_cache.get((node, is_proxy))
-                                                       or (None, ""))
+                old_cache_entry, compute_path_error = self.__node_computed_path_settings_cache.get((node, is_proxy), 
+                                                                                                   (None, ""))
                 cache_entry = {
                     "ctx":self._app.context,
                     "width":width,
@@ -1239,6 +1250,9 @@ class TankWriteNodeHandler(object):
                 
                 path_is_locked = False
                 if not force_reset:
+                    # if we force-reset the path then it will never be locked, otherwise we need to test
+                    # to see if it is locked.  A path is considered locked if the render path differs
+                    # from the cached path ignoring certain dynamic fields (e.g. width, height).
                     path_is_locked = self.__is_render_path_locked(node, render_path, cached_path, is_proxy)
                 
                 if path_is_locked:
@@ -1310,7 +1324,10 @@ class TankWriteNodeHandler(object):
 
         finally:
             # make sure we reset the update flag
-            self.__updating_flags[1 if is_proxy else 0] = False
+            if is_proxy:
+                self.__is_updating_proxy_path = False
+            else:
+                self.__is_updating_render_path = False
         
     def __get_render_path(self, node, is_proxy=False):
         """
@@ -1362,7 +1379,7 @@ class TankWriteNodeHandler(object):
         this currently doesn't work if there is an upstream reformat node set to
         anything other than a format (e.g. scale, box)!
         """
-        if not nuke.root():
+        if not nuke.exists("root"):
             return
         root = nuke.root()
         
@@ -1475,17 +1492,14 @@ class TankWriteNodeHandler(object):
         if not render_template:
             raise TkComputePathError("Unable to determine the render template to use!")
         
-        # make sure we have a valid nuke root node:
-        if not nuke.root():
-            return "" 
-        root_node = nuke.root()
+        # get the current script path:
+        curr_filename = self.__get_current_script_path()
 
         # create fields dict with all the metadata
         #
         
         # extract the work fields from the script path using the work_file template:
         fields = {}
-        curr_filename = root_node.name().replace("/", os.path.sep)
         if self._script_template and self._script_template.validate(curr_filename):
             fields = self._script_template.get_fields(curr_filename)
         if not fields:
@@ -1610,7 +1624,7 @@ class TankWriteNodeHandler(object):
         if current_profile_name and current_profile_name not in self._profiles:
             # profile no longer exists but we need to handle this so add it
             # to the list:
-            current_profile_name = "%s [Invalid]" % current_profile_name
+            current_profile_name = "%s [Not Found]" % current_profile_name
             profile_names.insert(0, current_profile_name)
             
         list_profiles = node.knob("tk_profile_list").values()
@@ -1728,26 +1742,27 @@ class TankWriteNodeHandler(object):
         (e.g. whilst the file is being loaded).
         
         :returns:   The current Nuke script path or None if the script hasn't been
-                    saved yet.
+                    saved yet.  The path will have os-correct slashes
         """
         script_path = None
-        try:
-            if hasattr(nuke, "scriptName"):
-                # scriptName method is new for Nuke 8
-                try:
-                    script_path = nuke.scriptName()
-                except:
-                    # script has never been saved!
+        if hasattr(nuke, "scriptName"):
+            # scriptName method is new for Nuke 8
+            try:
+                script_path = nuke.scriptName()
+            except:
+                # script has never been saved!
+                script_path = None
+        else:
+            # check nuke.root - note that this isn't safe to do if
+            # the root node hasn't been created yet!
+            if nuke.exists("root"):
+                script_path = nuke.root().name()
+                if script_path == "Root":
                     script_path = None
-            else:
-                # check nuke.root - note that this isn't safe to do if
-                # the root node hasn't been created yet!
-                if nuke.root():
-                    script_path = nuke.root().name()
-                    if script_path == "Root":
-                        script_path = None
-        except:
-            script_path = None
+            
+        if script_path:
+            # convert to os-style slashes:
+            script_path = script_path.replace("/", os.path.sep)
             
         return script_path
                 
@@ -1771,6 +1786,10 @@ class TankWriteNodeHandler(object):
                 continue
              
             last_known_path = knob.value()
+            if last_known_path:
+                # correct slashes for compare:
+                last_known_path = last_known_path.replace("/", os.path.sep)
+                
             if last_known_path != save_file_path:
                 # we're saving to a new file so reset the render path:
                 try:
