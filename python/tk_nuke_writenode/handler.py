@@ -351,6 +351,13 @@ class TankWriteNodeHandler(object):
         """
         Utility function to convert all Shotgun Write nodes to regular
         Nuke Write nodes.
+        
+        # Example use:
+        import sgtk
+        eng = sgtk.platform.current_engine()
+        app = eng.apps["tk-nuke-writenode"]
+        # Convert Shotgun write nodes to Nuke write nodes:
+        app.convert_to_write_nodes()
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
@@ -447,8 +454,6 @@ class TankWriteNodeHandler(object):
         import sgtk
         eng = sgtk.platform.current_engine()
         app = eng.apps["tk-nuke-writenode"]
-        # Convert Shotgun write nodes to Nuke write nodes:
-        app.convert_to_write_nodes()
         # Convert previously converted Nuke write nodes back to 
         # Shotgun write nodes:
         app.convert_from_write_nodes()
