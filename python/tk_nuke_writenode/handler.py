@@ -1216,10 +1216,9 @@ class TankWriteNodeHandler(object):
                 # gather the render settings to use when computing the path:
                 render_template, width, height, output_name = self.__gather_render_settings(node, is_proxy)
                 
-                # experimental settings cache to avoid re-computing the path
-                # if nothing has changed...
-                old_cache_entry, compute_path_error = self.__node_computed_path_settings_cache.get((node, is_proxy), 
-                                                                                                   (None, ""))
+                # experimental settings cache to avoid re-computing the path if nothing has changed...
+                cache_item = self.__node_computed_path_settings_cache.get((node, is_proxy), (None, "", ""))
+                old_cache_entry, compute_path_error, render_path = cache_item
                 cache_entry = {
                     "ctx":self._app.context,
                     "width":width,
@@ -1229,10 +1228,7 @@ class TankWriteNodeHandler(object):
                 }
                 
                 if (not force_reset) and old_cache_entry and cache_entry == old_cache_entry:
-                    # nothing of relevance has changed since the last time the path was
-                    # computed so just use the cached path:
-                    render_path = cached_path
-                    
+                    # nothing of relevance has changed since the last time the path was changed!
                     # if there was previously an error then raise it so that it gets reported properly:
                     if compute_path_error:
                         raise TkComputePathError(compute_path_error)
@@ -1242,7 +1238,7 @@ class TankWriteNodeHandler(object):
                     
             except TkComputePathError, e:
                 # update cache:
-                self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e))
+                self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
                 
                 # render path could not be computed for some reason - display warning
                 # to the user in the property editor:
@@ -1264,7 +1260,7 @@ class TankWriteNodeHandler(object):
                 render_path = cached_path
             else:
                 # update cache:
-                self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, "")
+                self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, "", render_path)
                 
                 path_is_locked = False
                 if not force_reset:
