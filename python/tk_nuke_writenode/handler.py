@@ -1517,7 +1517,7 @@ class TankWriteNodeHandler(object):
         
         # extract the work fields from the script path using the work_file template:
         fields = {}
-        if self._script_template and self._script_template.validate(curr_filename):
+        if curr_filename and self._script_template and self._script_template.validate(curr_filename):
             fields = self._script_template.get_fields(curr_filename)
         if not fields:
             raise TkComputePathError("The current script is not a Shotgun Work File!")
