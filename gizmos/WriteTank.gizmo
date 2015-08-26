@@ -290,6 +290,112 @@ Gizmo {
     T Write1.reload
     -STARTLINE
  }
+
+ addUserKnob {
+    26 "" 
+    l "" 
+    +STARTLINE
+ }
+ addUserKnob {
+    41 _promoted_0
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_1
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_2
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_3
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_4
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_5
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_6
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_7
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_8
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_9
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_10
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_11
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_12
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_13
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_14
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_15
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_16
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_17
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_18
+    l Promoted
+    +INVISIBLE
+ }
+ addUserKnob {
+    41 _promoted_19
+    l Promoted
+    +INVISIBLE
+ }
  
  knobChanged "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_knob_changed_gizmo_callback()"
  onCreate "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_node_created_gizmo_callback()"
