@@ -1006,8 +1006,7 @@ class TankWriteNodeHandler(object):
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         # We'll use link knobs to tie our top-level knob to the write node's
         # knob that we want to promote.
-        i = 0
-        for knob_name in promote_write_knobs:
+        for i, knob_name in enumerate(promote_write_knobs):
             link_name = "_promoted_" + str(i)
             # We have 20 link knobs stashed away to use.  If we overflow that
             # then we will simply create a new link knob and deal with the
@@ -1027,10 +1026,9 @@ class TankWriteNodeHandler(object):
             link_knob.setLabel(write_node.knob(knob_name).label())
             link_knob.clearFlag(nuke.INVISIBLE)
             self._promoted_knobs.append(link_knob)
-            i += 1
         # Adding knobs might have caused us to jump tabs, so we will set
         # back to the first tab.
-        if i > 19:
+        if len(promote_write_knobs) > 19:
             node.setTab(0)
 
         # write the template name to the node so that we know it later

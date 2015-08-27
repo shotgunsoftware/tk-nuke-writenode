@@ -73,6 +73,14 @@ configuration:
                                      Specify an empty list to use the default colour."
                     allows_empty: True
                     default_value: []
+                promote_write_knobs:
+                    type: list
+                    values:
+                        type: str
+                    description:    "Specify a list of knob names that should be promoted from the internal write node
+                                     up to the user interface of the gizmo."
+                    allows_empty: True
+                    default_value: []
 
 
     template_script_work:
