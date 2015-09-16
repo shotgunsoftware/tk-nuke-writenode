@@ -48,7 +48,7 @@ class TankWriteNodeHandler(object):
         self._script_template = self._app.get_template("template_script_work")
         
         # cache the profiles:
-        self._promoted_knobs = []
+        self._promoted_knobs = {}
         self._profile_names = []
         self._profiles = {}
         for profile in self._app.get_setting("write_nodes", []):
@@ -1000,9 +1000,9 @@ class TankWriteNodeHandler(object):
 
         # Hide the promoted knobs that might exist from the previously
         # active profile.
-        for promoted_knob in self._promoted_knobs:
+        for promoted_knob in self._promoted_knobs.get(node, []):
             promoted_knob.setFlag(nuke.INVISIBLE)
-        self._promoted_knobs = []
+        self._promoted_knobs[node] = []
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         # We'll use link knobs to tie our top-level knob to the write node's
         # knob that we want to promote.
@@ -1025,7 +1025,7 @@ class TankWriteNodeHandler(object):
             link_knob.setLink(write_node.fullName() + "." + knob_name)
             link_knob.setLabel(write_node.knob(knob_name).label())
             link_knob.clearFlag(nuke.INVISIBLE)
-            self._promoted_knobs.append(link_knob)
+            self._promoted_knobs[node].append(link_knob)
         # Adding knobs might have caused us to jump tabs, so we will set
         # back to the first tab.
         if len(promote_write_knobs) > 19:
