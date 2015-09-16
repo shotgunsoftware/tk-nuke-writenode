@@ -1023,7 +1023,8 @@ class TankWriteNodeHandler(object):
                 # itself if this is a link that was previously used.
                 link_knob = node.knobs()[link_name]
             link_knob.setLink(write_node.fullName() + "." + knob_name)
-            link_knob.setLabel(write_node.knob(knob_name).label())
+            label = write_node.knob(knob_name).label() or knob_name
+            link_knob.setLabel(label)
             link_knob.clearFlag(nuke.INVISIBLE)
             self._promoted_knobs[node].append(link_knob)
         # Adding knobs might have caused us to jump tabs, so we will set
