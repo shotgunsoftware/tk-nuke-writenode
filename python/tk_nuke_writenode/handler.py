@@ -1007,6 +1007,10 @@ class TankWriteNodeHandler(object):
         # We'll use link knobs to tie our top-level knob to the write node's
         # knob that we want to promote.
         for i, knob_name in enumerate(promote_write_knobs):
+            target_knob = write_node.knob(knob_name)
+            if not target_knob:
+                self._app.log_warning("Knob %s does not exist and will not be promoted." % knob_name)
+                continue
             link_name = "_promoted_" + str(i)
             # We have 20 link knobs stashed away to use.  If we overflow that
             # then we will simply create a new link knob and deal with the
@@ -1022,8 +1026,8 @@ class TankWriteNodeHandler(object):
                 # by name, otherwise we'll get the link target and not the link
                 # itself if this is a link that was previously used.
                 link_knob = node.knobs()[link_name]
-            link_knob.setLink(write_node.fullName() + "." + knob_name)
-            label = write_node.knob(knob_name).label() or knob_name
+            link_knob.setLink(target_knob.fullyQualifiedName())
+            label = target_knob.label() or knob_name
             link_knob.setLabel(label)
             link_knob.clearFlag(nuke.INVISIBLE)
             self._promoted_knobs[node].append(link_knob)
