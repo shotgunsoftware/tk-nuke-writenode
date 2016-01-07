@@ -1135,16 +1135,22 @@ class TankWriteNodeHandler(object):
         # finally, set the output name on the knob:
         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setValue(output_name)
 
-    def __populate_format_settings(self, node, file_type, file_settings, reset_all_settings=False, promoted_write_knobs=None):
+    def __populate_format_settings(
+        self, node, file_type, file_settings, reset_all_settings=False, promoted_write_knobs=None
+    ):
         """
         Controls the file format of the write node
         
-        :param node:                The Shotgun Write node to set the profile on
-        :param file_type:           The file type to set on the internal Write node
-        :param file_settings:       A dictionary of settings to set on the internal Write node
-        :param reset_all_settings:  Determines if all settings should be set on the internal Write 
-                                    node (True) or just those that aren't propagated to the Shotgun
-                                    Write node (False) 
+        :param node:                    The Shotgun Write node to set the profile on
+        :param file_type:               The file type to set on the internal Write node
+        :param file_settings:           A dictionary of settings to set on the internal Write node
+        :param reset_all_settings:      Determines if all settings should be set on the internal Write 
+                                        node (True) or just those that aren't propagated to the Shotgun
+                                        Write node (False) 
+        :param promoted_write_knobs:    A list of knob names that have been promoted from the
+                                        encapsulated write node. In the case where reset_all_settings
+                                        is false, these knobs are treated as user-controlled knobs
+                                        and will not be reset to their preset value.
         """
         # get the embedded write node
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
@@ -1158,11 +1164,11 @@ class TankWriteNodeHandler(object):
         # are not properly written to the .nk file on save, and will
         # revert to default settings on load. On save of the .nk file, we
         # store a sanitized and serialized chunk of .nk script representing
-        # all non-default knob values in a hidden knob tk_write_node_settings.
-        # Right here, we are unserializing that data and reapplying it to
+        # all non-default knob values in a hidden knob "tk_write_node_settings".
+        # Right here, we are deserializing that data and reapplying it to
         # the internal write node. After this is done, we continue with
-        # the normal format settings logic, which will handle putting
-        # to right any non-promoted knobs to their preset values.
+        # the normal format settings logic, which will handle setting
+        # any non-promoted knobs to their preset values.
         if not reset_all_settings:
             tcl_settings = node.knob("tk_write_node_settings").value()
             if tcl_settings:
@@ -1900,7 +1906,10 @@ class TankWriteNodeHandler(object):
             # tk_write_node_settings for use when repopulating the file_type
             # settings on load.
             write_node = n.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-            knob_changes = pickle.dumps(write_node.writeKnobs(nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE))
+            nk_data = write_node.writeKnobs(
+                nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
+            )
+            knob_changes = pickle.dumps(nk_data)
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
