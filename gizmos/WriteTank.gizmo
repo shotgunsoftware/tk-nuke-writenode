@@ -121,7 +121,13 @@ Gizmo {
     l "File Type Settings"
     t "A dictionary of file type settings to be applied to the Write node - this cached value is used if the profile can't be determined"
     +INVISIBLE
- }  
+ } 
+ addUserKnob {
+    1 tk_write_node_settings
+    l "Write Node Settings"
+    t "A string of tcl containing a record of settings for the internal write node at save time."
+    +INVISIBLE
+ } 
   
  addUserKnob {
     26 "" 

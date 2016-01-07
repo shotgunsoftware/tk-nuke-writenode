@@ -13,6 +13,7 @@ import sys
 import tempfile
 import pickle
 import datetime
+import base64
 
 import nuke
 import nukescripts
@@ -991,7 +992,13 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_profile_list", profile_name)
         
         # set the format
-        self.__populate_format_settings(node, file_type, file_settings, reset_all_settings)
+        self.__populate_format_settings(
+            node,
+            file_type,
+            file_settings,
+            reset_all_settings,
+            promote_write_knobs,
+        )
         
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
@@ -1002,8 +1009,10 @@ class TankWriteNodeHandler(object):
         # active profile.
         for promoted_knob in self._promoted_knobs.get(node, []):
             promoted_knob.setFlag(nuke.INVISIBLE)
+
         self._promoted_knobs[node] = []
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+
         # We'll use link knobs to tie our top-level knob to the write node's
         # knob that we want to promote.
         for i, knob_name in enumerate(promote_write_knobs):
@@ -1011,7 +1020,9 @@ class TankWriteNodeHandler(object):
             if not target_knob:
                 self._app.log_warning("Knob %s does not exist and will not be promoted." % knob_name)
                 continue
+
             link_name = "_promoted_" + str(i)
+
             # We have 20 link knobs stashed away to use.  If we overflow that
             # then we will simply create a new link knob and deal with the
             # fact that it will end up in a "User" tab in the UI. The reason
@@ -1026,11 +1037,13 @@ class TankWriteNodeHandler(object):
                 # by name, otherwise we'll get the link target and not the link
                 # itself if this is a link that was previously used.
                 link_knob = node.knobs()[link_name]
+
             link_knob.setLink(target_knob.fullyQualifiedName())
             label = target_knob.label() or knob_name
             link_knob.setLabel(label)
             link_knob.clearFlag(nuke.INVISIBLE)
             self._promoted_knobs[node].append(link_knob)
+
         # Adding knobs might have caused us to jump tabs, so we will set
         # back to the first tab.
         if len(promote_write_knobs) > 19:
@@ -1065,7 +1078,7 @@ class TankWriteNodeHandler(object):
 
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
-        # the node automagically updating without the users knowledge.
+        # the node automatically updating without the user's knowledge.
         if profile_name != old_profile_name:
             self.reset_render_path(node)
 
@@ -1122,19 +1135,45 @@ class TankWriteNodeHandler(object):
         # finally, set the output name on the knob:
         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setValue(output_name)
 
-    def __populate_format_settings(self, node, file_type, file_settings, reset_all_settings=False):
+    def __populate_format_settings(
+        self, node, file_type, file_settings, reset_all_settings=False, promoted_write_knobs=None
+    ):
         """
         Controls the file format of the write node
         
-        :param node:                The Shotgun Write node to set the profile on
-        :param file_type:           The file type to set on the internal Write node
-        :param file_settings:       A dictionary of settings to set on the internal Write node
-        :param reset_all_settings:  Determines if all settings should be set on the internal Write 
-                                    node (True) or just those that aren't propagated to the Shotgun
-                                    Write node (False) 
+        :param node:                    The Shotgun Write node to set the profile on
+        :param file_type:               The file type to set on the internal Write node
+        :param file_settings:           A dictionary of settings to set on the internal Write node
+        :param reset_all_settings:      Determines if all settings should be set on the internal Write 
+                                        node (True) or just those that aren't propagated to the Shotgun
+                                        Write node (False) 
+        :param promoted_write_knobs:    A list of knob names that have been promoted from the
+                                        encapsulated write node. In the case where reset_all_settings
+                                        is false, these knobs are treated as user-controlled knobs
+                                        and will not be reset to their preset value.
         """
         # get the embedded write node
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+        promoted_write_knobs = promoted_write_knobs or []
+
+        # If we're not resetting everything, then we need to try and
+        # make sure that the settings that the user made to the internal
+        # write knobs are retained. The reason for this is that promoted
+        # write knobs are handled by pre-defined link knobs, which are
+        # left unlinked in the gizmo itself. This means that their values
+        # are not properly written to the .nk file on save, and will
+        # revert to default settings on load. On save of the .nk file, we
+        # store a sanitized and serialized chunk of .nk script representing
+        # all non-default knob values in a hidden knob "tk_write_node_settings".
+        # Right here, we are deserializing that data and reapplying it to
+        # the internal write node. After this is done, we continue with
+        # the normal format settings logic, which will handle setting
+        # any non-promoted knobs to their preset values.
+        if not reset_all_settings:
+            tcl_settings = node.knob("tk_write_node_settings").value()
+            if tcl_settings:
+                write_node.readKnobs(pickle.loads(str(base64.b64decode(tcl_settings))))
+                self.__update_render_path(node)
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
@@ -1147,15 +1186,18 @@ class TankWriteNodeHandler(object):
             return
 
         # get a list of the settings we shouldn't update:
-        knobs_to_skip = set()
+        knobs_to_skip = []
         if not reset_all_settings:
             # Skip setting any knobs on the internal Write node that are represented by knobs on the 
             # containing Shotgun Write node.  These knobs are typically only set at first creation 
             # time or when the profile is changed as the artist is then free to change them.
             for knob_name in node.knobs():
                 knob = node.knob(knob_name)
+
                 if knob.node() == write_node:
-                    knobs_to_skip.add(knob_name)
+                    knobs_to_skip.append(knob_name)
+
+            knobs_to_skip.extend(promoted_write_knobs)
 
         # now apply file format settings
         for setting_name, setting_value in file_settings.iteritems():
@@ -1675,7 +1717,7 @@ class TankWriteNodeHandler(object):
         self._app.log_debug("Setting up new node...")
         
         # populate the profiles list as this isn't stored with the file and is
-        # dynamic based on the users configuration
+        # dynamic based on the user's configuration
         profile_names = list(self._profile_names)
         current_profile_name = self.get_node_profile_name(node)
         if current_profile_name and current_profile_name not in self._profiles:
@@ -1854,6 +1896,25 @@ class TankWriteNodeHandler(object):
                 except:
                     # don't want any exceptions to stop the save!
                     pass
+
+            # For each of our nodes, we need to keep a record of any non-default
+            # knob values on the encapsulated write node. We will need this when
+            # this file is re-opened, as the dynamically-linked, "promoted" write
+            # knobs do not save to the .nk file properly, and so their values are
+            # lost on load. We sanitize and serialize the .nk script data that the
+            # writeKnobs() method gives us, and then store that in a hidden knob
+            # tk_write_node_settings for use when repopulating the file_type
+            # settings on load.
+            write_node = n.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+            nk_data = write_node.writeKnobs(
+                nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
+            )
+            knob_changes = pickle.dumps(nk_data)
+            self.__update_knob_value(
+                n,
+                "tk_write_node_settings",
+                unicode(base64.b64encode(knob_changes)),
+            )
                 
     def __on_user_create(self):
         """
