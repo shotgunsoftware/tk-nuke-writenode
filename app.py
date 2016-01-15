@@ -65,6 +65,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         Handles refreshing the render paths of all Shotgun write nodes
         after a context change has been completed.
+
+        :param old_context: The sgtk.context.Context being switched from.
+        :param new_context: The sgtk.context.Context being switched to.
         """
         for node in self.get_write_nodes():
             self.reset_node_render_path(node)
