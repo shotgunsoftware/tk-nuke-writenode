@@ -39,6 +39,13 @@ class NukeWriteNode(tank.platform.Application):
         # add callbacks:
         self.__write_node_handler.add_callbacks()
 
+    @property
+    def context_change_allowed(self):
+        """
+        Specifies that context changes are allowed.
+        """
+        return True
+
     def destroy_app(self):
         """
         Called when the app is unloaded/destroyed
@@ -53,6 +60,17 @@ class NukeWriteNode(tank.platform.Application):
             del nuke._shotgun_write_node_handler
         if hasattr(nuke, "_tank_write_node_handler"):
             del nuke._tank_write_node_handler
+
+    def post_context_change(self, old_context, new_context):
+        """
+        Handles refreshing the render paths of all Shotgun write nodes
+        after a context change has been completed.
+
+        :param old_context: The sgtk.context.Context being switched from.
+        :param new_context: The sgtk.context.Context being switched to.
+        """
+        for node in self.get_write_nodes():
+            self.reset_node_render_path(node)
         
     def process_placeholder_nodes(self):
         """
