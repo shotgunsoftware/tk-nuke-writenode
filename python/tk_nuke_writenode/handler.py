@@ -1173,7 +1173,14 @@ class TankWriteNodeHandler(object):
             tcl_settings = node.knob("tk_write_node_settings").value()
             if tcl_settings:
                 write_node.readKnobs(pickle.loads(str(base64.b64decode(tcl_settings))))
-                self.__update_render_path(node)
+                # The file and proxy knobs are going to have lost their reference to
+                # the gizmo's top-level path caches. We need to hook those back up.
+                file_refs = ("""
+                    file  "\[python __import__('nuke')._shotgun_write_node_handler.on_compute_path_gizmo_callback() if hasattr(__import__('nuke'), '_shotgun_write_node_handler') else nuke.thisParent().knob('cached_path').value()]"
+                    proxy "\[python __import__('nuke')._shotgun_write_node_handler.on_compute_proxy_path_gizmo_callback() if hasattr(__import__('nuke'), '_shotgun_write_node_handler') else nuke.thisParent().knob('tk_cached_proxy_path').value()]"
+                """)
+                write_node.readKnobs(file_refs)
+                self.reset_render_path(node)
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
