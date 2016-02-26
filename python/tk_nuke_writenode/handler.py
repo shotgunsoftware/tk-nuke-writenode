@@ -1752,7 +1752,19 @@ class TankWriteNodeHandler(object):
         
         # ensure that the disable value properly propogates to the internal write node:
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-        write_node["disable"].setValue(node["disable"].value()) 
+        write_node["disable"].setValue(node["disable"].value())
+
+        # Ensure that the output name matches the node name if
+        # that option is enabled on the node. This is primarily
+        # going to handle the situation where a node with "use name as
+        # output name" enabled is copied and pasted. When it is
+        # pasted the node will get a new name to avoid a collision
+        # and we need to make sure we update the output name to
+        # match that new name.
+        if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
+            # force output name to be the node name:
+            new_output_name = node.knob("name").value()
+            self.__set_output(node, new_output_name)
         
         # now that the node is constructed, we can process knob changes
         # correctly.
