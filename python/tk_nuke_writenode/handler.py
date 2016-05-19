@@ -1786,10 +1786,6 @@ class TankWriteNodeHandler(object):
         if not isinstance(node, nuke.Gizmo):
             return
         
-        if self.__is_node_fully_constructed(node):
-            # node has already been constructed for this session!
-            return
-        
         self._app.log_debug("Setting up new node...")
         
         # populate the profiles list as this isn't stored with the file and is
