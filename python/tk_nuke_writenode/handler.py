@@ -14,6 +14,7 @@ import tempfile
 import pickle
 import datetime
 import base64
+import re
 
 import nuke
 import nukescripts
@@ -190,8 +191,8 @@ class TankWriteNodeHandler(object):
         the current script path and configuraton
         """
         is_proxy = node.proxy()
-        self.__update_render_path(node, force_reset = True, is_proxy = is_proxy)     
-        self.__update_render_path(node, force_reset = True, is_proxy = (not is_proxy))
+        self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
+        self.__update_render_path(node, force_reset=True, is_proxy=(not is_proxy))
 
     def create_new_node(self, profile_name):
         """
@@ -1172,15 +1173,16 @@ class TankWriteNodeHandler(object):
         if not reset_all_settings:
             tcl_settings = node.knob("tk_write_node_settings").value()
             if tcl_settings:
-                write_node.readKnobs(pickle.loads(str(base64.b64decode(tcl_settings))))
-                # The file and proxy knobs are going to have lost their reference to
-                # the gizmo's top-level path caches. We need to hook those back up.
-                file_refs = ("""
-                    file  "\[python __import__('nuke')._shotgun_write_node_handler.on_compute_path_gizmo_callback() if hasattr(__import__('nuke'), '_shotgun_write_node_handler') else nuke.thisParent().knob('cached_path').value()]"
-                    proxy "\[python __import__('nuke')._shotgun_write_node_handler.on_compute_proxy_path_gizmo_callback() if hasattr(__import__('nuke'), '_shotgun_write_node_handler') else nuke.thisParent().knob('tk_cached_proxy_path').value()]"
-                """)
-                write_node.readKnobs(file_refs)
-                self.reset_render_path(node)
+                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
+                # We need to remove the "file" and "proxy" settings that are always
+                # going to be baked into these knob settings. If we don't, the baked-out
+                # paths will replace the expressions that we have hooked up for those
+                # knobs.
+                filtered_settings = []
+                for setting in re.split(r"\n", knob_settings):
+                    if not setting.startswith("file ") and not setting.startswith("proxy "):
+                        filtered_settings.append(setting)
+                write_node.readKnobs(r"\n".join(filtered_settings))
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
