@@ -1178,8 +1178,11 @@ class TankWriteNodeHandler(object):
                 # going to be baked into these knob settings. If we don't, the baked-out
                 # paths will replace the expressions that we have hooked up for those
                 # knobs.
-                knob_settings = r"\n".join([l for l in re.split(r'\n', knob_settings) if not l.startswith("file ") and not l.startswith("proxy ")])
-                write_node.readKnobs(knob_settings)
+                filtered_settings = []
+                for setting in re.split(r"\n", knob_settings):
+                    if not setting.startswith("file ") and not setting.startswith("proxy "):
+                        filtered_settings.append(setting)
+                write_node.readKnobs(r"\n".join(filtered_settings))
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
