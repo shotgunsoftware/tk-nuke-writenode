@@ -71,6 +71,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         for node in self.get_write_nodes():
             self.reset_node_render_path(node)
+
+        self._shotgun_write_node_handler.populate_profiles_from_settings()
+        self.__add_write_node_commands(new_context)
         
     def process_placeholder_nodes(self):
         """
@@ -212,16 +215,26 @@ class NukeWriteNode(tank.platform.Application):
         
     # Private methods
     #
-    def __add_write_node_commands(self):
+    def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
         """
+        context = context or self.context
+
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
+
         for profile_name in self.__write_node_handler.profile_names:
             # add to toolbar menu
             cb_fn = lambda pn=profile_name: self.__write_node_handler.create_new_node(pn)
-            self.engine.register_command("%s [Shotgun]" % profile_name, cb_fn, 
-                                         {"type": "node", "icon": write_node_icon})
+            self.engine.register_command(
+                "%s [Shotgun]" % profile_name,
+                cb_fn, 
+                dict(
+                    type="node",
+                    icon=write_node_icon,
+                    context=context,
+                )
+            )
             
             
 

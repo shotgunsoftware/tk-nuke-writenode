@@ -53,15 +53,6 @@ class TankWriteNodeHandler(object):
         self._promoted_knobs = {}
         self._profile_names = []
         self._profiles = {}
-        for profile in self._app.get_setting("write_nodes", []):
-            name = profile["name"]
-            if name in self._profiles:
-                self._app.log_warning("Configuration contains multiple Write Node profiles called '%s'!  Only the "
-                                      "first will be available" % name)                
-                continue
-            
-            self._profile_names.append(name)
-            self._profiles[name] = profile
         
         self.__currently_rendering_nodes = set()
         self.__node_computed_path_settings_cache = {}
@@ -69,6 +60,8 @@ class TankWriteNodeHandler(object):
         # flags to track when the render and proxy paths are being updated.
         self.__is_updating_render_path = False
         self.__is_updating_proxy_path = False
+
+        self.populate_profiles_from_settings()
             
     ################################################################################################
     # Properties
@@ -82,6 +75,19 @@ class TankWriteNodeHandler(object):
             
     ################################################################################################
     # Public methods
+
+    def populate_profiles_from_settings(self):
+        self._profiles = {}
+
+        for profile in self._app.get_setting("write_nodes", []):
+            name = profile["name"]
+            if name in self._profiles:
+                self._app.log_warning("Configuration contains multiple Write Node profiles called '%s'!  Only the "
+                                      "first will be available" % name)                
+                continue
+            
+            self._profile_names.append(name)
+            self._profiles[name] = profile
             
     def get_nodes(self):
         """
@@ -1183,6 +1189,7 @@ class TankWriteNodeHandler(object):
                     if not setting.startswith("file ") and not setting.startswith("proxy "):
                         filtered_settings.append(setting)
                 write_node.readKnobs(r"\n".join(filtered_settings))
+                self.reset_render_path(node)
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
