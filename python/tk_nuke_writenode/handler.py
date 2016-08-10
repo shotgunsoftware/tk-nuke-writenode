@@ -77,6 +77,9 @@ class TankWriteNodeHandler(object):
     # Public methods
 
     def populate_profiles_from_settings(self):
+        """
+        Sources profile definitions from the current app settings.
+        """
         self._profiles = {}
         self._profile_names = []
 
@@ -89,6 +92,12 @@ class TankWriteNodeHandler(object):
             
             self._profile_names.append(name)
             self._profiles[name] = profile
+
+    def populate_script_template(self):
+        """
+        Sources the current context's work file template from the parent app.
+        """
+        self._script_template = self._app.get_template("template_script_work")
             
     def get_nodes(self):
         """
