@@ -78,6 +78,7 @@ class TankWriteNodeHandler(object):
 
     def populate_profiles_from_settings(self):
         self._profiles = {}
+        self._profile_names = []
 
         for profile in self._app.get_setting("write_nodes", []):
             name = profile["name"]

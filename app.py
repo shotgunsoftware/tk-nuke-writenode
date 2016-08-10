@@ -72,7 +72,7 @@ class NukeWriteNode(tank.platform.Application):
         for node in self.get_write_nodes():
             self.reset_node_render_path(node)
 
-        self._shotgun_write_node_handler.populate_profiles_from_settings()
+        self.__write_node_handler.populate_profiles_from_settings()
         self.__add_write_node_commands(new_context)
         
     def process_placeholder_nodes(self):
