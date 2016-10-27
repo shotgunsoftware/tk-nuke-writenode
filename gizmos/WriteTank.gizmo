@@ -402,6 +402,15 @@ Gizmo {
     l Promoted
     +INVISIBLE
  }
+ addUserKnob {
+    20 Python
+    l "Python"
+ }
+ addUserKnob {1 tk_before_render l "before render"}
+ addUserKnob {41 beforeFrameRender l "before each frame" T Write1.beforeFrameRender}
+ addUserKnob {41 afterFrameRender l "after each frame" T Write1.afterFrameRender}
+ addUserKnob {1 tk_after_render l "after render"}
+ addUserKnob {41 renderProgress l "render progress" T Write1.renderProgress}
  
  knobChanged "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_knob_changed_gizmo_callback()"
  onCreate "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_node_created_gizmo_callback()"
