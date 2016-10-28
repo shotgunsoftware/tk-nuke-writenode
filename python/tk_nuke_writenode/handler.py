@@ -744,6 +744,17 @@ class TankWriteNodeHandler(object):
         if grp:
             self.__currently_rendering_nodes.add(grp)
 
+        # Run any beforeRender code that the user added in the node's Python
+        # tab manually.
+        cmd = grp.knob("tk_before_render").value()
+
+        if cmd:
+            try:
+                exec(cmd)
+            except Exception:
+                self._app.log_error("The Write node's beforeRender setting failed "
+                                    "to execute!")
+                raise
     def on_after_render_gizmo_callback(self):
         """
         Callback from nuke whenever a tank write node has finished being rendered
@@ -758,6 +769,17 @@ class TankWriteNodeHandler(object):
         if grp and grp in self.__currently_rendering_nodes:
             self.__currently_rendering_nodes.remove(grp)
 
+        # Run any afterRender code that the user added in the node's Python
+        # tab manually.
+        cmd = grp.knob("tk_after_render").value()
+
+        if cmd:
+            try:
+                exec(cmd)
+            except Exception:
+                self._app.log_error("The Write node's afterRender setting failed "
+                                    "to execute!")
+                raise
 
     ################################################################################################
     # Private methods
