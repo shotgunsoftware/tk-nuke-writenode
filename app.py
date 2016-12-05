@@ -216,9 +216,7 @@ class NukeWriteNode(tank.platform.Application):
     
     def create_new_write_node(self, profile_name):
         """
-        Convert all Shotgun write nodes found in the current Script to regular
-        Nuke Write nodes.  Additional toolkit information will be stored on 
-        additional user knobs named 'tk_*'
+        Creates a Shotgun write node using the provided profile_name.  
         """
         self.__write_node_handler.create_new_node(profile_name)
 
