@@ -213,7 +213,15 @@ class NukeWriteNode(tank.platform.Application):
         from Shotgun Write nodes, back into Shotgun Write nodes.
         """
         self.__write_node_handler.convert_nuke_to_sg_write_nodes()
-        
+    
+    def create_new_write_node(self, profile_name):
+        """
+        Convert all Shotgun write nodes found in the current Script to regular
+        Nuke Write nodes.  Additional toolkit information will be stored on 
+        additional user knobs named 'tk_*'
+        """
+        self.__write_node_handler.create_new_node(profile_name)
+
     # Private methods
     #
     def __add_write_node_commands(self, context=None):
