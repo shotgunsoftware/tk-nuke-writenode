@@ -62,7 +62,7 @@ class TankWriteNodeHandler(object):
         # flags to track when the render and proxy paths are being updated.
         self.__is_updating_render_path = False
         self.__is_updating_proxy_path = False
-        self.__timer = None
+        self.__nuke_10_setup_timer = None
 
         self.populate_profiles_from_settings()
             
@@ -590,20 +590,20 @@ class TankWriteNodeHandler(object):
         # node isn't completely initialized. As a result, we get some bogus
         # noise in the form of ValueErrors complaining about the lack of
         # a PythonObject attached to the node. The not-ideal solution is to
-        # delay the callback by a short period of time -- half a second --
+        # delay the callback by a short period of time -- 100 milliseconds --
         # before allowing it to actually be called. This gives Nuke enough
         # time to complete its root-node initialization and all is well.
-        if not self.__timer:
-            self.__timer = QtCore.QTimer()
-            self.__timer.setSingleShot(True)
-            self.__timer.timeout.connect(
+        if not self.__nuke_10_setup_timer:
+            self.__nuke_10_setup_timer = QtCore.QTimer()
+            self.__nuke_10_setup_timer.setSingleShot(True)
+            self.__nuke_10_setup_timer.timeout.connect(
                 functools.partial(
                     self.__setup_new_node,
                     nuke.thisNode(),
                 ),
             )
 
-        self.__timer.start(500)
+        self.__nuke_10_setup_timer.start(100)
 
     def on_compute_path_gizmo_callback(self):
         """
