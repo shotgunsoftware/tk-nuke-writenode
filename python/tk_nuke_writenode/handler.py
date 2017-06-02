@@ -22,6 +22,7 @@ import nukescripts
 import tank
 from tank import TankError
 from tank.platform import constants
+from tank.platform.qt import QtCore
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -582,7 +583,13 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
-        self.__setup_new_node(nuke.thisNode())
+        current_node = nuke.thisNode()
+        calling_function = yield
+        QtCore.QTimer.singleShot(100, calling_function.next)
+        yield
+        self.__setup_new_node(current_node)
+        yield
+
 
     def on_compute_path_gizmo_callback(self):
         """
