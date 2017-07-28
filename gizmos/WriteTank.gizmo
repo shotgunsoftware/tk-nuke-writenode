@@ -338,12 +338,6 @@ Gizmo {
     -STARTLINE    
  }
  addUserKnob {
-    32 farm_render 
-    l "Farm Render"
-    T "  "
-    -STARTLINE    
- }
- addUserKnob {
     41 first 
     l "frame range" 
     T Write1.first
