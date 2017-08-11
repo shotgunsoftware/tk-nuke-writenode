@@ -964,7 +964,6 @@ class TankWriteNodeHandler(object):
 
         # get the render path:
         path = self.__get_render_path(node, is_proxy)
-
         # calculate the parts:
         context_path = local_path = file_name = ""
 
@@ -1019,14 +1018,18 @@ class TankWriteNodeHandler(object):
                   'version': curr_fields['version']
             }  
 
-
-            if write_type != "Test":
-                context_info = self._app.tank.templates['shot_render_global']
+            if write_type == "Test":
+                context_info = self._app.tank.templates['shot_render_test_global']
+            elif write_type == "Denoise": 
+                context_info = self._app.tank.templates['shot_render_library_global']
+            elif write_type == "Precomp":
+                context_info = self._app.tank.templates['shot_render_library_global']
+            elif write_type == "Element":
+                context_info = self._app.tank.templates['shot_render_library_global']
             else:
-                context_info = self._app.tank.templates['shot_render_test_global']  
+                context_info = self._app.tank.templates['shot_render_global']  
 
             context_path = context_info.apply_fields(fields)                    
- 
             if context_path:
                 # found a context path!
                 # chop off this bit from the normalized path
