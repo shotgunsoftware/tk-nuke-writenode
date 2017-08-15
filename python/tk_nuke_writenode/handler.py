@@ -1009,14 +1009,14 @@ class TankWriteNodeHandler(object):
                       'output': '',
                       'version': curr_fields['version']
                 }  
-            fields ={
+            # fields ={
 
-                  'Shot': curr_fields['Shot'],
-                  'Step': curr_fields['Step'],
-                  'name': '',
-                  'output': '',
-                  'version': curr_fields['version']
-            }  
+            #       'Shot': curr_fields['Shot'],
+            #       'Step': curr_fields['Step'],
+            #       'name': '',
+            #       'output': '',
+            #       'version': curr_fields['version']
+            # }  
 
             if write_type == "Test":
                 context_info = self._app.tank.templates['shot_render_test_global']
