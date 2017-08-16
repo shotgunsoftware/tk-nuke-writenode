@@ -990,46 +990,49 @@ class TankWriteNodeHandler(object):
             work_template = self._app.tank.template_from_path(script_path)
             curr_fields = work_template.get_fields(script_path)
             curr_entity_type = self._app.context.entity['type']
-            
             if curr_entity_type == 'Shot':
                 fields ={
-
                       'Shot': curr_fields['Shot'],
                       'Step': curr_fields['Step'],
                       'name': '',
                       'output': '',
                       'version': curr_fields['version']
                 }  
+                if write_type == "Test":
+                    context_info = self._app.tank.templates['shot_render_test_global']
+                elif write_type == "Denoise": 
+                    context_info = self._app.tank.templates['shot_render_library_global']
+                elif write_type == "Precomp":
+                    context_info = self._app.tank.templates['shot_render_library_global']
+                elif write_type == "Element":
+                    context_info = self._app.tank.templates['shot_render_library_global']
+                else:
+                    context_info = self._app.tank.templates['shot_render_global']  
+
+                context_path = context_info.apply_fields(fields)      
+
             elif curr_entity_type == 'Asset':
                 fields ={
-
-                      'Shot': curr_fields['Asset'],
+                      'Asset': curr_fields['Asset'],
                       'Step': curr_fields['Step'],
+                      'sg_asset_type': curr_fields['sg_asset_type'],
                       'name': '',
                       'output': '',
                       'version': curr_fields['version']
                 }  
-            # fields ={
+                if write_type == "Test":
+                    context_info = self._app.tank.templates['asset_render_test_global']
+                elif write_type == "Denoise": 
+                    context_info = self._app.tank.templates['asset_render_library_global']
+                elif write_type == "Precomp":
+                    context_info = self._app.tank.templates['asset_render_library_global']
+                elif write_type == "Element":
+                    context_info = self._app.tank.templates['asset_render_library_global']
+                else:
+                    context_info = self._app.tank.templates['asset_render_global']  
 
-            #       'Shot': curr_fields['Shot'],
-            #       'Step': curr_fields['Step'],
-            #       'name': '',
-            #       'output': '',
-            #       'version': curr_fields['version']
-            # }  
+                context_path = context_info.apply_fields(fields)    
 
-            if write_type == "Test":
-                context_info = self._app.tank.templates['shot_render_test_global']
-            elif write_type == "Denoise": 
-                context_info = self._app.tank.templates['shot_render_library_global']
-            elif write_type == "Precomp":
-                context_info = self._app.tank.templates['shot_render_library_global']
-            elif write_type == "Element":
-                context_info = self._app.tank.templates['shot_render_library_global']
-            else:
-                context_info = self._app.tank.templates['shot_render_global']  
-
-            context_path = context_info.apply_fields(fields)                    
             if context_path:
                 # found a context path!
                 # chop off this bit from the normalized path
@@ -1985,6 +1988,7 @@ class TankWriteNodeHandler(object):
             new_output_name = node.knob("name").value()
             self.__set_output(node, new_output_name)
         curr_entity_type = self._app.context.entity['type']
+
         if curr_entity_type == 'Shot':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
