@@ -1984,10 +1984,13 @@ class TankWriteNodeHandler(object):
             # force output name to be the node name:
             new_output_name = node.knob("name").value()
             self.__set_output(node, new_output_name)
-
-        if write_type == "Version":
-            node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-
+        curr_entity_type = self._app.context.entity['type']
+        if curr_entity_type == 'Shot':
+            if write_type == "Version":
+                node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+        if curr_entity_type == 'Asset':
+            if write_type == "Version":
+                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)           
         # set the version info if it exists
         self.__update_version_preview(node, write_type)
 
@@ -2105,7 +2108,7 @@ class TankWriteNodeHandler(object):
                 write_type_color = 0   
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     self.__update_knob_value(node, "tank_channel", "")
                     write_type_profile =  "Exr 16 bit (ZIP)"
                 elif write_type == "Precomp":
