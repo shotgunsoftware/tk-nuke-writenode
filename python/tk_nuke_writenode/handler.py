@@ -1165,9 +1165,7 @@ class TankWriteNodeHandler(object):
         # set the channel info based on the profile type
         if profile_name == "Dpx":
             self.__update_knob_value(node, "channels", "rgb")
-        elif profile_name == "Exr 16 bit (ZIP)":
-            self.__update_knob_value(node, "channels", "rgba")
-        elif profile_name == "Exr 16 bit(RLE)":
+        elif profile_name == "Exr 16 bit":
             self.__update_knob_value(node, "channels", "rgba")
         elif profile_name == "Jpeg":
             self.__update_knob_value(node, "channels", "rgb")
@@ -1271,7 +1269,7 @@ class TankWriteNodeHandler(object):
         profile_channel = "rgb"
         if profile_name == "Dpx":
             profile_channel = "rgb"
-        elif profile_name == "Exr 16 bit (ZIP)":
+        elif profile_name == "Exr 16 bit":
             profile_channel = "all"
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
@@ -2081,11 +2079,11 @@ class TankWriteNodeHandler(object):
                     write_type_profile =  "Dpx"
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
-                    write_type_profile = "Exr 16 bit (ZIP)"
+                    write_type_profile = "Exr 16 bit"
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                 elif write_type == "Element":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    write_type_profile =  "Exr 16 bit (ZIP)"
+                    write_type_profile =  "Exr 16 bit"
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                 elif write_type == "Denoise":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
@@ -2108,29 +2106,29 @@ class TankWriteNodeHandler(object):
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
             elif curr_entity_type == 'Asset':
                 write_type = self.get_node_write_type_name(node) 
-                write_type_profile = "Exr 16 bit (ZIP)"
+                write_type_profile = "Exr 16 bit"
                 write_type_color = 0   
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     self.__update_knob_value(node, "tank_channel", "")
-                    write_type_profile =  "Exr 16 bit (ZIP)"
+                    write_type_profile =  "Exr 16 bit"
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile = "Exr 16 bit (ZIP)"
+                    write_type_profile = "Exr 16 bit"
                 elif write_type == "Element":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile =  "Exr 16 bit (ZIP)"
+                    write_type_profile =  "Exr 16 bit"
                 elif write_type == "Denoise":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    write_type_profile =  "Exr 16 bit (ZIP)"
+                    write_type_profile =  "Exr 16 bit"
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile =  "Exr 16 bit (ZIP)"
+                    write_type_profile =  "Exr 16 bit"
                     # Pop warning that the renders saved to the Test location 
                     user_name = self._app.context.user['name'].split()
                     nuke.message(
