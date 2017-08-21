@@ -54,6 +54,12 @@ Gizmo {
     +INVISIBLE 
  }
  addUserKnob {
+    1 cleanup_render_template
+    l "Sgtk Cleanup Template" 
+    t "The Sgtk cleanup template associated with this node"
+    +INVISIBLE 
+ }
+ addUserKnob {
     1 test_render_template
     l "Sgtk Test Template" 
     t "The Sgtk test template associated with this node"
@@ -204,7 +210,7 @@ Gizmo {
     4 write_type 
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
-    M {Version Precomp Element Denoise Test}
+    M {Version Precomp Element Denoise Cleanup Test}
  }
  addUserKnob {
    25 ""
