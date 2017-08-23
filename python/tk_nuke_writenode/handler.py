@@ -1005,13 +1005,13 @@ class TankWriteNodeHandler(object):
                 if write_type == "Test":
                     context_info = self._app.tank.templates['shot_render_test_global']
                 elif write_type == "Precomp":
-                    context_info = self._app.tank.templates['shot_render_library_global']
+                    context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Element":
-                    context_info = self._app.tank.templates['shot_render_library_global']
+                    context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Denoise": 
-                    context_info = self._app.tank.templates['shot_render_library_global']
+                    context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Cleanup": 
-                    context_info = self._app.tank.templates['shot_render_library_global']
+                    context_info = self._app.tank.templates['shot_render_global']
                 else:
                     context_info = self._app.tank.templates['shot_render_global']  
 
@@ -1029,13 +1029,13 @@ class TankWriteNodeHandler(object):
                 if write_type == "Test":
                     context_info = self._app.tank.templates['asset_render_test_global']
                 elif write_type == "Precomp":
-                    context_info = self._app.tank.templates['asset_render_library_global']
+                    context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Element":
-                    context_info = self._app.tank.templates['asset_render_library_global']
+                    context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Denoise": 
-                    context_info = self._app.tank.templates['asset_render_library_global']
+                    context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Cleanup": 
-                    context_info = self._app.tank.templates['asset_render_library_global']
+                    context_info = self._app.tank.templates['asset_render_global']
                 else:
                     context_info = self._app.tank.templates['asset_render_global']  
 
