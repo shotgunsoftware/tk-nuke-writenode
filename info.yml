@@ -78,6 +78,14 @@ configuration:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
+                cleanup_render_template:
+                    type: template
+                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
+                    allows_empty: True
+                final_render_template:
+                    type: template
+                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
+                    allows_empty: True
                 test_render_template:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *

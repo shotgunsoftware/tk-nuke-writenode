@@ -892,6 +892,10 @@ class TankWriteNodeHandler(object):
             template = self.__get_template(node, "cleanup_render_template")
             if template or not fallback_to_render:            
                 return template
+        elif write_type == "Final":
+            template = self.__get_template(node, "final_render_template")
+            if template or not fallback_to_render:            
+                return template
         elif write_type == "Test":
             template = self.__get_template(node, "test_render_template")
             if template or not fallback_to_render:
@@ -1012,6 +1016,8 @@ class TankWriteNodeHandler(object):
                     context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Cleanup": 
                     context_info = self._app.tank.templates['shot_render_global']
+                elif write_type == "Final": 
+                    context_info = self._app.tank.templates['shot_render_global']
                 else:
                     context_info = self._app.tank.templates['shot_render_global']  
 
@@ -1035,6 +1041,8 @@ class TankWriteNodeHandler(object):
                 elif write_type == "Denoise": 
                     context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Cleanup": 
+                    context_info = self._app.tank.templates['asset_render_global']
+                elif write_type == "Final": 
                     context_info = self._app.tank.templates['asset_render_global']
                 else:
                     context_info = self._app.tank.templates['asset_render_global']  
@@ -1146,6 +1154,7 @@ class TankWriteNodeHandler(object):
         element_render_template = self._app.get_template_by_name(profile["element_render_template"])
         denoise_render_template = self._app.get_template_by_name(profile["denoise_render_template"])
         cleanup_render_template = self._app.get_template_by_name(profile["cleanup_render_template"])
+        final_render_template = self._app.get_template_by_name(profile["final_render_template"])
         test_render_template = self._app.get_template_by_name(profile["test_render_template"])
 
         file_type = profile["file_type"]
@@ -1241,6 +1250,7 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "element_render_template", element_render_template.name)
         self.__update_knob_value(node, "denoise_render_template", denoise_render_template.name)
         self.__update_knob_value(node, "cleanup_render_template", cleanup_render_template.name)
+        self.__update_knob_value(node, "final_render_template", final_render_template.name)
         self.__update_knob_value(node, "test_render_template", test_render_template.name)
 
         # If a node's tile_color was defined in the profile then set it:
@@ -1263,6 +1273,9 @@ class TankWriteNodeHandler(object):
             elif write_type == "Cleanup":
                 default_value = 4287911423
 
+            elif write_type == "Final":
+                default_value = 16711935
+
             elif write_type == "Test":
                 default_value = 4278190081
 
@@ -1283,7 +1296,7 @@ class TankWriteNodeHandler(object):
         if profile_name == "Dpx":
             profile_channel = "rgb"
         elif profile_name == "Exr 16 bit":
-            profile_channel = "all"
+            profile_channel = "rgb"
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
         else:
@@ -2106,6 +2119,10 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                     write_type_profile =  "Exr 16 bit"
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                elif write_type == "Final":
+                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                    write_type_profile =  "Exr 16 bit"
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                     write_type_profile =  "Exr 16 bit"
@@ -2143,6 +2160,10 @@ class TankWriteNodeHandler(object):
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     write_type_profile =  "Exr 16 bit"
                 elif write_type == "Cleanup":
+                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    write_type_profile =  "Exr 16 bit"
+                elif write_type == "Final":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     write_type_profile =  "Exr 16 bit"
