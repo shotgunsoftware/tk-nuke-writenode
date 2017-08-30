@@ -236,6 +236,4 @@ class NukeWriteNode(tank.platform.Application):
                     icon=write_node_icon,
                     context=context,
                 )
-            )     
-            
-
+            )
