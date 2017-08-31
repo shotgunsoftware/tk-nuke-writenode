@@ -631,25 +631,35 @@ class TankWriteNodeHandler(object):
     def test_folder_for_renders(self, path):
         """
         Tests a given folder location - mainly the writenode's file path for containing files
+
+        :returns: True/False
         """
 
         path_dir = os.path.dirname(path)
         if os.path.isdir(path_dir):
-            nuke.tprint("Path exists...")
-            path_file_output_ext = os.path.split(path)[1]
-            path_items = os.listdir(path_dir)
+            # nuke.tprint("Path exists...")
+            file_output_ext = []
             path_items_ext = []
+            path_file_output_ext = os.path.split(path)
+            path_file_output_ext = os.path.splitext(path_file_output_ext[-1])[-1]
+            file_output_ext.append(path_file_output_ext)
+            path_items = os.listdir(path_dir)
             if path_items:
-                print "Directory " + path_dir+ " contains:" + str(len(path_items)) + " files"
                 for file in path_items:
-                    path_item_ext = os.path.split(file)[1]
+                    path_item_ext = os.path.splitext(file)[1]
                     if path_item_ext not in path_items_ext:
                         path_items_ext.append(path_item_ext)
 
-            print path_item_ext
+            ext_match = list(set(path_items_ext).intersection(set(file_output_ext)))
+
+            if ext_match:
+                return ext_match
+            else:
+                nuke.tprint("No matches")
+                return ext_match
 
         else:
-            nuke.tprint(path + " doesn't exist.")
+            return False
 
 
 
@@ -1126,7 +1136,6 @@ class TankWriteNodeHandler(object):
         is_proxy = node.proxy()
         render_path = self.__get_render_path(node, is_proxy)     
 
-        # self.test_folder_for_renders(render_path)
 
 
     def __apply_cached_file_format_settings(self, node):
@@ -1373,7 +1382,6 @@ class TankWriteNodeHandler(object):
                 have_output_key = True
                 if output_default is None:
                     output_default = key.default
-                    print ("Output default is:", output_default )
                 if output_is_optional:
                     output_is_optional = template.is_optional(key_name)  
 
@@ -1579,6 +1587,7 @@ class TankWriteNodeHandler(object):
                 
             reset_path_button_visible = False
             path_warning = ""
+            files_warning = ""
             render_path = None
             cache_entry = None
             try:
@@ -1604,6 +1613,24 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path:
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
+                    if self.test_folder_for_renders(render_path):
+                        ext_match = self.test_folder_for_renders(render_path)
+                        ext_match_string = ""
+                        if ext_match >1:
+                            for i in ext_match:
+                                ext_match_string += " " +i+ " "
+                        else:
+                            ext_match_string = ext_match[0]
+                        files_warning +=    "<i style='color:orange'><b>" + ext_match_string + "</b> files already in this location."
+                        files_warning +=    "<br>&nbsp;&nbsp;&nbsp;</br>" 
+                        files_warning +=    "<br><b>Test SG write type</b> available for test renders.<i></br>"
+                        self.__update_knob_value(node, "files_warning",  
+                                             "<i style='color:orange'><b>Careful Now!</b> <br>%s<i><br>" 
+                                             % "<br>".join(self.__wrap_text(files_warning, 60)))
+                        node.knob("files_warning").setVisible(True)
+                    else:
+                        self.__update_knob_value(node, "files_warning", "")
+                        node.knob("files_warning").setVisible(False)
                     
             except TkComputePathError, e:
                 # update cache:

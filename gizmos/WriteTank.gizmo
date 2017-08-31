@@ -182,6 +182,13 @@ Gizmo {
     +STARTLINE
  }
  addUserKnob {
+    26 files_warning 
+    l " " 
+    T "   " 
+    t ""
+    +STARTLINE
+ }
+ addUserKnob {
     22 reset_path 
     l "Reset Path" 
     T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_reset_render_path_gizmo_callback()" 
