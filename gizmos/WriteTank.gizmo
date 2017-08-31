@@ -195,12 +195,6 @@ Gizmo {
     +STARTLINE
  }
  addUserKnob {
-    26 "" 
-    l "" 
-    T "   "
-    +STARTLINE
- }
- addUserKnob {
     22 show_in_fs 
     l "Jump to File System" 
     T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_show_in_fs_gizmo_callback()" 
@@ -224,6 +218,11 @@ Gizmo {
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
     M {Version Precomp Element Denoise Cleanup Final Test}
+ }
+ addUserKnob {
+   22 write_type_info 
+   l "Info"
+   T "  "
  }
  addUserKnob {
     1 write_type_cache

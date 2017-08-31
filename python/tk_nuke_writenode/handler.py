@@ -18,6 +18,7 @@ import re
 import subprocess
 import re
 import traceback
+import webbrowser
 
 import nuke
 import nukescripts
@@ -652,11 +653,7 @@ class TankWriteNodeHandler(object):
 
             ext_match = list(set(path_items_ext).intersection(set(file_output_ext)))
 
-            if ext_match:
-                return ext_match
-            else:
-                nuke.tprint("No matches")
-                return ext_match
+            return ext_match
 
         else:
             return False
@@ -797,7 +794,9 @@ class TankWriteNodeHandler(object):
         # get the path depending if in full or proxy mode:
         is_proxy = node.proxy()
         render_path = self.__get_render_path(node, is_proxy)
-        
+        system = sys.platform
+        if system == "win32":
+            render_path = os.path.normpath(render_path)
         # use Qt to copy the path to the clipboard:
         from sgtk.platform.qt import QtGui
         QtGui.QApplication.clipboard().setText(render_path)
@@ -1623,7 +1622,7 @@ class TankWriteNodeHandler(object):
                             ext_match_string = ext_match[0]
                         files_warning +=    "<i style='color:orange'><b>" + ext_match_string + "</b> files already in this location."
                         files_warning +=    "<br>&nbsp;&nbsp;&nbsp;</br>" 
-                        files_warning +=    "<br><b>Test SG write type</b> available for test renders.<i></br>"
+                        files_warning +=    "<br><b>Test</b> SG write type available for test renders.<i></br>"
                         self.__update_knob_value(node, "files_warning",  
                                              "<i style='color:orange'><b>Careful Now!</b> <br>%s<i><br>" 
                                              % "<br>".join(self.__wrap_text(files_warning, 60)))
@@ -2258,6 +2257,9 @@ class TankWriteNodeHandler(object):
             write_type = self.get_node_write_type_name(node) 
             self.get_sg_info()
             self.__update_version_preview(node, write_type)
+        elif knob.name() == "write_type_info":
+            write_type_url = "http://10.80.10.239/mediawiki-1.25.2/index.php?title=VFX_Wiki#SG_Write_Nodes"
+            webbrowser.open_new_tab(write_type_url)
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
