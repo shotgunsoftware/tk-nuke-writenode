@@ -15,6 +15,7 @@ import pickle
 import datetime
 import base64
 import re
+import functools
 
 import nuke
 import nukescripts
@@ -22,6 +23,7 @@ import nukescripts
 import tank
 from tank import TankError
 from tank.platform import constants
+from tank.platform.qt import QtCore
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -60,6 +62,7 @@ class TankWriteNodeHandler(object):
         # flags to track when the render and proxy paths are being updated.
         self.__is_updating_render_path = False
         self.__is_updating_proxy_path = False
+        self.__nuke_10_setup_timer = None
 
         self.populate_profiles_from_settings()
             
@@ -582,7 +585,25 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
-        self.__setup_new_node(nuke.thisNode())
+        # This is unfortunate. In Nuke 10.0 we have a problem whereby Nuke
+        # is sometimes triggering this callback at a time when its root
+        # node isn't completely initialized. As a result, we get some bogus
+        # noise in the form of ValueErrors complaining about the lack of
+        # a PythonObject attached to the node. The not-ideal solution is to
+        # delay the callback by a short period of time -- 100 milliseconds --
+        # before allowing it to actually be called. This gives Nuke enough
+        # time to complete its root-node initialization and all is well.
+        if not self.__nuke_10_setup_timer:
+            self.__nuke_10_setup_timer = QtCore.QTimer()
+            self.__nuke_10_setup_timer.setSingleShot(True)
+            self.__nuke_10_setup_timer.timeout.connect(
+                functools.partial(
+                    self.__setup_new_node,
+                    nuke.thisNode(),
+                ),
+            )
+
+        self.__nuke_10_setup_timer.start(100)
 
     def on_compute_path_gizmo_callback(self):
         """
@@ -1019,6 +1040,8 @@ class TankWriteNodeHandler(object):
         file_type = profile["file_type"]
         file_settings = profile["settings"]
         tile_color = profile["tile_color"]
+        use_node_name = profile["use_node_name"]
+        tank_channel = profile["tank_channel"]
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
         # Make sure any invalid entries are removed from the profile list:
@@ -1029,7 +1052,11 @@ class TankWriteNodeHandler(object):
         # update both the list and the cached value for profile name:
         self.__update_knob_value(node, "profile_name", profile_name)
         self.__update_knob_value(node, "tk_profile_list", profile_name)
-        
+
+        # update the default tank channel
+        self.__update_knob_value(node, "tk_use_name_as_channel", use_node_name)
+        self.__update_knob_value(node, "tank_channel", tank_channel)
+
         # set the format
         self.__populate_format_settings(
             node,

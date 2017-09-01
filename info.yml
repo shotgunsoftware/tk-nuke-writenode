@@ -48,6 +48,11 @@ configuration:
                     type: dict
                 tank_type:
                     type: tank_type
+                tank_channel:
+                    type: str
+                use_node_name:
+                    type: bool
+                    default_value: False
                 render_template:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [YYYY], [MM], [DD], *
