@@ -1054,9 +1054,10 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_profile_list", profile_name)
 
         # update the default tank channel
-        self.__update_knob_value(node, "tk_use_name_as_channel", use_node_name)
-        self.__update_knob_value(node, "tank_channel", tank_channel)
-
+        if reset_all_settings:
+            self.__update_knob_value(node, "tk_use_name_as_channel", use_node_name)
+            self.__update_knob_value(node, "tank_channel", tank_channel)
+        
         # set the format
         self.__populate_format_settings(
             node,
@@ -1222,6 +1223,16 @@ class TankWriteNodeHandler(object):
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         promoted_write_knobs = promoted_write_knobs or []
 
+        # set the file_type
+        write_node.knob("file_type").setValue(file_type)
+        
+        # and read it back to check that the value is what we expect
+        if write_node.knob("file_type").value() != file_type:
+            self._app.log_error("Shotgun write node configuration refers to an invalid file "
+                                "format '%s'! Reverting to auto-detect mode instead." % file_type)
+            write_node.knob("file_type").setValue("  ")
+            return
+
         # If we're not resetting everything, then we need to try and
         # make sure that the settings that the user made to the internal
         # write knobs are retained. The reason for this is that promoted
@@ -1246,19 +1257,8 @@ class TankWriteNodeHandler(object):
                 filtered_settings = []
                 for setting in re.split(r"\n", knob_settings):
                     if not setting.startswith("file ") and not setting.startswith("proxy "):
-                        filtered_settings.append(setting)
-                write_node.readKnobs(r"\n".join(filtered_settings))
+                        write_node.readKnobs(setting)
                 self.reset_render_path(node)
-        
-        # set the file_type
-        write_node.knob("file_type").setValue(file_type)
-        
-        # and read it back to check that the value is what we expect
-        if write_node.knob("file_type").value() != file_type:
-            self._app.log_error("Shotgun write node configuration refers to an invalid file "
-                                "format '%s'! Reverting to auto-detect mode instead." % file_type)
-            write_node.knob("file_type").setValue("  ")
-            return
 
         # get a list of the settings we shouldn't update:
         knobs_to_skip = []
@@ -2022,12 +2022,3 @@ class TankWriteNodeHandler(object):
         # populate the initial output name based on the render template:
         render_template = self.get_render_template(node)
         self.__populate_initial_output_name(render_template, node)
-
-
-
-
-
-
-
-        
-        
