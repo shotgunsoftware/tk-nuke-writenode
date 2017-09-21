@@ -203,8 +203,15 @@ Gizmo {
  }
  addUserKnob {
     22 tk_copy_path 
-    l "Copy Path to Clipboard" 
-    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback()" 
+    l "Copy Path" 
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(False)" 
+    t "Copies the current render/proxy path to the clipboard" 
+    -STARTLINE
+ }
+ addUserKnob {
+    22 tk_copy_path_win 
+    l "Copy Path - Windows" 
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(True)" 
     t "Copies the current render/proxy path to the clipboard" 
     -STARTLINE
  }

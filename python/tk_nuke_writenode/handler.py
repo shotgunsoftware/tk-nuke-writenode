@@ -784,7 +784,7 @@ class TankWriteNodeHandler(object):
         
         self.reset_render_path(node)
     
-    def on_copy_path_to_clipboard_gizmo_callback(self):
+    def on_copy_path_to_clipboard_gizmo_callback(self, win_safe):
         """
         Callback from the gizmo whenever the 'Copy path to clipboard' button
         is pressed.
@@ -794,13 +794,14 @@ class TankWriteNodeHandler(object):
         # get the path depending if in full or proxy mode:
         is_proxy = node.proxy()
         render_path = self.__get_render_path(node, is_proxy)
-        system = sys.platform
-        if system == "win32":
-            render_path = os.path.normpath(render_path)
+        if win_safe:
+            system = sys.platform
+            if system == "win32":
+                render_path = os.path.normpath(render_path)           
         # use Qt to copy the path to the clipboard:
         from sgtk.platform.qt import QtGui
         QtGui.QApplication.clipboard().setText(render_path)
-    
+
     def on_before_render_gizmo_callback(self):
         """
         Callback from nuke whenever a tank write node is about to be rendered.
