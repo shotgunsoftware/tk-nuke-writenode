@@ -2208,6 +2208,7 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
                     # reset profile
                     self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
+                elif self._project == "Jack Ryan S1":
                     write_type = self.get_node_write_type_name(node) 
                     write_type_profile = "Dpx"
                     write_type_color = 0   
