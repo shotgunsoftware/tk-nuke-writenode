@@ -58,7 +58,8 @@ class TankWriteNodeHandler(object):
         """
         self._app = app
         self._script_template = self._app.get_template("template_script_work")
-        
+        self._project = self._app.context.project['name']
+
         # cache the profiles:
         self._promoted_knobs = {}
         self._profile_names = []
@@ -2163,49 +2164,143 @@ class TankWriteNodeHandler(object):
             # set the write type for creation of correct output
             curr_entity_type = self._app.context.entity['type']
             if curr_entity_type == 'Shot':
-                write_type = self.get_node_write_type_name(node) 
-                write_type_profile = "Dpx"
-                write_type_color = 0   
-                if write_type== "Version":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    self.__update_knob_value(node, "tank_channel", "")
+                if self._project == "Lost In Space S1":
+                    write_type = self.get_node_write_type_name(node) 
+                    # write_type_profile = "Dpx"
                     write_type_profile =  "Exr 16 bit"
-                elif write_type == "Precomp":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
-                    write_type_profile = "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                elif write_type == "Element":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                    write_type_color = 0   
+                    if write_type== "Version":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        self.__update_knob_value(node, "tank_channel", "")
+                    elif write_type == "Precomp":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
+                        # write_type_profile = "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    elif write_type == "Element":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    elif write_type == "Denoise":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Cleanup":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Final":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Test":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        # Pop warning that the renders saved to the Test location 
+                        user_name = self._app.context.user['name'].split()
+                        nuke.message(
+                            "Hi %s" % str(user_name[0]) + "\n"
+                            "\n"
+                            "Please be aware that this is a temporary location.\n"
+                            "Renders saved here will be removed at the end of the week.\n")
+                    # Updates the predefined profile based on the write type
+                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                    # reset profile
+                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
+                    write_type = self.get_node_write_type_name(node) 
+                    write_type_profile = "Dpx"
+                    write_type_color = 0   
+                    if write_type== "Version":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)                        
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        self.__update_knob_value(node, "tank_channel", "")
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Precomp":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)    
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Element":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)                        
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Denoise":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Cleanup":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Final":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")  
+                        node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(True)
+                        print "*****Set the Final-DPX to fill"   
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Test":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        # Pop warning that the renders saved to the Test location 
+                        user_name = self._app.context.user['name'].split()
+                        nuke.message(
+                            "Hi %s" % str(user_name[0]) + "\n"
+                            "\n"
+                            "Please be aware that this is a temporary location.\n"
+                            "Renders saved here will be removed at the end of the week.\n")
+                    # Updates the predefined profile based on the write type
+                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                    # reset profile
+                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)        
+                else:
+                    write_type = self.get_node_write_type_name(node) 
+                    # write_type_profile = "Dpx"
                     write_type_profile =  "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                elif write_type == "Denoise":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    write_type_profile =  "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                elif write_type == "Cleanup":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    write_type_profile =  "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                elif write_type == "Final":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    write_type_profile =  "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                elif write_type == "Test":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                    write_type_profile =  "Exr 16 bit"
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    # Pop warning that the renders saved to the Test location 
-                    user_name = self._app.context.user['name'].split()
-                    nuke.message(
-                        "Hi %s" % str(user_name[0]) + "\n"
-                        "\n"
-                        "Please be aware that this is a temporary location.\n"
-                        "Renders saved here will be removed at the end of the week.\n")
-                # Updates the predefined profile based on the write type
-                self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
-                # reset profile
-                self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
+                    write_type_color = 0   
+                    if write_type== "Version":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        self.__update_knob_value(node, "tank_channel", "")
+                    elif write_type == "Precomp":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
+                        # write_type_profile = "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    elif write_type == "Element":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    elif write_type == "Denoise":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Cleanup":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Final":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Test":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        # Pop warning that the renders saved to the Test location 
+                        user_name = self._app.context.user['name'].split()
+                        nuke.message(
+                            "Hi %s" % str(user_name[0]) + "\n"
+                            "\n"
+                            "Please be aware that this is a temporary location.\n"
+                            "Renders saved here will be removed at the end of the week.\n")
+                    # Updates the predefined profile based on the write type
+                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                    # reset profile
+                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)           
             elif curr_entity_type == 'Asset':
                 write_type = self.get_node_write_type_name(node) 
                 write_type_profile = "Exr 16 bit"
