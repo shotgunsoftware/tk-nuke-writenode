@@ -1046,7 +1046,6 @@ class TankWriteNodeHandler(object):
             work_template = self._app.tank.template_from_path(script_path)
             curr_fields = work_template.get_fields(script_path)
 
-            nuke.tprint("Current entity is: " +self._curr_entity_type)
             if self._curr_entity_type == 'Shot':
                 fields ={
                       'Shot': curr_fields['Shot'],
@@ -1177,6 +1176,7 @@ class TankWriteNodeHandler(object):
                                     is False then the knob won't get reset to the value from the profile.
         """
         # can't change the profile if this isn't a valid profile:
+        nuke.tprint("Current entity is: " +self._curr_entity_type)
         if profile_name not in self._profiles:
             # at the very least, try to restore the file format settings from the cached values:
             self.__apply_cached_file_format_settings(node)
@@ -1353,6 +1353,16 @@ class TankWriteNodeHandler(object):
             profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
+
+        timecode = "01:00:00:01"
+        proj_fps = 23.98
+        if self._curr_entity_type == 'Shot':
+            if self._project == "":
+                print "Leaving tc blank for non-standard values"
+                # node.node("AddTimeCode1").knob("metafps").setValue(False)            
+            else:
+                node.node("AddTimeCode1").knob("startcode").setValue(timecode)
+                node.node("AddTimeCode1").knob("fps").setValue(proj_fps)
 
         self.__update_knob_value(node, "channels", profile_channel)       
 
