@@ -474,6 +474,11 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["proxy_publish_template"].value())
             new_wn.addKnob(knob)
 
+            # Store tank_channel
+            knob = nuke.String_Knob("tk_tank_channel")
+            knob.setValue(sg_wn["tank_channel"].value())
+            new_wn.addKnob(knob)
+
             #write type
             knob = nuke.String_Knob("tk_write_type")
             knob.setValue(sg_wn["write_type_cache"].value())
@@ -518,6 +523,7 @@ class TankWriteNodeHandler(object):
             publish_template_knob = wn.knob("tk_publish_template")
             proxy_render_template_knob = wn.knob("tk_proxy_render_template")
             proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
+            tk_tank_channel = wn.knob("tk_tank_channel")
         
             if (not profile_knob
                 or not output_knob
@@ -545,7 +551,8 @@ class TankWriteNodeHandler(object):
             new_sg_wn["publish_template"].setValue(publish_template_knob.value())
             new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
             new_sg_wn["proxy_publish_template"].setValue(proxy_publish_template_knob.value())
-            
+            new_sg_wn["tank_channel_cache"].setValue(tk_tank_channel.value())
+
             # set the profile & output - this will cause the paths to be reset:
             # Note, we don't call the method __set_profile() as we don't want to
             # run all the normal logic that runs as part of switching the profile.
@@ -582,6 +589,10 @@ class TankWriteNodeHandler(object):
             write_name = write_knob.value()
             new_sg_wn["write_type"].setValue(write_name)
                 
+            #Set tank channel
+            tank_channel_text = tk_tank_channel.value()
+            new_sg_wn["tank_channel"].setValue(tank_channel_text)
+     
             # delete original node:
             nuke.delete(wn)
         

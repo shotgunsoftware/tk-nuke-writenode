@@ -257,6 +257,13 @@ Gizmo {
     -INVISIBLE
  }
  addUserKnob {
+    1 tank_channel_cache
+    l "" 
+    t "Cache location for user entered text to change the output naming for write nodes" 
+    +STARTLINE
+    +INVISIBLE
+ }
+ addUserKnob {
     6 tk_use_name_as_channel 
     l "Use node name" 
     t "Use the node name in place of the output name" 
