@@ -26,7 +26,15 @@ import nukescripts
 import tank
 from tank import TankError
 from tank.platform import constants
-from tank_vendor import shotgun_api3
+from tank_vendor import shotgun_api3 as sgapi
+
+try:
+    sg_login = "\\\\10.80.8.250\\VFX_Pipeline\\Pipeline\\Scripts"
+    sys.path.append(sg_login)
+    from shotgun.shotgun_login_node import ShotgunLogin
+except:
+    print "Could not import SG login module"
+
 
 try:
     import ConfigParser
@@ -77,6 +85,8 @@ class TankWriteNodeHandler(object):
 
         # call and cache the version info
         self._version_info = {}
+        self._get_sg = ShotgunLogin(sgapi)
+        self.sg = self._get_sg.get_sg()
         self.get_sg_info()
 
     ################################################################################################
@@ -606,10 +616,6 @@ class TankWriteNodeHandler(object):
         Retrieves secific version info from SG and caches 
         """
         self._version_info = {}
-        sg = shotgun_api3.Shotgun(
-        base_url ="https://screenscene.shotgunstudio.com", 
-        script_name="nuke_write_access",
-        api_key="289aad9e8eb0c385fc8732cf25536c9cb160d7081ea08479bc6cdb01092c3aa0")
 
         ctx_info = self._app.context
 
@@ -624,8 +630,8 @@ class TankWriteNodeHandler(object):
             "latest_by":   "ENTITIES_CREATED_AT"
         }]
         
-        self._version_info = sg.find_one("Version",filters,fields,additional_filter_presets = additional_filter_presets,include_archived_projects=False)
-        sg.close()
+        self._version_info = self.sg.find_one("Version",filters,fields,additional_filter_presets = additional_filter_presets,include_archived_projects=False)
+        self.sg.close()
 
     def get_node_write_type_name(self, node):
         """
@@ -2105,7 +2111,6 @@ class TankWriteNodeHandler(object):
         #     new_output_name = node.knob("name").value()
         #     self.__set_output(node, new_output_name)
 
-        self.__set_output(node, "")
         if self._curr_entity_type == 'Shot':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
@@ -2195,7 +2200,6 @@ class TankWriteNodeHandler(object):
                     if write_type== "Version":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        self.__update_knob_value(node, "tank_channel", "")
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         # write_type_profile = "Exr 16 bit"
@@ -2240,7 +2244,6 @@ class TankWriteNodeHandler(object):
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)                        
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                         # node.knob("colorspace").setValue("Cineon")
-                        self.__update_knob_value(node, "tank_channel", "")
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
@@ -2295,7 +2298,6 @@ class TankWriteNodeHandler(object):
                     if write_type== "Version":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        self.__update_knob_value(node, "tank_channel", "")
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         # write_type_profile = "Exr 16 bit"
@@ -2338,7 +2340,6 @@ class TankWriteNodeHandler(object):
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    self.__update_knob_value(node, "tank_channel", "")
                     write_type_profile =  "Exr 16 bit"
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
