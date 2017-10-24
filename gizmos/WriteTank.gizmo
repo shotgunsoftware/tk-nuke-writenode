@@ -542,6 +542,8 @@ Gizmo {
   startcode 01:00:00:01
   metafps False
   fps 23.98
+  useFrame True
+  frame 1
  }
  Write {
   file  "\[python __import__('nuke')._shotgun_write_node_handler.on_compute_path_gizmo_callback() if hasattr(__import__('nuke'), '_shotgun_write_node_handler') else nuke.thisParent().knob('cached_path').value()]"

@@ -53,6 +53,7 @@ class TankWriteNodeHandler(object):
     SG_WRITE_NODE_CLASS = "WriteTank"
     SG_WRITE_DEFAULT_NAME = "SGWrite"
     WRITE_NODE_NAME = "Write1"
+    EMBED_TIME_CODE = "AddTimeCode1"
 
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
@@ -1372,15 +1373,40 @@ class TankWriteNodeHandler(object):
         else:
             nuke.tprint("No profile with that name")   
 
-        timecode = "01:00:00:01"
-        proj_fps = 23.98
+        # Update embeded time code
+
+        time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
+        eng = tank.platform.current_engine()
+        app =  eng.apps["tk-multi-setframerange"]
+        frame_range =  app.get_frame_range_from_shotgun()
         if self._curr_entity_type == 'Shot':
+            proj_fps = 23.98
+            timecode = "01:00:00:01"
+            if not frame_range[0]:
+                print "No frame range values found on SG"
+                shot_frame_range_start = 1
+                use_start_frame = False
+                pass
+            else:
+                shot_frame_range_start = frame_range[0]
+                use_start_frame = True
+
             if self._project == "":
                 print "Leaving tc blank for non-standard values"
-                # node.node("AddTimeCode1").knob("metafps").setValue(False)            
+                # node.node("AddTimeCode1").knob("metafps").setValue(False)   
+            elif self._project == "The Favourite":
+                proj_fps = 24
+                timecode = "01:00:00:01"
+                print "Project is The Favourite. Setting TC FPS to 24"     
             else:
-                node.node("AddTimeCode1").knob("startcode").setValue(timecode)
-                node.node("AddTimeCode1").knob("fps").setValue(proj_fps)
+                proj_fps = 23.98
+                timecode = "01:00:00:01"
+
+            time_code.knobs()["startcode"].setValue(timecode)
+            time_code.knobs()["fps"].setValue(proj_fps)
+            time_code.knobs()["useFrame"].setValue(use_start_frame)
+            time_code.knobs()["frame"].setValue(shot_frame_range_start)
+            # nuke.tprint("Timecode values:  ", timecode, proj_fps, "Use start frame", use_start_frame, "First frame from SG" ,shot_frame_range_start)
 
         self.__update_knob_value(node, "channels", profile_channel)       
 
@@ -2276,7 +2302,49 @@ class TankWriteNodeHandler(object):
                     # Updates the predefined profile based on the write type
                     self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
                     # reset profile
-                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)        
+                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)    
+                elif self._project == "The Favourite":
+                    write_type = self.get_node_write_type_name(node) 
+                    write_type_profile = "Dpx"
+                    if write_type== "Version":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")                          
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Precomp":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Element":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")                          
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Denoise":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Cleanup":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                    
+                        node.knob("_promoted_1").setValue(False)
+                    elif write_type == "Final":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")  
+                        print "*****Set the Final-DPX fill to true"   
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    elif write_type == "Test":
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
+                        # write_type_profile =  "Exr 16 bit"
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                        # Pop warning that the renders saved to the Test location 
+                        user_name = self._app.context.user['name'].split()
+                        nuke.message(
+                            "Hi %s" % str(user_name[0]) + "\n"
+                            "\n"
+                            "Please be aware that this is a temporary location.\n"
+                            "Renders saved here will be removed at the end of the week.\n")
+                    # Updates the predefined profile based on the write type
+                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                    # reset profile
+                    self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)          
                 else:
                     write_type = self.get_node_write_type_name(node) 
                     # write_type_profile = "Dpx"
