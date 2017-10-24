@@ -493,7 +493,6 @@ class TankWriteNodeHandler(object):
             knob = nuke.String_Knob("tk_write_type")
             knob.setValue(sg_wn["write_type_cache"].value())
             new_wn.addKnob(knob)
-            
         
             # delete original node:
             nuke.delete(sg_wn)
@@ -1193,7 +1192,6 @@ class TankWriteNodeHandler(object):
                                     is False then the knob won't get reset to the value from the profile.
         """
         # can't change the profile if this isn't a valid profile:
-        nuke.tprint("Current entity is: " +self._curr_entity_type)
         if profile_name not in self._profiles:
             # at the very least, try to restore the file format settings from the cached values:
             self.__apply_cached_file_format_settings(node)
@@ -1248,14 +1246,14 @@ class TankWriteNodeHandler(object):
         )
 
         # set the channel info based on the profile type
-        if profile_name == "Dpx":
-            self.__update_knob_value(node, "channels", "rgb")
-        elif profile_name == "Exr 16 bit":
-            self.__update_knob_value(node, "channels", "rgba")
-        elif profile_name == "Jpeg":
-            self.__update_knob_value(node, "channels", "rgb")
-        else:
-            nuke.tprint("No profile with the name:", profile_name)   
+        # if profile_name == "Dpx":
+        #     self.__update_knob_value(node, "channels", "rgb")
+        # elif profile_name == "Exr 16 bit":
+        #     self.__update_knob_value(node, "channels", "rgba")
+        # elif profile_name == "Jpeg":
+        #     self.__update_knob_value(node, "channels", "rgb")
+        # else:
+        #     nuke.tprint("No profile with the name:", profile_name)   
 
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
@@ -1359,13 +1357,16 @@ class TankWriteNodeHandler(object):
             self.__update_knob_value(node, "tile_color", packed_rgb)
 
         # set the channel info based on the profile type
-        profile_channel = "rgb"
+        profile_channel = "rgba"
         if profile_name == "Dpx":
             if self._project == "Jack Ryan S1" or self._project == "SSVFX_PIPELINE":
                     node.knob("colorspace").setValue("Cineon")
             profile_channel = "rgb"
         elif profile_name == "Exr 16 bit":
             profile_channel = "rgb"
+            if (write_type == "Precomp" or 
+                write_type == "Element"):
+                    profile_channel = "rgba"
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
         else:
@@ -2192,37 +2193,30 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type":
             # set the write type for creation of correct output
             if self._curr_entity_type == 'Shot':
-                if self._project == "Lost In Space S1":
+                if self._project == "Lost In Space S1" or self._project == "SSVFX_PIPELINE" :
                     write_type = self.get_node_write_type_name(node) 
-                    # write_type_profile = "Dpx"
                     write_type_profile =  "Exr 16 bit"
-                    write_type_color = 0   
                     if write_type== "Version":
+                        profile_channels = "rgb"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
-                        # write_type_profile = "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Element":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        # write_type_profile =  "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Denoise":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        # write_type_profile =  "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Cleanup":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        # write_type_profile =  "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Final":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        # write_type_profile =  "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Test":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        # write_type_profile =  "Exr 16 bit"
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         # Pop warning that the renders saved to the Test location 
                         user_name = self._app.context.user['name'].split()
@@ -2232,47 +2226,40 @@ class TankWriteNodeHandler(object):
                             "Please be aware that this is a temporary location.\n"
                             "Renders saved here will be removed at the end of the week.\n")
                     # Updates the predefined profile based on the write type
-                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                    self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                     # reset profile
                     self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
-                elif self._project == "Jack Ryan S1" or self._project == "SSVFX_PIPELINE" :
+                elif self._project == "Jack Ryan S1":
                     write_type = self.get_node_write_type_name(node) 
                     write_type_profile = "Dpx"
-                    write_type_color = 0   
                     if write_type== "Version":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)                        
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        # node.knob("colorspace").setValue("Cineon")
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)    
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                        # node.knob("colorspace").setValue("Cineon")
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Element":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)                        
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                        # node.knob("colorspace").setValue("Cineon")                    
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Denoise":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        # node.knob("colorspace").setValue("Cineon")                    
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Cleanup":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(False)
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        # node.knob("colorspace").setValue("Cineon")                        
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                    
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Final":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")  
                         node.node(TankWriteNodeHandler.WRITE_NODE_NAME)["fill"].setValue(True)
-                        # node.knob("colorspace").setValue("Cineon")
                         print "*****Set the Final-DPX fill to true"   
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Test":
@@ -2294,7 +2281,6 @@ class TankWriteNodeHandler(object):
                     write_type = self.get_node_write_type_name(node) 
                     # write_type_profile = "Dpx"
                     write_type_profile =  "Exr 16 bit"
-                    write_type_color = 0   
                     if write_type== "Version":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
@@ -2336,7 +2322,6 @@ class TankWriteNodeHandler(object):
             elif self._curr_entity_type == 'Asset':
                 write_type = self.get_node_write_type_name(node) 
                 write_type_profile = "Exr 16 bit"
-                write_type_color = 0   
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2486,6 +2471,7 @@ class TankWriteNodeHandler(object):
                 nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
             )
             knob_changes = pickle.dumps(nk_data)
+            nuke.tprint(knob_changes)
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
