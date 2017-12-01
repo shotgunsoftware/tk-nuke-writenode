@@ -2311,14 +2311,17 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Precomp":
+                        write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Element":
+                        write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")                          
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Denoise":
+                        write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
                         node.knob("_promoted_1").setValue(False)
@@ -2327,8 +2330,7 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                    
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Final":
-                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")  
-                        print "*****Set the Final-DPX fill to true"   
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     elif write_type == "Test":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
