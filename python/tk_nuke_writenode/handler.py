@@ -2326,6 +2326,7 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Cleanup":
+                        write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                    
                         node.knob("_promoted_1").setValue(False)
