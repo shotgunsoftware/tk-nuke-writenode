@@ -1268,12 +1268,12 @@ class TankWriteNodeHandler(object):
                 # Example data after splitting:
                 #
                 # ['',
-                #  'file /shotgun/devosx/sequences/Test_Sequence/Test_Shot/Comp/work/images/scene/v004/2048x1556/Test_Shot_scene_output_main_v004.0001.exr',
-                #  'proxy /shotgun/devosx/sequences/Test_Sequence/Test_Shot/Comp/work/images/scene/v004/2048x1556/Test_Shot_scene_output_main_v004.0001.exr',
+                #  'file /some/path/to/an/image.exr',
+                #  'proxy /some/path/to/an/image.exr',
                 #  'file_type exr',
                 #  'datatype "32 bit float"',
-                #  'beforeRender "import nuke\\nif hasattr(nuke, \\"_shotgun_write_node_handler\\"):\\n    nuke._shotgun_write_node_handler.on_before_render_gizmo_callback()"',
-                #  'afterRender "import nuke\\nif hasattr(nuke, \\"_shotgun_write_node_handler\\"):\\n    nuke._shotgun_write_node_handler.on_after_render_gizmo_callback()"']
+                #  'beforeRender "<beforeRender callback script>"',
+                #  'afterRender "<afterRender callback script"']
                 for setting in re.split(r"\n", knob_settings):
                     # We match the name of the knob, which is everything up to
                     # the first space character. From the example data above,
