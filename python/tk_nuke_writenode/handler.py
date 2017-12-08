@@ -1194,34 +1194,6 @@ class TankWriteNodeHandler(object):
         # get the embedded write node
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         promoted_write_knobs = promoted_write_knobs or []
-
-        # If we're not resetting everything, then we need to try and
-        # make sure that the settings that the user made to the internal
-        # write knobs are retained. The reason for this is that promoted
-        # write knobs are handled by pre-defined link knobs, which are
-        # left unlinked in the gizmo itself. This means that their values
-        # are not properly written to the .nk file on save, and will
-        # revert to default settings on load. On save of the .nk file, we
-        # store a sanitized and serialized chunk of .nk script representing
-        # all non-default knob values in a hidden knob "tk_write_node_settings".
-        # Right here, we are deserializing that data and reapplying it to
-        # the internal write node. After this is done, we continue with
-        # the normal format settings logic, which will handle setting
-        # any non-promoted knobs to their preset values.
-        if not reset_all_settings:
-            tcl_settings = node.knob("tk_write_node_settings").value()
-            if tcl_settings:
-                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
-                # We need to remove the "file" and "proxy" settings that are always
-                # going to be baked into these knob settings. If we don't, the baked-out
-                # paths will replace the expressions that we have hooked up for those
-                # knobs.
-                filtered_settings = []
-                for setting in re.split(r"\n", knob_settings):
-                    if not setting.startswith("file ") and not setting.startswith("proxy "):
-                        filtered_settings.append(setting)
-                write_node.readKnobs(r"\n".join(filtered_settings))
-                self.reset_render_path(node)
         
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
@@ -1263,6 +1235,54 @@ class TankWriteNodeHandler(object):
             if knob.value() != setting_value:
                 self._app.log_error("Could not set %s file format setting %s to '%s'. Instead the value was set to '%s'" 
                                     % (file_type, setting_name, setting_value, knob.value()))
+
+        # If we're not resetting everything, then we need to try and
+        # make sure that the settings that the user made to the internal
+        # write knobs are retained. The reason for this is that promoted
+        # write knobs are handled by pre-defined link knobs, which are
+        # left unlinked in the gizmo itself. This means that their values
+        # are not properly written to the .nk file on save, and will
+        # revert to default settings on load. On save of the .nk file, we
+        # store a sanitized and serialized chunk of .nk script representing
+        # all non-default knob values in a hidden knob "tk_write_node_settings".
+        # Right here, we are deserializing that data and reapplying it to
+        # the internal write node.
+        if not reset_all_settings and promoted_write_knobs:
+            tcl_settings = node.knob("tk_write_node_settings").value()
+
+            if tcl_settings:
+                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
+                # We're going to filter out everything that isn't one of our
+                # promoted write node knobs. This will allow us to make sure
+                # that those knobs are set to the correct value, regardless
+                # of what the profile settings above have done.
+                filtered_settings = []
+
+                # Example data after splitting:
+                #
+                # ['',
+                #  'file /shotgun/devosx/sequences/Test_Sequence/Test_Shot/Comp/work/images/scene/v004/2048x1556/Test_Shot_scene_output_main_v004.0001.exr',
+                #  'proxy /shotgun/devosx/sequences/Test_Sequence/Test_Shot/Comp/work/images/scene/v004/2048x1556/Test_Shot_scene_output_main_v004.0001.exr',
+                #  'file_type exr',
+                #  'datatype "32 bit float"',
+                #  'beforeRender "import nuke\\nif hasattr(nuke, \\"_shotgun_write_node_handler\\"):\\n    nuke._shotgun_write_node_handler.on_before_render_gizmo_callback()"',
+                #  'afterRender "import nuke\\nif hasattr(nuke, \\"_shotgun_write_node_handler\\"):\\n    nuke._shotgun_write_node_handler.on_after_render_gizmo_callback()"']
+                for setting in re.split(r"\n", knob_settings):
+                    # We match the name of the knob, which is everything up to
+                    # the first space character. From the example data above,
+                    # that would be something like "datatype".
+                    match = re.match(r"(\S+)\s.*", setting)
+                    if match:
+                        if match.group(1) in promoted_write_knobs:
+                            self._app.log_debug(
+                                "Found promoted write node knob setting: %s" % setting
+                            )
+                            filtered_settings.append(setting)
+
+                self._app.log_debug(
+                    "Promoted write node knob settings to be applied: %s" % filtered_settings
+                )
+                write_node.readKnobs(r"\n".join(filtered_settings))
 
     def __set_output(self, node, output_name):
         """
