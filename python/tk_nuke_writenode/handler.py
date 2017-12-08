@@ -1273,7 +1273,7 @@ class TankWriteNodeHandler(object):
                 #  'file_type exr',
                 #  'datatype "32 bit float"',
                 #  'beforeRender "<beforeRender callback script>"',
-                #  'afterRender "<afterRender callback script"']
+                #  'afterRender "<afterRender callback script>"']
                 for setting in re.split(r"\n", knob_settings):
                     # We match the name of the knob, which is everything up to
                     # the first space character. From the example data above,
