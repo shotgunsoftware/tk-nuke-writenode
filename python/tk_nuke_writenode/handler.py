@@ -1227,6 +1227,12 @@ class TankWriteNodeHandler(object):
         tile_color = profile["tile_color"]
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
+        if write_type == "Version" and file_type == "exr":
+            ctx_info = self._app.context
+            if ctx_info.step['name'] == "Roto":
+                nuke.tprint("Task context is:" + ctx_info.step['name']+". Applying RLE compression to Version output")
+                file_settings.update({'compression'  :   'RLE'})        
+
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
@@ -2225,7 +2231,7 @@ class TankWriteNodeHandler(object):
                     if write_type== "Version":
                         profile_channels = "rgb"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                  
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2542,7 +2548,6 @@ class TankWriteNodeHandler(object):
                 nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
             )
             knob_changes = pickle.dumps(nk_data)
-            nuke.tprint(knob_changes)
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
