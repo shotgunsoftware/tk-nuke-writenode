@@ -1227,10 +1227,10 @@ class TankWriteNodeHandler(object):
         tile_color = profile["tile_color"]
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
-        if write_type == "Version" and file_type == "exr":
+        if file_type == "exr" and write_type == "Version" or write_type == "Test":
             ctx_info = self._app.context
             if ctx_info.step['name'] == "Roto":
-                nuke.tprint("Task context is:" + ctx_info.step['name']+". Applying RLE compression to Version output")
+                nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
                 file_settings.update({'compression'  :   'RLE'})        
 
         # Make sure any invalid entries are removed from the profile list:
