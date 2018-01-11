@@ -1200,6 +1200,7 @@ class TankWriteNodeHandler(object):
 
         # get the profile details:
         profile = self._profiles.get(profile_name)
+        ctx_info = self._app.context
         if not profile:
             # this shouldn't really every happen!
             self._app.log_warning("Failed to find a write node profile called '%s' for node '%s'!" 
@@ -1228,10 +1229,10 @@ class TankWriteNodeHandler(object):
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
         if file_type == "exr" and write_type == "Version" or write_type == "Test":
-            ctx_info = self._app.context
             if ctx_info.step['name'] == "Roto":
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
-                file_settings.update({'compression'  :   'RLE'})        
+                file_settings.update({'compression'     :   'Zip (1 scanline)'})    
+                file_settings.update({'datatype'        :   '16 bit half'})   
 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
@@ -1374,6 +1375,9 @@ class TankWriteNodeHandler(object):
             if (write_type == "Precomp" or 
                 write_type == "Element"):
                     profile_channel = "rgba"
+            if ctx_info.step['name'] == "Roto":    
+                profile_channel = "rgba"                        
+
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
         else:
@@ -2231,7 +2235,7 @@ class TankWriteNodeHandler(object):
                     if write_type== "Version":
                         profile_channels = "rgb"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                  
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                                                                  
                     elif write_type == "Precomp":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")        
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
