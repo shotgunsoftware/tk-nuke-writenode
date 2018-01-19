@@ -583,6 +583,13 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
+        # NOTE: Future self or other person: every time we touch this method to
+        # try to fix one of the PythonObject ValueErrors that Nuke occasionally
+        # raises on file open, it breaks something for someone. Most recently, it
+        # was farm setups for a few clients. It's best if we just leave this
+        # alone from now on, unless we someday have a better understanding of
+        # what's going on and the consequences of changing the on_node_created
+        # behavior.
         self.__setup_new_node(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
