@@ -22,7 +22,6 @@ import nukescripts
 import tank
 from tank import TankError
 from tank.platform import constants
-from tank.platform.qt import QtCore
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -1255,7 +1254,7 @@ class TankWriteNodeHandler(object):
         # all non-default knob values in a hidden knob "tk_write_node_settings".
         # Right here, we are deserializing that data and reapplying it to
         # the internal write node.
-        if not reset_all_settings and promoted_write_knobs:
+        if not reset_all_settings:
             tcl_settings = node.knob("tk_write_node_settings").value()
 
             if tcl_settings:
@@ -1291,6 +1290,7 @@ class TankWriteNodeHandler(object):
                     "Promoted write node knob settings to be applied: %s" % filtered_settings
                 )
                 write_node.readKnobs(r"\n".join(filtered_settings))
+                self.reset_render_path(node)
 
     def __set_output(self, node, output_name):
         """
