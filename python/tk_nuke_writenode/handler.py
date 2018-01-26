@@ -961,7 +961,7 @@ class TankWriteNodeHandler(object):
         set_path_knob("path_filename", file_name)
         
 
-    def __apply_cached_file_format_settings(self, node):
+    def __apply_cached_file_format_settings(self, node, promoted_knobs=[]):
         """
         Apply the file_type and settings that have been cached on the node to the internal
         Write node.  This mechanism is used when the settings can't be retrieved from the
@@ -983,7 +983,7 @@ class TankWriteNodeHandler(object):
                               % node.name(), e)
         
         # update the node:
-        self.__populate_format_settings(node, file_type, file_settings)        
+        self.__populate_format_settings(node, file_type, file_settings, False, promoted_knobs)        
         
 
     def __set_profile(self, node, profile_name, reset_all_settings=False):
@@ -1006,7 +1006,7 @@ class TankWriteNodeHandler(object):
         # get the profile details:
         profile = self._profiles.get(profile_name)
         if not profile:
-            # this shouldn't really every happen!
+            # this shouldn't really ever happen!
             self._app.log_warning("Failed to find a write node profile called '%s' for node '%s'!" 
                                   % profile_name, node.name())
             # at the very least, try to restore the file format settings from the cached values:
@@ -1028,6 +1028,11 @@ class TankWriteNodeHandler(object):
         tile_color = profile["tile_color"]
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
+        # If the profile hasn't changed, just apply cached file format settings
+        if profile_name == old_profile_name:
+            self.__apply_cached_file_format_settings(node, promote_write_knobs)
+            return
+
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
@@ -1036,7 +1041,7 @@ class TankWriteNodeHandler(object):
         # update both the list and the cached value for profile name:
         self.__update_knob_value(node, "profile_name", profile_name)
         self.__update_knob_value(node, "tk_profile_list", profile_name)
-        
+
         # set the format
         self.__populate_format_settings(
             node,
@@ -1050,50 +1055,6 @@ class TankWriteNodeHandler(object):
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
         self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
-
-        # Hide the promoted knobs that might exist from the previously
-        # active profile.
-        for promoted_knob in self._promoted_knobs.get(node, []):
-            promoted_knob.setFlag(nuke.INVISIBLE)
-
-        self._promoted_knobs[node] = []
-        write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-
-        # We'll use link knobs to tie our top-level knob to the write node's
-        # knob that we want to promote.
-        for i, knob_name in enumerate(promote_write_knobs):
-            target_knob = write_node.knob(knob_name)
-            if not target_knob:
-                self._app.log_warning("Knob %s does not exist and will not be promoted." % knob_name)
-                continue
-
-            link_name = "_promoted_" + str(i)
-
-            # We have 20 link knobs stashed away to use.  If we overflow that
-            # then we will simply create a new link knob and deal with the
-            # fact that it will end up in a "User" tab in the UI. The reason
-            # that we store a gaggle of link knobs on the gizmo is that it's
-            # the only way to present the promoted knobs in the write node's
-            # primary tab.  Adding knobs after the node exists results in them
-            # being shoved into a "User" tab all by themselves, which is lame.
-            if i > 19:
-                link_knob = nuke.Link_Knob(link_name)
-            else:
-                # We have to pull the link knobs from the knobs dict rather than
-                # by name, otherwise we'll get the link target and not the link
-                # itself if this is a link that was previously used.
-                link_knob = node.knobs()[link_name]
-
-            link_knob.setLink(target_knob.fullyQualifiedName())
-            label = target_knob.label() or knob_name
-            link_knob.setLabel(label)
-            link_knob.clearFlag(nuke.INVISIBLE)
-            self._promoted_knobs[node].append(link_knob)
-
-        # Adding knobs might have caused us to jump tabs, so we will set
-        # back to the first tab.
-        if len(promote_write_knobs) > 19:
-            node.setTab(0)
 
         # write the template name to the node so that we know it later
         self.__update_knob_value(node, "render_template", render_template.name)
@@ -1291,6 +1252,49 @@ class TankWriteNodeHandler(object):
                 )
                 write_node.readKnobs(r"\n".join(filtered_settings))
                 self.reset_render_path(node)
+
+        # Hide the promoted knobs that might exist from the previously
+        # active profile.
+        for promoted_knob in self._promoted_knobs.get(node, []):
+            promoted_knob.setFlag(nuke.INVISIBLE)
+
+        self._promoted_knobs[node] = []
+
+        # We'll use link knobs to tie our top-level knob to the write node's
+        # knob that we want to promote.
+        for i, knob_name in enumerate(promoted_write_knobs):
+            target_knob = write_node.knob(knob_name)
+            if not target_knob:
+                self._app.log_warning("Knob %s does not exist and will not be promoted." % knob_name)
+                continue
+
+            link_name = "_promoted_" + str(i)
+
+            # We have 20 link knobs stashed away to use.  If we overflow that
+            # then we will simply create a new link knob and deal with the
+            # fact that it will end up in a "User" tab in the UI. The reason
+            # that we store a gaggle of link knobs on the gizmo is that it's
+            # the only way to present the promoted knobs in the write node's
+            # primary tab.  Adding knobs after the node exists results in them
+            # being shoved into a "User" tab all by themselves, which is lame.
+            if i > 19:
+                link_knob = nuke.Link_Knob(link_name)
+            else:
+                # We have to pull the link knobs from the knobs dict rather than
+                # by name, otherwise we'll get the link target and not the link
+                # itself if this is a link that was previously used.
+                link_knob = node.knobs()[link_name]
+
+            link_knob.setLink(target_knob.fullyQualifiedName())
+            label = target_knob.label() or knob_name
+            link_knob.setLabel(label)
+            link_knob.clearFlag(nuke.INVISIBLE)
+            self._promoted_knobs[node].append(link_knob)
+
+        # Adding knobs might have caused us to jump tabs, so we will set
+        # back to the first tab.
+        if len(promoted_write_knobs) > 19:
+            node.setTab(0)
 
     def __set_output(self, node, output_name):
         """
