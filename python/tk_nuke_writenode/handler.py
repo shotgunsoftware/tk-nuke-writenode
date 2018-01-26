@@ -1036,7 +1036,7 @@ class TankWriteNodeHandler(object):
         # update both the list and the cached value for profile name:
         self.__update_knob_value(node, "profile_name", profile_name)
         self.__update_knob_value(node, "tk_profile_list", profile_name)
-        
+
         # set the format
         self.__populate_format_settings(
             node,
@@ -1263,7 +1263,6 @@ class TankWriteNodeHandler(object):
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
                 # of what the profile settings above have done.
-                filtered_settings = []
 
                 # Example data after splitting:
                 #
@@ -1284,12 +1283,8 @@ class TankWriteNodeHandler(object):
                             self._app.log_debug(
                                 "Found promoted write node knob setting: %s" % setting
                             )
-                            filtered_settings.append(setting)
 
-                self._app.log_debug(
-                    "Promoted write node knob settings to be applied: %s" % filtered_settings
-                )
-                write_node.readKnobs(r"\n".join(filtered_settings))
+                            write_node.readKnobs(setting)
                 self.reset_render_path(node)
 
     def __set_output(self, node, output_name):
