@@ -582,6 +582,13 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
+        # NOTE: Future self or other person: every time we touch this method to
+        # try to fix one of the PythonObject ValueErrors that Nuke occasionally
+        # raises on file open, it breaks something for someone. Most recently, it
+        # was farm setups for a few clients. It's best if we just leave this
+        # alone from now on, unless we someday have a better understanding of
+        # what's going on and the consequences of changing the on_node_created
+        # behavior.
         self.__setup_new_node(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
@@ -974,7 +981,7 @@ class TankWriteNodeHandler(object):
         except Exception, e:
             self._app.log_warning("Failed to extract cached file settings from node '%s' - %s" 
                               % node.name(), e)
-
+        
         # update the node:
         self.__populate_format_settings(node, file_type, file_settings, False, promoted_knobs)        
         
@@ -1010,7 +1017,7 @@ class TankWriteNodeHandler(object):
 
         # keep track of the old profile name:
         old_profile_name = node.knob("profile_name").value()
-
+        
         # pull settings from profile:
         render_template = self._app.get_template_by_name(profile["render_template"])
         publish_template = self._app.get_template_by_name(profile["publish_template"])
@@ -1055,7 +1062,7 @@ class TankWriteNodeHandler(object):
         # update the output tank channel
         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, output_name)
         self.__update_knob_value(node, TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME, use_node_name)
-
+        
         # set the format
         self.__populate_format_settings(
             node,
@@ -1064,7 +1071,7 @@ class TankWriteNodeHandler(object):
             reset_all_settings,
             promote_write_knobs,
         )
-
+        
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
@@ -1178,7 +1185,7 @@ class TankWriteNodeHandler(object):
         # get the embedded write node
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         promoted_write_knobs = promoted_write_knobs or []
-
+        
         # set the file_type
         write_node.knob("file_type").setValue(file_type)
         
@@ -1188,32 +1195,6 @@ class TankWriteNodeHandler(object):
                                 "format '%s'! Reverting to auto-detect mode instead." % file_type)
             write_node.knob("file_type").setValue("  ")
             return
-
-        # If we're not resetting everything, then we need to try and
-        # make sure that the settings that the user made to the internal
-        # write knobs are retained. The reason for this is that promoted
-        # write knobs are handled by pre-defined link knobs, which are
-        # left unlinked in the gizmo itself. This means that their values
-        # are not properly written to the .nk file on save, and will
-        # revert to default settings on load. On save of the .nk file, we
-        # store a sanitized and serialized chunk of .nk script representing
-        # all non-default knob values in a hidden knob "tk_write_node_settings".
-        # Right here, we are deserializing that data and reapplying it to
-        # the internal write node. After this is done, we continue with
-        # the normal format settings logic, which will handle setting
-        # any non-promoted knobs to their preset values.
-        if not reset_all_settings:
-            tcl_settings = node.knob("tk_write_node_settings").value()
-            if tcl_settings:
-                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
-                # We need to remove the "file" and "proxy" settings that are always
-                # going to be baked into these knob settings. If we don't, the baked-out
-                # paths will replace the expressions that we have hooked up for those
-                # knobs.
-                for setting in re.split(r"\n", knob_settings):
-                    if not setting.startswith("file ") and not setting.startswith("proxy "):
-                        write_node.readKnobs(setting)
-                self.reset_render_path(node)
 
         # get a list of the settings we shouldn't update:
         knobs_to_skip = []
@@ -1245,6 +1226,50 @@ class TankWriteNodeHandler(object):
             if knob.value() != setting_value:
                 self._app.log_error("Could not set %s file format setting %s to '%s'. Instead the value was set to '%s'" 
                                     % (file_type, setting_name, setting_value, knob.value()))
+
+        # If we're not resetting everything, then we need to try and
+        # make sure that the settings that the user made to the internal
+        # write knobs are retained. The reason for this is that promoted
+        # write knobs are handled by pre-defined link knobs, which are
+        # left unlinked in the gizmo itself. This means that their values
+        # are not properly written to the .nk file on save, and will
+        # revert to default settings on load. On save of the .nk file, we
+        # store a sanitized and serialized chunk of .nk script representing
+        # all non-default knob values in a hidden knob "tk_write_node_settings".
+        # Right here, we are deserializing that data and reapplying it to
+        # the internal write node.
+        if not reset_all_settings:
+            tcl_settings = node.knob("tk_write_node_settings").value()
+
+            if tcl_settings:
+                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
+                # We're going to filter out everything that isn't one of our
+                # promoted write node knobs. This will allow us to make sure
+                # that those knobs are set to the correct value, regardless
+                # of what the profile settings above have done.
+
+                # Example data after splitting:
+                #
+                # ['',
+                #  'file /some/path/to/an/image.exr',
+                #  'proxy /some/path/to/an/image.exr',
+                #  'file_type exr',
+                #  'datatype "32 bit float"',
+                #  'beforeRender "<beforeRender callback script>"',
+                #  'afterRender "<afterRender callback script>"']
+                for setting in re.split(r"\n", knob_settings):
+                    # We match the name of the knob, which is everything up to
+                    # the first space character. From the example data above,
+                    # that would be something like "datatype".
+                    match = re.match(r"(\S+)\s.*", setting)
+                    if match:
+                        if match.group(1) in promoted_write_knobs:
+                            self._app.log_debug(
+                                "Found promoted write node knob setting: %s" % setting
+                            )
+
+                            write_node.readKnobs(setting)
+                self.reset_render_path(node)
 
         # Hide the promoted knobs that might exist from the previously
         # active profile.
@@ -1815,7 +1840,7 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_profile_list", current_profile_name)
         # and make sure the node is up-to-date with the profile:
         self.__set_profile(node, current_profile_name, reset_all_settings=reset_all_profile_settings)
-
+        
         # ensure that the disable value properly propogates to the internal write node:
         write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
         write_node["disable"].setValue(node["disable"].value())
@@ -2020,3 +2045,12 @@ class TankWriteNodeHandler(object):
         # populate the initial output name based on the render template:
         render_template = self.get_render_template(node)
         self.__populate_initial_output_name(render_template, node)
+
+
+
+
+
+
+
+        
+        
