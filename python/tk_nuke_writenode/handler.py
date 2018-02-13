@@ -1407,7 +1407,15 @@ class TankWriteNodeHandler(object):
             elif self._project == "The Favourite":
                 proj_fps = 24
                 timecode = "01:00:00:01"
-                print "Project is The Favourite. Setting TC FPS to 24"     
+                print "Project is The Favourite. Setting TC FPS to 24"    
+            elif self._project == "The Little Stranger":
+                proj_fps = 24
+                timecode = "01:00:00:01"
+                print "Project is The Little Stranger. Setting TC FPS to 24"                            
+            elif self._project == "SSVFX_PIPELINE":
+                proj_fps = 24
+                timecode = "01:00:00:01"
+                print "Project is SSVFX_PIPELINE. Setting TC FPS to 24"                        
             else:
                 proj_fps = 23.98
                 timecode = "01:00:00:01"
