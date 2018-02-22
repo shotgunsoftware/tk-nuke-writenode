@@ -1246,6 +1246,9 @@ class TankWriteNodeHandler(object):
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
+            else:
+                file_settings.update({'compression'     :   'None'})    
+                file_settings.update({'datatype'        :   '16 bit half'})                   
         elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
             or write_type == "Cleanup" or write_type == "Denoise"):
             file_settings.update({'compression'     :   'Zip (1 scanline)'})    
