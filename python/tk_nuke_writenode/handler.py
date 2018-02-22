@@ -236,6 +236,19 @@ class TankWriteNodeHandler(object):
         self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
         self.__update_render_path(node, force_reset=True, is_proxy=(not is_proxy))
 
+    def test_nodes_for_name (self, write_type):
+        # Cycles through script nodes to find clashing node names
+        existing_node_names = [n.name() for n in nuke.allNodes()]
+        # rename to our new default name:
+        postfix = 1
+        while True:
+            new_name = "%s%d-%s" % (TankWriteNodeHandler.SG_WRITE_DEFAULT_NAME, postfix, write_type)
+            if new_name not in existing_node_names:
+                break
+            else:
+                postfix += 1          
+        return new_name          
+
     def create_new_node(self, profile_name, write_type):
         """
         Creates a new write node
@@ -1233,7 +1246,10 @@ class TankWriteNodeHandler(object):
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
-
+        elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
+            or write_type == "Cleanup" or write_type == "Denoise"):
+            file_settings.update({'compression'     :   'Zip (1 scanline)'})    
+            file_settings.update({'datatype'        :   '16 bit half'})   
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
@@ -1367,7 +1383,7 @@ class TankWriteNodeHandler(object):
         # set the channel info based on the profile type
         profile_channel = "rgba"
         if profile_name == "Dpx":
-            if self._project == "Jack Ryan S1" or self._project == "SSVFX_PIPELINE":
+            if self._project == "Jack Ryan S1":
                     node.knob("colorspace").setValue("Cineon")
             profile_channel = "rgb"
         elif profile_name == "Exr 16 bit":
@@ -2192,6 +2208,7 @@ class TankWriteNodeHandler(object):
         node = nuke.thisNode()
         knob = nuke.thisKnob()
         grp  = nuke.thisGroup()
+        write_type = self.get_node_write_type_name(node)          
         
         if not self.__is_node_fully_constructed(node):
             # knobChanged will be called during script load for all knobs with non-default 
@@ -2205,11 +2222,10 @@ class TankWriteNodeHandler(object):
             # change the profile for the specified node:
             new_profile_name = knob.value()
             # set the write type for creation of correct output
-            write_type = self.get_node_write_type_name(node)          
             self.__set_profile(node, new_profile_name, write_type, reset_all_settings=True)
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
-            new_output_name = knob.value()
+            new_output_name = knob.value()        
             if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
                 # force output name to be the node name:
                 new_output_name = node.knob("name").value()
@@ -2237,8 +2253,7 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type":
             # set the write type for creation of correct output
             if self._curr_entity_type == 'Shot':
-                if self._project == "Lost In Space S1" or self._project == "SSVFX_PIPELINE" :
-                    write_type = self.get_node_write_type_name(node) 
+                if self._project == "Lost In Space S1":
                     write_type_profile =  "Exr 16 bit"
                     if write_type== "Version":
                         profile_channels = "rgb"
@@ -2252,10 +2267,10 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Denoise":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Cleanup":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Final":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
@@ -2321,7 +2336,7 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
                     # reset profile
                     self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)    
-                elif self._project == "The Favourite":
+                elif self._project == "The Favourite" or self._project == "SSVFX_PIPELINE" :
                     write_type = self.get_node_write_type_name(node) 
                     write_type_profile = "Dpx"
                     if write_type== "Version":
@@ -2341,12 +2356,12 @@ class TankWriteNodeHandler(object):
                     elif write_type == "Denoise":
                         write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Cleanup":
                         write_type_profile = "Exr 16 bit"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                    
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                    
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Final":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
@@ -2384,11 +2399,11 @@ class TankWriteNodeHandler(object):
                     elif write_type == "Denoise":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         # write_type_profile =  "Exr 16 bit"
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Cleanup":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         # write_type_profile =  "Exr 16 bit"
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     elif write_type == "Final":
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         # write_type_profile =  "Exr 16 bit"
