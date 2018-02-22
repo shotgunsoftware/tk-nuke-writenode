@@ -1247,12 +1247,14 @@ class TankWriteNodeHandler(object):
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
             else:
-                file_settings.update({'compression'     :   'None'})    
+                nuke.tprint("Task context is " + ctx_info.step['name']+". Removing compression from "+ write_type +" output.")
+                file_settings.update({'compression'     :   'none'})    
                 file_settings.update({'datatype'        :   '16 bit half'})                   
         elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
             or write_type == "Cleanup" or write_type == "Denoise"):
+            nuke.tprint("Adding compression to "+ write_type +" output.")
             file_settings.update({'compression'     :   'Zip (1 scanline)'})    
-            file_settings.update({'datatype'        :   '16 bit half'})   
+            file_settings.update({'datatype'        :   '16 bit half'}) 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
