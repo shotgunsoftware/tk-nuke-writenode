@@ -1244,16 +1244,16 @@ class TankWriteNodeHandler(object):
         if file_type == "exr" and write_type == "Version" or write_type == "Test":
             if ctx_info.step['name'] == "Roto":
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
-                file_settings.update({'compression'     :   'Zip (1 scanline)'})    
+                file_settings.update({'compression'     :   'Zip (1 scanline)'})
                 file_settings.update({'datatype'        :   '16 bit half'})   
             else:
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Removing compression from "+ write_type +" output.")
-                file_settings.update({'compression'     :   'none'})    
-                file_settings.update({'datatype'        :   '16 bit half'})                   
+                file_settings.update({'compression'     :   'none'})
+                file_settings.update({'datatype'        :   '16 bit half'})
         elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
             or write_type == "Cleanup" or write_type == "Denoise"):
             nuke.tprint("Adding compression to "+ write_type +" output.")
-            file_settings.update({'compression'     :   'Zip (1 scanline)'})    
+            file_settings.update({'compression'     :   'Zip (1 scanline)'})
             file_settings.update({'datatype'        :   '16 bit half'}) 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
@@ -2345,7 +2345,7 @@ class TankWriteNodeHandler(object):
                     write_type = self.get_node_write_type_name(node) 
                     write_type_profile = "Dpx"
                     if write_type== "Version":
-                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")                          
+                        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Precomp":
@@ -2364,7 +2364,7 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                
                         node.knob("_promoted_1").setValue(False)
                     elif write_type == "Cleanup":
-                        write_type_profile = "Exr 16 bit"
+                        write_type_profile = "Dpx"
                         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")     
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                    
                         node.knob("_promoted_1").setValue(False)
