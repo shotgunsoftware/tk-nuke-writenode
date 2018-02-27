@@ -1255,6 +1255,9 @@ class TankWriteNodeHandler(object):
             nuke.tprint("Adding compression to "+ write_type +" output.")
             file_settings.update({'compression'     :   'Zip (1 scanline)'})
             file_settings.update({'datatype'        :   '16 bit half'}) 
+        elif (file_type == "dpx" and write_type == "Cleanup"):
+            file_settings.update({'datatype'        :   '16 bit'}) 
+
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
