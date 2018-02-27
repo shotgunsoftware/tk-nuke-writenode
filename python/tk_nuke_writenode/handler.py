@@ -1252,7 +1252,7 @@ class TankWriteNodeHandler(object):
                 file_settings.update({'datatype'        :   '16 bit half'})
         elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
             or write_type == "Cleanup" or write_type == "Denoise"):
-            nuke.tprint("Adding compression to "+ write_type +" output.")
+            # nuke.tprint("Adding compression to "+ write_type +" output.")
             file_settings.update({'compression'     :   'Zip (1 scanline)'})
             file_settings.update({'datatype'        :   '16 bit half'}) 
         elif (file_type == "dpx" and write_type == "Cleanup"):
