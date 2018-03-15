@@ -236,7 +236,7 @@ class NukeWriteNode(tank.platform.Application):
             # add to toolbar menu
             cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
+                "%s" % profile_name,
                 cb_fn, 
                 dict(
                     type="node",
