@@ -29,14 +29,6 @@ from tank.platform import constants
 from tank_vendor import shotgun_api3 as sgapi
 
 try:
-    sg_login = "\\\\10.80.8.250\\VFX_Pipeline\\Pipeline\\Scripts"
-    sys.path.append(sg_login)
-    from shotgun.shotgun_login_node import ShotgunLogin
-except:
-    print "Could not import SG login module"
-
-
-try:
     import ConfigParser
 except:
     print( "Could not load ConfigParser module, sticky settings will not be loaded/saved" )
@@ -86,8 +78,6 @@ class TankWriteNodeHandler(object):
 
         # call and cache the version info
         self._version_info = {}
-        self._get_sg = ShotgunLogin(sgapi)
-        self.sg = self._get_sg.get_sg()
         self.get_sg_info()
 
     ################################################################################################
@@ -631,6 +621,8 @@ class TankWriteNodeHandler(object):
         self._version_info = {}
 
         ctx_info = self._app.context
+        eng = tank.platform.current_engine()
+        sg = eng.shotgun
 
         filters = [
         ['entity', 'is', {'type': 'Shot', 'id': ctx_info.entity['id']}],
@@ -643,8 +635,8 @@ class TankWriteNodeHandler(object):
             "latest_by":   "ENTITIES_CREATED_AT"
         }]
         
-        self._version_info = self.sg.find_one("Version",filters,fields,additional_filter_presets = additional_filter_presets,include_archived_projects=False)
-        self.sg.close()
+        self._version_info = sg.find_one("Version",filters,fields,additional_filter_presets = additional_filter_presets,include_archived_projects=False)
+        sg.close()
 
     def get_node_write_type_name(self, node):
         """
@@ -1440,6 +1432,10 @@ class TankWriteNodeHandler(object):
                 proj_fps = 24
                 timecode = "01:00:00:01"
                 print "Project is SSVFX_PIPELINE. Setting TC FPS to 24"                        
+            elif self._project == "DeAging":
+                proj_fps = 25
+                timecode = "01:00:00:01"
+                print "Project is DeAging. Setting TC FPS to 25"                                  
             else:
                 proj_fps = 23.98
                 timecode = "01:00:00:01"
@@ -2431,7 +2427,7 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
                     # reset profile
                     self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)           
-            elif self._curr_entity_type == 'Asset':
+            elif self._curr_entity_type == 'Asset':                   
                 write_type = self.get_node_write_type_name(node) 
                 write_type_profile = "Exr 16 bit"
                 if write_type== "Version":
