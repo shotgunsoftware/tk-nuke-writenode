@@ -1435,7 +1435,11 @@ class TankWriteNodeHandler(object):
             elif self._project == "DeAging":
                 proj_fps = 25
                 timecode = "01:00:00:01"
-                print "Project is DeAging. Setting TC FPS to 25"                                  
+                print "Project is DeAging. Setting TC FPS to 25"            
+            elif self._project == "GOT8":
+                proj_fps = 23.976
+                timecode = "01:00:00:01"
+                print "Project is GOT8. Setting TC FPS to 23.976"                                               
             else:
                 proj_fps = 23.98
                 timecode = "01:00:00:01"
