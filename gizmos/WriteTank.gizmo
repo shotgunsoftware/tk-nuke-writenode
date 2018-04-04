@@ -277,47 +277,9 @@ Gizmo {
     -INVISIBLE
  }
  addUserKnob {
-    26 latest_version
-    l "<b style='color:gold'>Latest Version:<b>"
-    t "Shows current task context of the script" 
-    T "   " 
- }
- addUserKnob {
-    26 version_date
-    l "<b style='color:gold'>Version Date:<b>"
-    t "Shows current task context of the script" 
-    T "   " 
-    +STARTLINE 
- }
- addUserKnob {
-    26 version_description
-    l "Description:"
-    t "Shows description of the latest version" 
-    T "   " 
-    +STARTLINE 
- }
- addUserKnob {
-   32 sync_from_sg 
-   l "Sync Global frames from SG"
-   T "  "
-   +STARTLINE    
- }
- addUserKnob {
    25 ""
    - STARTLINE
  }
- addUserKnob {
-   32 refresh_version_info 
-   l "Refresh Info"
-   T "  "
-   -STARTLINE    
- }
- addUserKnob {
-    26 "" 
-    l "" 
-    +STARTLINE
- }
-
  addUserKnob {
     41 channels 
     T Write1.channels
@@ -414,48 +376,6 @@ Gizmo {
     T Write1.reload
     -STARTLINE
  }
- addUserKnob {
-    26 "" 
-    l "" 
-    +STARTLINE
- }
- addUserKnob {
-    26 farm_submission
-    l "<b style='color:lawngreen'>Deadline Submission<b>"
-    T "   " 
-    +STARTLINE    
- } 
- addUserKnob {
-    1 job_priority 
-    l "Priority" 
- } 
- addUserKnob {
-    25 "" 
-    l "" 
-    -STARTLINE
- }  
- addUserKnob {
-    25 "" 
-    l "" 
-    -STARTLINE
- }   
- addUserKnob {
-    6 create_jpegs 
-    l "Create JPEGs of submission for quick review." 
-    t "Optional submission to " 
-    +STARTLINE
- } 
- addUserKnob {
-    41 farm_render 
-    l "<b style='color:lawngreen'>Farm Render<b>"
-    T Write1.Render
-    +STARTLINE
- }
- addUserKnob {
-    26 "" 
-    l "" 
-    +STARTLINE
- } 
  addUserKnob {
     41 _promoted_0
     l Promoted

@@ -72,12 +72,11 @@ class TankWriteNodeHandler(object):
         self.populate_profiles_from_settings()
 
         self.sg = self._app.engine.shotgun
-        self.proj_info = self.sg.find_one("Project", [['id', 'is', self._project['id']]], ['sg_frame_rate'])
+        self.proj_info = self.sg.find_one("Project", 
+                                            [['id', 'is', self._project['id']]], 
+                                            ['sg_frame_rate', 'sg_data_type'])
         self.frame_range_app = self._app.engine.apps["tk-multi-setframerange"]
         self.frame_range = self.frame_range_app.get_frame_range_from_shotgun()
-        print self.proj_info
-        # self.get_version_info()
-
 
             
     ################################################################################################
@@ -606,28 +605,6 @@ class TankWriteNodeHandler(object):
             new_sg_wn.setXpos(node_pos[0])
             new_sg_wn.setYpos(node_pos[1])       
 
-    def get_version_info(self):
-        """
-        Retrieves secific version info from SG and caches 
-        """
-        self._version_info = {}
-
-        ctx_info = self._app.context
-
-        filters = [
-        ['entity', 'is', {'type': 'Shot', 'id': ctx_info.entity['id']}],
-        ['sg_task.Task.step.Step.id', 'is', ctx_info.step['id']]
-        ]
-        fields = ['id', 'code', 'sg_asset_type', 'created_at' , 'sg_version_number', 'description']
-        additional_filter_presets = [
-        {
-            "preset_name": "LATEST",
-            "latest_by":   "ENTITIES_CREATED_AT"
-        }]
-        
-        self._version_info = self.sg.find_one("Version",filters,fields,additional_filter_presets = additional_filter_presets,include_archived_projects=False)
-        self.sg.close()
-
     ################################################################################################
     # Public methods called from gizmo - although these are public, they should 
     # be considered as private and not used directly!
@@ -637,15 +614,6 @@ class TankWriteNodeHandler(object):
         Return the name of the profile the specified node is using
         """
         return node.knob("write_type").value()
-
-    def sync_frames_from_SG(self):
-
-      try:
-        app = self.eng.apps["tk-multi-setframerange"]
-        app.run_app()
-      except:
-        self._app.log_debug("Failed to sync frames")
-        raise
 
     def test_folder_for_renders(self, path):
         """
@@ -1365,17 +1333,27 @@ class TankWriteNodeHandler(object):
         if profile_name == "Dpx":
             profile_channel = "rgb"
         elif profile_name == "Exr 16 bit":
-            profile_channel = "rgb"               
+            profile_channel = "rgb"       
+            if (write_type == "Precomp" or 
+                write_type == "Element"):
+                    profile_channel = "rgba"  
+            if ctx_info.step['name'] == "Roto":    
+                profile_channel = "rgba"                                           
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
+        
+        # Sets project specific data type
+        if self.proj_info['sg_data_type']:
+            node.node("Write1").knob("datatype").setValue(self.proj_info['sg_data_type'])
 
         # Update embeded time code
         time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
         if self._curr_entity_type == 'Shot':
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
+            nuke.tprint(self.frame_range)
             if not self.frame_range[0]:
                 print "No frame range values found on SG"
                 shot_frame_range_start = 1
@@ -1391,7 +1369,7 @@ class TankWriteNodeHandler(object):
             time_code.knobs()["useFrame"].setValue(use_start_frame)
             time_code.knobs()["frame"].setValue(shot_frame_range_start)
             time_code.knobs()["metafps"].setValue(use_meta_data)
-            nuke.tprint("Timecode values:  ", timecode, proj_fps, "Use start frame", use_start_frame, "First frame from SG" ,shot_frame_range_start)
+            # nuke.tprint("Timecode values:  ", timecode, proj_fps, "Use start frame", use_start_frame, "First frame from SG" ,shot_frame_range_start)
 
 
         # Reset the render path but only if the named profile has changed - this will only
@@ -2193,13 +2171,11 @@ class TankWriteNodeHandler(object):
             # all knob changes
             #print "Ignoring change to %s.%s value = %s" % (node.name(), knob.name(), knob.value())
             return
-        
         write_type = self.get_node_write_type_name(node)                      
         if knob.name() == "tk_profile_list":
             # change the profile for the specified node:
             new_profile_name = knob.value()
             self.__set_profile(node, new_profile_name, write_type, reset_all_settings=True)
-            
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
             new_output_name = knob.value()
@@ -2207,14 +2183,12 @@ class TankWriteNodeHandler(object):
             if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
                 # force output name to be the node name:
                 new_output_name = node.knob("name").value()
-            self.__set_output(node, new_output_name)
-            
+            self.__set_output(node, new_output_name)      
         elif knob.name() == "name":
             # node name has changed:
             if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
                 # set the output to the node name:
-                self.__set_output(node, knob.value())
-                
+                self.__set_output(node, knob.value())  
         elif knob.name() == TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME:
             # checkbox controlling if the name should be used as the output has been toggled
             name_as_output = knob.value()
@@ -2287,13 +2261,6 @@ class TankWriteNodeHandler(object):
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)                      
-        elif knob.name() == "sync_from_sg":
-            # Sync from SG
-            self.sync_frames_from_SG()    
-        elif knob.name() == "refresh_version_info":
-            # set the write type for creation of correct output
-            write_type = self.get_node_write_type_name(node) 
-            self.__update_version_preview(node, write_type)
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.10.239/mediawiki-1.25.2/index.php?title=VFX_Wiki#SG_Write_Nodes"
             webbrowser.open_new_tab(write_type_url)            
@@ -2422,25 +2389,6 @@ class TankWriteNodeHandler(object):
         write_type = self.get_node_write_type_name(node)        
         render_template = self.get_render_template(node, write_type)
         self.__populate_initial_output_name(render_template, node)
-
-    def __update_version_preview(self, node, write_type):
-        """
-        #Updates the version info fields on the tank write node.
-        """
-        # Version specific UI names
-        version_ui = ["latest_version", "version_date", "version_description", "Description", "refresh_version_info", "version_info_breaker"]
-        if write_type != "Version":
-            self.__hide_UI(node, version_ui, False)
-            if not self._version_info:
-                return
-        else:
-            self.__hide_UI(node, version_ui, True)
-            if self._version_info:
-                self.__update_knob_value(node, "latest_version", str(self._version_info['code']))
-                self.__update_knob_value(node, "version_date", str(self._version_info['created_at']))
-                self.__update_knob_value(node, "version_description", str(self._version_info['description'])) 
-        if not self._version_info:
-            return
 
     def __hide_UI(self, node, ui_name_array, visibility):
 
