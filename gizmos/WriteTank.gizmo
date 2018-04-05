@@ -238,6 +238,12 @@ Gizmo {
     +INVISIBLE
  }
  addUserKnob {
+    1 write_name_cache
+    l "SG Write Name Cache" 
+    t "The cached Write Name for this node"
+    +INVISIBLE
+ } 
+ addUserKnob {
    25 ""
    - STARTLINE
  }
@@ -256,6 +262,13 @@ Gizmo {
     +STARTLINE
     -INVISIBLE
  }
+ addUserKnob {
+    6 project_crop 
+    l "Crop to Project format" 
+    t "Choose to crop footage to the Project format." 
+    +STARTLINE
+    -INVISIBLE
+ } 
  addUserKnob {
     1 tank_channel_cache
     l "" 
@@ -495,6 +508,21 @@ Gizmo {
   xpos 195
   ypos -74
  }
+Reformat {
+  type "to format"
+  box_width 800
+  box_height 1
+  black_outside false
+  pbb true  
+  name project_reformat
+  disable true    
+ }
+ Crop {
+  preset format
+  reformat true
+  crop false  
+  disable true  
+ } 
  AddTimeCode {
   startcode 01:00:00:01
   metafps False
@@ -509,13 +537,13 @@ Gizmo {
   afterRender "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_after_render_gizmo_callback()"
   name Write1
   xpos 195
-  ypos -34
+  ypos 65
  }
 set N11879e50 [stack 0]
  Output {
   name Output1
   xpos 195
-  ypos 66
+  ypos 150
  }
 push $N11879e50
  Reformat {
