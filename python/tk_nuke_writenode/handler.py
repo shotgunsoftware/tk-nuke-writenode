@@ -498,7 +498,6 @@ class TankWriteNodeHandler(object):
             nuke.delete(sg_wn)
         
             # rename new node:
-            print "Node name: ", node_name
             new_wn.setName(node_name)
             new_wn.setXpos(node_pos[0])
             new_wn.setYpos(node_pos[1])       
@@ -550,6 +549,7 @@ class TankWriteNodeHandler(object):
             wn.setSelected(True)
             node_name = wn.name()
             node_pos = (wn.xpos(), wn.ypos())
+            wn.setName(node_name + "_copy")
             
             # create new Shotgun Write node:
             new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
@@ -607,7 +607,7 @@ class TankWriteNodeHandler(object):
             nuke.delete(wn)
 
             # rename new node:
-            # new_sg_wn.setName(node_name)
+            new_sg_wn.setName(node_name)
             new_sg_wn.setXpos(node_pos[0])
             new_sg_wn.setYpos(node_pos[1])       
 
@@ -1380,45 +1380,49 @@ class TankWriteNodeHandler(object):
             time_code.knobs()["frame"].setValue(shot_frame_range_start)
             time_code.knobs()["metafps"].setValue(use_meta_data)
 
-            if (write_type == "Version" or
-                write_type == "Final"):             
-                # Set crop info
-                crop['disable'].setValue(False)                   
-                if not (self.proj_info['sg_delivery_format_width'] and 
-                    self.proj_info['sg_delivery_format_height']):
-                        if (self.proj_info['sg_format_width'] and self.proj_info['sg_format_height']):
-                            crop.knobs()["box"].setValue((0, 0, self.proj_info['sg_format_width'], self.proj_info['sg_format_height']))
-                            self._app.log_debug("Applied Project format to embeded Crop")
-                else:            
-                    crop.knobs()["box"].setValue((0, 0, self.proj_info['sg_delivery_format_width'], self.proj_info['sg_delivery_format_height']))
-                    self._app.log_debug("Applied Project format to embeded Crop")
+               
+            if not (self.proj_info['sg_delivery_format_width'] and 
+                self.proj_info['sg_delivery_format_height']):
+                    if (self.proj_info['sg_format_width'] and 
+                        self.proj_info['sg_format_height']):
+                        crop.knobs()["box"].setValue((0, 
+                        0, 
+                        self.proj_info['sg_format_width'], 
+                        self.proj_info['sg_format_height']))
 
-                # Set reformat info
-                if (self.proj_info['sg_delivery_format_width'] and 
-                    self.proj_info['sg_delivery_format_height'] and
-                    self.proj_info['sg_pixel_aspect_ratio'] and
-                    self.proj_info['sg_short_name']):    
-                        proj_reformat['disable'].setValue(False)
-                        scriptFormats = nuke.formats()
-                        main_format = None                
-                        for f in scriptFormats:
-                            if (f.width() == int(self.proj_info['sg_delivery_format_width']) and 
-                                f.height() == int(self.proj_info['sg_delivery_format_height'])):
-                                main_format = f
-                                break
-                        if not main_format:
-                            try:
-                                main_format = nuke.addFormat("%s %s %s %s" % (str(self.proj_info['sg_delivery_format_width']), 
-                                        str(self.proj_info['sg_delivery_format_height']), 
-                                        str(self.proj_info['sg_pixel_aspect_ratio']), 
-                                        (self.proj_info['sg_short_name']+"_"+str(self.proj_info['sg_format_width']))))
-                            except:
-                                nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
+                        self._app.log_debug("Applied Project format to embeded Crop: " + 
+                        self.proj_info['sg_format_width'] + 
+                        self.proj_info['sg_format_height'])
+            else:            
+                crop.knobs()["box"].setValue((0, 
+                0, 
+                self.proj_info['sg_delivery_format_width'], 
+                self.proj_info['sg_delivery_format_height']))
+                self._app.log_debug("Applied Project Delivery format to embeded Crop")
 
-                        proj_reformat.knobs()["format"].setValue(main_format)
-            else:
-                crop['disable'].setValue(True)         
-                proj_reformat['disable'].setValue(True)                      
+            # Set reformat info
+            if (self.proj_info['sg_delivery_format_width'] and 
+                self.proj_info['sg_delivery_format_height'] and
+                self.proj_info['sg_pixel_aspect_ratio'] and
+                self.proj_info['sg_short_name']):    
+                    scriptFormats = nuke.formats()
+                    main_format = None                
+                    for f in scriptFormats:
+                        if (f.width() == int(self.proj_info['sg_delivery_format_width']) and 
+                            f.height() == int(self.proj_info['sg_delivery_format_height'])):
+                            main_format = f
+                            break
+                    if not main_format:
+                        try:
+                            main_format = nuke.addFormat("%s %s %s %s" % (str(self.proj_info['sg_delivery_format_width']), 
+                                    str(self.proj_info['sg_delivery_format_height']), 
+                                    str(self.proj_info['sg_pixel_aspect_ratio']), 
+                                    (self.proj_info['sg_short_name']+"_"+str(self.proj_info['sg_format_width']))))
+                        except:
+                            nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
+
+                    proj_reformat.knobs()["format"].setValue(main_format)
+               
 
 
         # Reset the render path but only if the named profile has changed - this will only
@@ -2158,8 +2162,12 @@ class TankWriteNodeHandler(object):
             self.__set_output(node, new_output_name)
 
         if self._curr_entity_type == 'Shot':
-            if write_type == "Version":
+            if (write_type == "Version" or 
+                write_type == "Final"):
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                node.knob("project_crop").setValue(True)
+                node.node("project_reformat")['disable'].setValue(False)
+                node.node("Crop1")['disable'].setValue(False)                      
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)      
@@ -2199,6 +2207,17 @@ class TankWriteNodeHandler(object):
             "Please be aware that this is a temporary location.\n"
             "Renders saved here will be removed at the end of the week.\n")
 
+    def __embedded_format_option(self, node, value):
+        if value == True:        
+            node.node("project_reformat")['disable'].setValue(False)
+            node.node("Crop1")['disable'].setValue(False)
+        elif value == False:             
+            node.node("project_reformat")['disable'].setValue(True)
+            node.node("Crop1")['disable'].setValue(True)               
+
+    def __set_project_crop(self, node, bool):
+        node["project_crop"].setValue(bool)
+
     def __on_knob_changed(self):
         """
         Callback that gets called whenever the value for a knob on a Shotgun Write
@@ -2226,11 +2245,14 @@ class TankWriteNodeHandler(object):
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
             new_output_name = knob.value()
-            node['name'].setValue(write_type+"-"+str(new_output_name))
-            if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
-                # force output name to be the node name:
-                new_output_name = node.knob("name").value()
-            self.__set_output(node, new_output_name)      
+            if not new_output_name:
+                pass
+            else:
+                node['name'].setValue(write_type+"_"+str(new_output_name))
+                if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
+                    # force output name to be the node name:
+                    new_output_name = node.knob("name").value()
+                self.__set_output(node, new_output_name)      
         elif knob.name() == "name":
             # node name has changed:
             if write_type != "Version":
@@ -2247,22 +2269,35 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
                 write_type_profile =  "Exr 16 bit"
-                if write_type== "Version":
+
+                if (write_type== "Version" or
+                    write_type== "Final"):
+                    self.__set_project_crop(node, True)
                     self.__write_type_changed(node, False)
-                    print "Shot - Version - EXR"                                                                 
-                elif write_type == "Precomp":
-                    self.__write_type_changed(node,True)
-                elif write_type == "Element":
-                    self.__write_type_changed(node, True)
-                elif write_type == "Denoise":
-                    self.__write_type_changed(node, True)
-                elif write_type == "Cleanup":
-                    self.__write_type_changed(node, True)
-                elif write_type == "Final":
-                    self.__write_type_changed(node, False)
+                    node.node("project_reformat")['disable'].setValue(False)
+                    node.node("Crop1")['disable'].setValue(False)                    
                 elif write_type == "Test":
+                    self.__set_project_crop(node, False)
                     self.__write_type_changed(node, True)
                     self.__test_write_message()
+                else:
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    node.node("project_reformat")['disable'].setValue(True)
+                    node.node("Crop1")['disable'].setValue(True)                        
+
+                existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
+                new_output_name = ""
+                postfix = 1
+                while True:
+                    new_name = "%s%d" % (knob.value(), postfix)
+                    if new_name not in existing_node_names:
+                        node.knob("name").setValue(new_name)
+                        break
+                    else:
+                        postfix += 1
+                self.__set_output(node, new_output_name)  
+                
                 # Updates the predefined profile based on the write type
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
@@ -2304,7 +2339,9 @@ class TankWriteNodeHandler(object):
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)                      
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.10.239/mediawiki-1.25.2/index.php?title=VFX_Wiki#SG_Write_Nodes"
-            webbrowser.open_new_tab(write_type_url)            
+            webbrowser.open_new_tab(write_type_url)     
+        elif knob.name() == "project_crop":   
+            self.__embedded_format_option(node, knob.value())
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.

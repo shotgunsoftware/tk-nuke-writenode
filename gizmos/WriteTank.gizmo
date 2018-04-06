@@ -224,7 +224,7 @@ Gizmo {
     4 write_type 
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
-    M {Version Precomp Element Denoise Cleanup Final Test}
+    M {Version Precomp Element Denoise Cleanup Test}
  }
  addUserKnob {
    22 write_type_info 
@@ -264,7 +264,7 @@ Gizmo {
  }
  addUserKnob {
     6 project_crop 
-    l "Crop to Project format" 
+    l "Crop to Project delivery format" 
     t "Choose to crop footage to the Project format." 
     +STARTLINE
     -INVISIBLE
