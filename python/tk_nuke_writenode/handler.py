@@ -555,8 +555,8 @@ class TankWriteNodeHandler(object):
             wn.setSelected(True)
             node_name = wn.name()
             node_pos = (wn.xpos(), wn.ypos())
-            wn.setName(node_name + "_copy")
-            
+            wn.setName(node_name)
+
             # create new Shotgun Write node:
             new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
             new_sg_wn.setSelected(False)
@@ -596,11 +596,14 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
-        
+
             # explicitly copy some settings to the new Shotgun Write Node instead:
             for knob_name in ["disable", "tile_color", "postage_stamp"]:
                 new_sg_wn[knob_name].setValue(wn[knob_name].value())
             
+            # delete original node:
+            nuke.delete(wn)
+
             # set SG write type
             write_type_name = write_type.value()
             new_sg_wn["write_type"].setValue(write_type_name)     
@@ -609,10 +612,7 @@ class TankWriteNodeHandler(object):
             tank_channel_text = tk_tank_channel.value()
             new_sg_wn["tank_channel"].setValue(tank_channel_text) 
      
-            # delete original node:
-            nuke.delete(wn)
-
-            # rename new node:
+            # rename new node:                               
             new_sg_wn.setName(node_name)
             new_sg_wn.setXpos(node_pos[0])
             new_sg_wn.setYpos(node_pos[1])       
