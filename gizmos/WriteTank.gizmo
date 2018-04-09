@@ -540,6 +540,7 @@ Reformat {
   beforeRender "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_before_render_gizmo_callback()"
   afterRender "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_after_render_gizmo_callback()"
   name Write1
+  create_directories True
   xpos 195
   ypos 65
  }

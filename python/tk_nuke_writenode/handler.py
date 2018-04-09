@@ -85,8 +85,7 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_format_height',
                                             'sg_pixel_aspect_ratio',
                                             'sg_short_name'])
-        self.frame_range_app = self._app.engine.apps["tk-multi-setframerange"]
-        self.frame_range = self.frame_range_app.get_frame_range_from_shotgun()
+        self.get_shot_frame_range()
 
             
     ################################################################################################
@@ -124,7 +123,13 @@ class TankWriteNodeHandler(object):
         Sources the current context's work file template from the parent app.
         """
         self._script_template = self._app.get_template("template_script_work")
-            
+
+    def get_shot_frame_range(self):
+
+        if self._curr_entity_type  == "Shot":                                            
+            self.frame_range_app = self._app.engine.apps["tk-multi-setframerange"]
+            self.frame_range = self.frame_range_app.get_frame_range_from_shotgun()
+
     def get_nodes(self):
         """
         Returns a list of tank write nodes
@@ -2177,7 +2182,10 @@ class TankWriteNodeHandler(object):
                     node.node("Crop1")['disable'].setValue(False)                      
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
-                node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)      
+                node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
+                node.node("project_reformat")['disable'].setValue(True)                    
+                node.node("Crop1")['disable'].setValue(True)   
+                node.knob('project_crop').setVisible(False)                      
 
         # now that the node is constructed, we can process knob changes
         # correctly.
