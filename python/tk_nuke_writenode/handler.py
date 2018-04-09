@@ -76,7 +76,8 @@ class TankWriteNodeHandler(object):
         self.sg = self._app.engine.shotgun
         self.proj_info = self.sg.find_one("Project", 
                                             [['id', 'is', self._project['id']]], 
-                                            ['sg_frame_rate', 
+                                            ['name',
+                                            'sg_frame_rate', 
                                             'sg_data_type',
                                             'sg_format_width',
                                             'sg_format_height',
@@ -2163,12 +2164,17 @@ class TankWriteNodeHandler(object):
             self.__set_output(node, new_output_name)
 
         if self._curr_entity_type == 'Shot':
-            if (write_type == "Version" or 
-                write_type == "Final"):
-                node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                node.knob("project_crop").setValue(True)
-                node.node("project_reformat")['disable'].setValue(False)
-                node.node("Crop1")['disable'].setValue(False)                      
+            if self.proj_info['name'] == "Breakdowns":
+                node.node("project_reformat")['disable'].setValue(True)                    
+                node.node("Crop1")['disable'].setValue(True)    
+                node.knob('project_crop').setVisible(False)                       
+            else:
+                if (write_type == "Version" or 
+                    write_type == "Final"):
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    node.knob("project_crop").setValue(True)
+                    node.node("project_reformat")['disable'].setValue(False)
+                    node.node("Crop1")['disable'].setValue(False)                      
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)      
@@ -2270,21 +2276,24 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
                 write_type_profile =  "Exr 16 bit"
-                if (write_type== "Version" or
-                    write_type== "Final"):
-                    self.__set_project_crop(node, True)
-                    self.__write_type_changed(node, False)
-                    node.node("project_reformat")['disable'].setValue(False)
-                    node.node("Crop1")['disable'].setValue(False)                    
-                elif write_type == "Test":
-                    self.__set_project_crop(node, False)
-                    self.__write_type_changed(node, True)
-                    self.__test_write_message()
+                if self.proj_info['name'] == "Breakdowns":
+                    pass
                 else:
-                    self.__set_project_crop(node, False)
-                    self.__write_type_changed(node, True)
-                    node.node("project_reformat")['disable'].setValue(True)
-                    node.node("Crop1")['disable'].setValue(True)                        
+                    if (write_type== "Version" or
+                        write_type== "Final"):
+                        self.__set_project_crop(node, True)
+                        self.__write_type_changed(node, False)
+                        node.node("project_reformat")['disable'].setValue(False)
+                        node.node("Crop1")['disable'].setValue(False)                    
+                    elif write_type == "Test":
+                        self.__set_project_crop(node, False)
+                        self.__write_type_changed(node, True)
+                        self.__test_write_message()
+                    else:
+                        self.__set_project_crop(node, False)
+                        self.__write_type_changed(node, True)
+                        node.node("project_reformat")['disable'].setValue(True)
+                        node.node("Crop1")['disable'].setValue(True)                        
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
                 new_output_name = ""
