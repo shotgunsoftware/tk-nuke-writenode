@@ -504,7 +504,7 @@ Gizmo {
  addUserKnob {41 renderProgress l "render progress" T Write1.renderProgress}
 
  knobChanged "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_knob_changed_gizmo_callback()"
- onCreate "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_node_created_gizmo_callback()"
+ onCreate "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    func = nuke._shotgun_write_node_handler.on_node_created_gizmo_callback()\n    func.next()\n    func.send(func)\n" 
 }
  Input {
   inputs 0

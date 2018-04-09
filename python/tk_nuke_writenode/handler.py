@@ -25,6 +25,7 @@ import nukescripts
 import tank
 from tank import TankError
 from tank.platform import constants
+from tank.platform.qt import QtCore
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -667,14 +668,26 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
-        # NOTE: Future self or other person: every time we touch this method to
-        # try to fix one of the PythonObject ValueErrors that Nuke occasionally
-        # raises on file open, it breaks something for someone. Most recently, it
-        # was farm setups for a few clients. It's best if we just leave this
-        # alone from now on, unless we someday have a better understanding of
-        # what's going on and the consequences of changing the on_node_created
-        # behavior.
-        self.__setup_new_node(nuke.thisNode())
+        current_node = nuke.thisNode()
+
+        # We're doing something different here. We have a situation where the
+        # logic in __setup_new_node might trigger an exception being raised in
+        # Nuke's framebuffer subprocess, which makes its way to the console. It
+        # doesn't break anything, but it's impossible to snuff it out since it
+        # is occurring in a different process from us here. What this is doing
+        # is staging the node created callback such that it's called slowly
+        # over a period of a couple hundred milliseconds, while giving Nuke's
+        # event loop the opportunity to iterate a couple times between phases
+        # execution. A side effect of this is that the render paths are sometimes
+        # not properly reset, most notably during some Snapshot restores. As
+        # a result, we also call the reset_render_path method to ensure everything
+        # is good there.
+        calling_function = yield
+        QtCore.QTimer.singleShot(100, calling_function.next)
+        yield
+        self.__setup_new_node(current_node)
+        self.reset_render_path(current_node)
+        yield
 
     def on_compute_path_gizmo_callback(self):
         """
