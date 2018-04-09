@@ -270,6 +270,10 @@ Gizmo {
     -INVISIBLE
  } 
  addUserKnob {
+   25 ""
+   - STARTLINE
+ } 
+ addUserKnob {
     1 tank_channel_cache
     l "" 
     t "Cache location for user entered text to change the output naming for write nodes" 

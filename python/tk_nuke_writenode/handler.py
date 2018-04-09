@@ -1375,7 +1375,8 @@ class TankWriteNodeHandler(object):
                 use_meta_data = False
             
             time_code.knobs()["startcode"].setValue(timecode)
-            time_code.knobs()["fps"].setValue(float(proj_fps))
+            if proj_fps:
+                time_code.knobs()["fps"].setValue(float(proj_fps))
             time_code.knobs()["useFrame"].setValue(use_start_frame)
             time_code.knobs()["frame"].setValue(shot_frame_range_start)
             time_code.knobs()["metafps"].setValue(use_meta_data)
@@ -2269,7 +2270,6 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
                 write_type_profile =  "Exr 16 bit"
-
                 if (write_type== "Version" or
                     write_type== "Final"):
                     self.__set_project_crop(node, True)
@@ -2285,7 +2285,7 @@ class TankWriteNodeHandler(object):
                     self.__write_type_changed(node, True)
                     node.node("project_reformat")['disable'].setValue(True)
                     node.node("Crop1")['disable'].setValue(True)                        
-
+                # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
                 new_output_name = ""
                 postfix = 1
@@ -2297,7 +2297,6 @@ class TankWriteNodeHandler(object):
                     else:
                         postfix += 1
                 self.__set_output(node, new_output_name)  
-                
                 # Updates the predefined profile based on the write type
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
