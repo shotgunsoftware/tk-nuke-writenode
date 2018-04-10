@@ -522,6 +522,7 @@ Reformat {
   disable true    
  }
  Crop {
+  name project_crop
   preset format
   reformat true
   crop false  
@@ -529,6 +530,7 @@ Reformat {
  } 
  AddTimeCode {
   startcode 01:00:00:01
+  name project_tc
   metafps False
   fps 23.98
   useFrame True

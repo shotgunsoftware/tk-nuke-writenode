@@ -37,11 +37,12 @@ class TankWriteNodeHandler(object):
     """
 
     SG_WRITE_NODE_CLASS = "WriteTank"
+    SG_WRITE_EXTRA_NODE_CLASS = "ProjectSettings"    
     SG_WRITE_DEFAULT_NAME = "SGWrite"
     WRITE_NODE_NAME = "Write1"
     EMBED_TIME_CODE = "AddTimeCode1"
     EMBED_PROJECT_REFORMAT = "project_reformat"
-    EMBED_CROP = "Crop1"
+    EMBED_CROP = "project_crop"
 
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
@@ -426,8 +427,30 @@ class TankWriteNodeHandler(object):
             
             # create new regular Write node:
             new_wn = nuke.createNode("Write")
+
+            if new_wn.input(0):
+                parent_node = new_wn.input(0)
+                new_wn['selected'].setValue(False)     
+                parent_node['selected'].setValue(True)      
+
+                extra_node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_EXTRA_NODE_CLASS)     
+                extra_node.setXpos(node_pos[0])
+                extra_node.setYpos(node_pos[1] - 30)     
+
             new_wn.setSelected(False)
-        
+            
+            if (sg_wn.node('project_reformat')['disable'].value() and
+                sg_wn.node('project_crop')['disable'].value()):
+                nuke.tprint("Embed proj reform disabled. Skipping...")
+                pass
+            else:
+                extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
+                extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
+                extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
+
+                extra_node.node('project_crop')['disable'].setValue(sg_wn.node('project_crop')['disable'].value())
+                extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())
+
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
             if sg_wn["proxy_render_template"].value():
@@ -1378,7 +1401,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             # Update embeded time code
             proj_reformat = node.node(TankWriteNodeHandler.EMBED_PROJECT_REFORMAT)
-            crop = node.node(TankWriteNodeHandler.EMBED_CROP)
+            project_crop = node.node(TankWriteNodeHandler.EMBED_CROP)
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
@@ -1405,7 +1428,7 @@ class TankWriteNodeHandler(object):
                 self.proj_info['sg_delivery_format_height']):
                     if (self.proj_info['sg_format_width'] and 
                         self.proj_info['sg_format_height']):
-                        crop.knobs()["box"].setValue((0, 
+                        project_crop.knobs()["box"].setValue((0, 
                         0, 
                         self.proj_info['sg_format_width'], 
                         self.proj_info['sg_format_height']))
@@ -1414,7 +1437,7 @@ class TankWriteNodeHandler(object):
                         self.proj_info['sg_format_width'] + 
                         self.proj_info['sg_format_height'])
             else:            
-                crop.knobs()["box"].setValue((0, 
+                project_crop.knobs()["box"].setValue((0, 
                 0, 
                 self.proj_info['sg_delivery_format_width'], 
                 self.proj_info['sg_delivery_format_height']))
@@ -2184,7 +2207,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.node("Crop1")['disable'].setValue(True)    
+                node.node("project_crop")['disable'].setValue(True)    
                 node.knob('project_crop').setVisible(False)                       
             else:
                 if (write_type == "Version" or 
@@ -2192,12 +2215,12 @@ class TankWriteNodeHandler(object):
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     node.knob("project_crop").setValue(True)
                     node.node("project_reformat")['disable'].setValue(False)
-                    node.node("Crop1")['disable'].setValue(False)                      
+                    node.node("project_crop")['disable'].setValue(False)                      
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.node("Crop1")['disable'].setValue(True)   
+                node.node("project_crop")['disable'].setValue(True)   
                 node.knob('project_crop').setVisible(False)                      
 
         # now that the node is constructed, we can process knob changes
@@ -2238,10 +2261,10 @@ class TankWriteNodeHandler(object):
     def __embedded_format_option(self, node, value):
         if value == True:        
             node.node("project_reformat")['disable'].setValue(False)
-            node.node("Crop1")['disable'].setValue(False)
+            node.node("project_crop")['disable'].setValue(False)
         elif value == False:             
             node.node("project_reformat")['disable'].setValue(True)
-            node.node("Crop1")['disable'].setValue(True)               
+            node.node("project_crop")['disable'].setValue(True)               
 
     def __set_project_crop(self, node, bool):
         node["project_crop"].setValue(bool)
@@ -2305,7 +2328,7 @@ class TankWriteNodeHandler(object):
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
                         node.node("project_reformat")['disable'].setValue(False)
-                        node.node("Crop1")['disable'].setValue(False)                    
+                        node.node("project_crop")['disable'].setValue(False)                    
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
@@ -2314,7 +2337,7 @@ class TankWriteNodeHandler(object):
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
                         node.node("project_reformat")['disable'].setValue(True)
-                        node.node("Crop1")['disable'].setValue(True)                        
+                        node.node("project_crop")['disable'].setValue(True)                        
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
                 new_output_name = ""
