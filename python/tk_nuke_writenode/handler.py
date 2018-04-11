@@ -37,10 +37,9 @@ class TankWriteNodeHandler(object):
     """
 
     SG_WRITE_NODE_CLASS = "WriteTank"
-    SG_WRITE_EXTRA_NODE_CLASS = "ProjectSettings"    
     SG_WRITE_DEFAULT_NAME = "SGWrite"
     WRITE_NODE_NAME = "Write1"
-    EMBED_TIME_CODE = "AddTimeCode1"
+    EMBED_TIME_CODE = "project_tc"
     EMBED_PROJECT_REFORMAT = "project_reformat"
     EMBED_CROP = "project_crop"
 
@@ -64,6 +63,7 @@ class TankWriteNodeHandler(object):
         # cache the profiles:
         self._promoted_knobs = {}
         self._profile_names = []
+        self._project_setting_groups = []
         self._profiles = {}
         
         self.__currently_rendering_nodes = set()
@@ -85,6 +85,7 @@ class TankWriteNodeHandler(object):
                                             'sg_format_height',
                                             'sg_delivery_format_width',
                                             'sg_delivery_format_height',
+                                            'sg_delivery_reformat_filter',
                                             'sg_pixel_aspect_ratio',
                                             'sg_short_name'])
         self.get_shot_frame_range()
@@ -400,6 +401,41 @@ class TankWriteNodeHandler(object):
         nuke.removeOnScriptLoad(self.process_placeholder_nodes, nodeClass="Root")
         nuke.removeOnScriptSave(self.__on_script_save)
         nuke.removeOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+    
+    def create_project_settings_group(self, node):
+
+        # Get properties of selected node to use for new group
+        node = nuke.selectedNode()
+        nodePos = (node.xpos(), node.ypos())
+        parent_node = None
+        if node.input(0):
+            parent_node = node.input(0)
+        node['selected'].setValue(False)  
+
+        # Primary group setup 
+        proj_group_nodes = []
+        project_reformat = nuke.createNode("Reformat")
+        project_reformat['name'].setValue("project_reformat")
+        project_crop = nuke.createNode("Crop")
+        project_crop['name'].setValue("project_crop")
+        project_tc = nuke.createNode("AddTimeCode")
+        project_tc['name'].setValue("project_tc")
+        proj_group_nodes.append(project_reformat)
+        proj_group_nodes.append(project_crop)
+        proj_group_nodes.append(project_tc)
+        for i in proj_group_nodes:
+            i.setSelected(True)
+
+        project_group = nuke.makeGroup('showControlPanel')
+        # project_group['name'].setValue("project_settings")
+        project_group.setXpos(nodePos[0])
+        project_group.setYpos(nodePos[1] - 30)   
+        project_group.setSelected(False)
+        for i in proj_group_nodes:
+            nuke.delete(i)
+        project_group.setInput(0, parent_node)
+        node.setInput(0, project_group)
+        return project_group
 
     def convert_sg_to_nuke_write_nodes(self):
         """
@@ -433,23 +469,24 @@ class TankWriteNodeHandler(object):
                 new_wn['selected'].setValue(False)     
                 parent_node['selected'].setValue(True)      
 
-                extra_node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_EXTRA_NODE_CLASS)     
-                extra_node.setXpos(node_pos[0])
-                extra_node.setYpos(node_pos[1] - 30)     
+                extra_node = self.create_project_settings_group(sg_wn)   
+                self._project_setting_groups.append(extra_node)
 
             new_wn.setSelected(False)
             
-            if (sg_wn.node('project_reformat')['disable'].value() and
-                sg_wn.node('project_crop')['disable'].value()):
-                nuke.tprint("Embed proj reform disabled. Skipping...")
-                pass
-            else:
-                extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
-                extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
-                extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
-
-                extra_node.node('project_crop')['disable'].setValue(sg_wn.node('project_crop')['disable'].value())
-                extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())
+            # Embed reformat
+            extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
+            extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
+            extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
+            # Embed crop
+            extra_node.node('project_crop')['disable'].setValue(sg_wn.node('project_crop')['disable'].value())
+            extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())
+            # Embed tc
+            extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
+            extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
+            extra_node.node('project_tc')['metafps'].setValue(sg_wn.node('project_tc')['metafps'].value())
+            extra_node.node('project_tc')['useFrame'].setValue(sg_wn.node('project_tc')['useFrame'].value())
+            extra_node.node('project_tc')['frame'].setValue(sg_wn.node('project_tc')['frame'].value())
 
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
@@ -551,6 +588,11 @@ class TankWriteNodeHandler(object):
         
         # get write nodes:
         write_nodes = nuke.allNodes(group=nuke.root(), filter="Write", recurseGroups = True)
+
+        for gn in self._project_setting_groups:
+            nuke.delete(gn)
+        self._project_setting_groups = []
+
         for wn in write_nodes:
         
             # look for additional toolkit knobs:
@@ -1248,10 +1290,12 @@ class TankWriteNodeHandler(object):
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
         if file_type == "exr":
-            if ctx_info.step['name'] == "Roto":
-                nuke.tprint("Task context is " + ctx_info.step['name']+". Applying RLE compression to "+ write_type +" output.")
+            if write_type != "Version":
+                nuke.tprint("Task context is " + ctx_info.step['name']+". Applying ZIP compression to "+ write_type +" output.")
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
+            else:
+                file_settings.update({'compression'     :   'none'})    
 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
@@ -1405,6 +1449,10 @@ class TankWriteNodeHandler(object):
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
+
+            # Add sG reformat settings
+            if not self.proj_info['sg_delivery_reformat_filter'] == None:
+                proj_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             if not self.frame_range[0]:
                 print "No frame range values found on SG"
