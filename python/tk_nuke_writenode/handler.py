@@ -478,9 +478,13 @@ class TankWriteNodeHandler(object):
             extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
             extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
             extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
-            # Embed crop
+            extra_node.node('project_reformat')['pbb'].setValue(sg_wn.node('project_reformat')['pbb'].value())
+            extra_node.node('project_reformat')['black_outside'].setValue(sg_wn.node('project_reformat')['black_outside'].value())
+            # Embed crop            
             extra_node.node('project_crop')['disable'].setValue(sg_wn.node('project_crop')['disable'].value())
-            extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())
+            extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())            
+            extra_node.node('project_crop')['reformat'].setValue(sg_wn.node('project_crop')['reformat'].value())
+            extra_node.node('project_crop')['crop'].setValue(sg_wn.node('project_crop')['crop'].value())            
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
