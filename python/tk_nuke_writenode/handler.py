@@ -78,7 +78,7 @@ class TankWriteNodeHandler(object):
 
         # call and cache the version info
         self._version_info = {}
-        self.get_sg_info()
+        # self.get_sg_info()
 
     ################################################################################################
     # Properties 
@@ -1384,7 +1384,10 @@ class TankWriteNodeHandler(object):
         profile_channel = "rgba"
         if profile_name == "Dpx":
             if self._project == "Jack Ryan S1":
-                    node.knob("colorspace").setValue("Cineon")
+                node.knob("colorspace").setValue("Cineon")
+            elif (self._project == "GOT8" or
+                self._project == "SSVFX_PIPELINE"):
+                node.node("Write1").knob("datatype").setValue("10 bit")
             profile_channel = "rgb"
         elif profile_name == "Exr 16 bit":
             profile_channel = "rgb"
@@ -2479,7 +2482,7 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "refresh_version_info":
             # set the write type for creation of correct output
             write_type = self.get_node_write_type_name(node) 
-            self.get_sg_info()
+            # self.get_sg_info()
             self.__update_version_preview(node, write_type)
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.10.239/mediawiki-1.25.2/index.php?title=VFX_Wiki#SG_Write_Nodes"
