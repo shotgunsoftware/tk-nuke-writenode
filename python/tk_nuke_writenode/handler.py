@@ -537,7 +537,12 @@ class TankWriteNodeHandler(object):
             knob = nuke.Boolean_Knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
             knob.setValue(sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].value())
             new_wn.addKnob(knob)
-        
+
+            # channels
+            knob = nuke.String_Knob("tk_channels")
+            knob.setValue(sg_wn["channels"].value())
+            new_wn.addKnob(knob)
+
             # templates
             knob = nuke.String_Knob("tk_render_template")
             knob.setValue(sg_wn["render_template"].value())
@@ -604,6 +609,7 @@ class TankWriteNodeHandler(object):
             write_type = wn.knob("tk_write_type")     
             output_knob = wn.knob("tk_output")
             use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
+            channels_knob = wn.knob("channels")            
             render_template_knob = wn.knob("tk_render_template")
             publish_template_knob = wn.knob("tk_publish_template")
             proxy_render_template_knob = wn.knob("tk_proxy_render_template")
@@ -614,6 +620,7 @@ class TankWriteNodeHandler(object):
                 or not output_knob
                 or not use_name_as_output_knob
                 or not write_type
+                or not channels_knob                    
                 or not render_template_knob
                 or not publish_template_knob
                 or not proxy_render_template_knob
@@ -633,6 +640,7 @@ class TankWriteNodeHandler(object):
             # copy across file & proxy knobs as well as all cached templates:
             new_sg_wn["cached_path"].setValue(wn["file"].value())
             new_sg_wn["tk_cached_proxy_path"].setValue(wn["proxy"].value())
+            new_sg_wn["channels"].setValue(channels_knob.value())                 
             new_sg_wn["render_template"].setValue(render_template_knob.value())
             new_sg_wn["publish_template"].setValue(publish_template_knob.value())
             new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
