@@ -148,7 +148,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         Return the render template for the specified node
         """
-        return self.__write_node_handler.get_render_template(node)
+        write_type = self.__write_node_handler.get_node_write_type_name(node)
+
+        return self.__write_node_handler.get_render_template(node, write_type)
     
     def get_node_publish_template(self, node):
         """
@@ -227,14 +229,13 @@ class NukeWriteNode(tank.platform.Application):
         Creates write node menu entries for all write node configurations
         """
         context = context or self.context
-
+        write_type = "Version"
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
-
         for profile_name in self.__write_node_handler.profile_names:
             # add to toolbar menu
-            cb_fn = lambda pn=profile_name: self.__write_node_handler.create_new_node(pn)
+            cb_fn = lambda pn=profile_name, wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
+                "%s" % profile_name,
                 cb_fn, 
                 dict(
                     type="node",
@@ -242,6 +243,3 @@ class NukeWriteNode(tank.platform.Application):
                     context=context,
                 )
             )
-            
-            
-
