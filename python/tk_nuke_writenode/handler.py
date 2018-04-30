@@ -26,6 +26,7 @@ import tank
 from tank import TankError
 from tank.platform import constants
 from tank.platform.qt import QtCore
+from tank_vendor import shotgun_api3 as sgapi
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -87,7 +88,8 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_format_height',
                                             'sg_delivery_reformat_filter',
                                             'sg_pixel_aspect_ratio',
-                                            'sg_short_name'])
+                                            'sg_short_name',
+                                            'sg_delivery_fileset'])
         self.get_shot_frame_range()
 
             

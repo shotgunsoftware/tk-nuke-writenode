@@ -230,9 +230,21 @@ class NukeWriteNode(tank.platform.Application):
         """
         context = context or self.context
         write_type = "Version"
+        profile_list = []
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
 
-        for profile_name in self.__write_node_handler.profile_names:
+        if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
+            nuke.tprint("No fileset specified. Loading defaults...")
+        else:
+            if any(s.lower() == self.__write_node_handler.proj_info['sg_delivery_fileset']['name'] for s in self.__write_node_handler.profile_names):
+                match_set={"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}
+                profile_set = set(self.__write_node_handler.profile_names)
+                profile_list = list(profile_set.intersection(match_set))
+            else:
+                nuke.tprint("Profile name not in list!")
+                profile_list = self.__write_node_handler.profile_names
+        
+        for profile_name in profile_list:
             # add to toolbar menu
             cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
             self.engine.register_command(
@@ -244,6 +256,3 @@ class NukeWriteNode(tank.platform.Application):
                     context=context,
                 )
             )
-            
-            
-
