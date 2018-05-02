@@ -172,11 +172,11 @@ class TankWriteNodeHandler(object):
         """
         return self.__get_render_template(node,write_type)
 
-    def get_publish_template(self, node, write_type):
+    def get_publish_template(self, node):
         """
         helper function. Returns the associated pub template obj for a node
         """
-        return self.__get_publish_template(node, write_type)
+        return self.__get_publish_template(node)
 
     def get_proxy_render_template(self, node, write_type):
         """
