@@ -90,6 +90,7 @@ class TankWriteNodeHandler(object):
                                             'sg_pixel_aspect_ratio',
                                             'sg_short_name',
                                             'sg_delivery_fileset'])
+        self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
 
             
@@ -1272,7 +1273,7 @@ class TankWriteNodeHandler(object):
 
         # get the profile details:
         profile = self._profiles.get(profile_name)
-        ctx_info = self._app.context        
+     
         if not profile:
             # this shouldn't really every happen!
             self._app.log_warning("Failed to find a write node profile called '%s' for node '%s'!" 
@@ -1305,8 +1306,8 @@ class TankWriteNodeHandler(object):
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
         if file_type == "exr" and write_type == "Version":
-            if ctx_info.step['name'] == "Roto":
-                nuke.tprint("Task context is " + ctx_info.step['name']+". Applying ZIP compression to "+ write_type +" output.")
+            if self.ctx_info.step['name'] == "Roto":
+                nuke.tprint("Task context is " + self.ctx_info.step['name']+". Applying ZIP compression to "+ write_type +" output.")
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
             else:
@@ -1448,7 +1449,7 @@ class TankWriteNodeHandler(object):
             if (write_type == "Precomp" or 
                 write_type == "Element"):
                     profile_channel = "rgba"  
-            if ctx_info.step['name'] == "Roto":    
+            if self.ctx_info.step['name'] == "Roto":    
                 profile_channel = "rgba"                                           
         elif profile_name == "Jpeg":
             profile_channel = "rgb"
@@ -2279,10 +2280,16 @@ class TankWriteNodeHandler(object):
             else:
                 if (write_type == "Version" or 
                     write_type == "Final"):
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    node.knob("project_crop").setValue(True)
-                    node.node("project_reformat")['disable'].setValue(False)
-                    node.node("project_crop")['disable'].setValue(False)                      
+                    if self.ctx_info.step['name'] != "Roto":
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        node.knob("project_crop").setValue(True)
+                        node.node("project_reformat")['disable'].setValue(False)
+                        node.node("project_crop")['disable'].setValue(False)   
+                    else:
+                        nuke.tprint("Step is roto. Disabling Project crop.")
+                        node.knob("project_crop").setValue(False)
+                        node.node("project_reformat")['disable'].setValue(True)
+                        node.node("project_crop")['disable'].setValue(True)                                              
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
