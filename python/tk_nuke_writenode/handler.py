@@ -1286,6 +1286,7 @@ class TankWriteNodeHandler(object):
         # keep track of the old profile name:
         old_profile_name = node.knob("profile_name").value()
         
+
         # pull settings from profile:
         render_template = self._app.get_template_by_name(profile["render_template"])
         publish_template = self._app.get_template_by_name(profile["publish_template"])
@@ -1303,14 +1304,18 @@ class TankWriteNodeHandler(object):
         tile_color = profile["tile_color"]
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
-        if file_type == "exr":
-            if write_type != "Version":
+        if file_type == "exr" and write_type == "Version":
+            if ctx_info.step['name'] == "Roto":
                 nuke.tprint("Task context is " + ctx_info.step['name']+". Applying ZIP compression to "+ write_type +" output.")
                 file_settings.update({'compression'     :   'Zip (1 scanline)'})    
                 file_settings.update({'datatype'        :   '16 bit half'})   
             else:
                 file_settings.update({'compression'     :   'none'})    
-
+                file_settings.update({'datatype'        :   '16 bit half'})   
+        elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
+            or write_type == "Cleanup" or write_type == "Denoise"):
+            file_settings.update({'compression'     :   'Zip (1 scanline)'})
+            file_settings.update({'datatype'        :   '16 bit half'}) 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
@@ -1438,7 +1443,7 @@ class TankWriteNodeHandler(object):
         profile_channel = "rgba"
         if profile_name == "Dpx":
             profile_channel = "rgb"
-        elif profile_name == "Exr 16 bit":
+        elif profile_name == "Exr":
             profile_channel = "rgb"       
             if (write_type == "Precomp" or 
                 write_type == "Element"):
@@ -2381,7 +2386,7 @@ class TankWriteNodeHandler(object):
                 self.__set_output(node, node.knob("name").value())
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
-                write_type_profile =  "Exr 16 bit"
+                write_type_profile =  "Exr"
                 if self.proj_info['name'] == "Breakdowns":
                     pass
                 else:
@@ -2417,35 +2422,35 @@ class TankWriteNodeHandler(object):
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)                
             elif self._curr_entity_type == 'Asset':
-                write_type_profile = "Exr 16 bit"
+                write_type_profile = "Exr"
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile = "Exr 16 bit"
+                    write_type_profile = "Exr"
                 elif write_type == "Element":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                 elif write_type == "Denoise":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                 elif write_type == "Cleanup":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                 elif write_type == "Final":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    write_type_profile =  "Exr 16 bit"
+                    write_type_profile =  "Exr"
                     self.__test_write_message()
                 # Updates the predefined profile based on the write type
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
