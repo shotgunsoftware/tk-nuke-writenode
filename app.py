@@ -231,20 +231,27 @@ class NukeWriteNode(tank.platform.Application):
         write_type = "Version"
         profile_list = []
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
-
+        profile_set = set(self.__write_node_handler.profile_names)
+        
         # Remove fileset types nt associated with Project
         if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
             nuke.tprint("No fileset specified. Loading defaults...")
         else:
+            nuke.tprint(context.step['name'])
             if any(self.__write_node_handler.proj_info['sg_delivery_fileset']['name'] in s.lower() for s in self.__write_node_handler.profile_names):
-                match_set = {"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}
-                profile_set = set(self.__write_node_handler.profile_names)
+                if context.step['name'] != 'Roto':
+                    match_set = {"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}
+                else:
+                    nuke.tprint("Context is " + context.step['name'] + ".")
+                    match_set = {"Jpeg", "Exr"}
+
                 profile_list = list(match_set.intersection(profile_set))
-                nuke.tprint("- Project fileset(s): " + str(profile_list))
             else:
                 nuke.tprint("Profile name not in list!")
                 profile_list = self.__write_node_handler.profile_names
         
+            nuke.tprint("- Project fileset(s): " + str(profile_list))
+
         for profile_name in profile_list:
             # add to toolbar menu
             cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)

@@ -1455,6 +1455,8 @@ class TankWriteNodeHandler(object):
             profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
+        nuke.tprint("Profile channel is " + profile_channel)
+        self.__update_knob_value(node, "channels", profile_channel)
         try:
             # Sets project specific data type
             if self.proj_info['sg_data_type']:
