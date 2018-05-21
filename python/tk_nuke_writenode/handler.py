@@ -1504,8 +1504,8 @@ class TankWriteNodeHandler(object):
                         self.proj_info['sg_format_height']))
 
                         self._app.log_debug("Applied Project format to embeded Crop: " + 
-                        self.proj_info['sg_format_width'] + 
-                        self.proj_info['sg_format_height'])
+                        str(self.proj_info['sg_format_width']) + 
+                        str(self.proj_info['sg_format_height']))
             else:            
                 project_crop.knobs()["box"].setValue((0, 
                 0, 
