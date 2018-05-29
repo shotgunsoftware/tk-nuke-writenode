@@ -89,7 +89,8 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_reformat_filter',
                                             'sg_pixel_aspect_ratio',
                                             'sg_short_name',
-                                            'sg_delivery_fileset'])
+                                            'sg_delivery_fileset',
+                                            'sg_delivery_fileset_compression'])
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
 
@@ -1457,12 +1458,20 @@ class TankWriteNodeHandler(object):
             nuke.tprint("No profile with that name")   
         nuke.tprint("Profile channel is " + profile_channel)
         self.__update_knob_value(node, "channels", profile_channel)
+        
+        # Sets project specific data type
         try:
-            # Sets project specific data type
             if self.proj_info['sg_data_type']:
                 node.node("Write1").knob("datatype").setValue(self.proj_info['sg_data_type'])
         except:
             nuke.tprint("Could not apply data type. Wrong profile: " + profile_name)
+        
+        # Sets project specific fileset compression
+        if (file_type== "exr" and 
+            write_type == "Version"):
+            if self.proj_info['sg_delivery_fileset_compression']:
+                node.node("Write1").knob("compression").setValue(self.proj_info['sg_delivery_fileset_compression'])
+                nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
 
         if self._curr_entity_type == 'Shot':
             # Update embeded time code
