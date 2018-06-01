@@ -1289,7 +1289,7 @@ class TankWriteNodeHandler(object):
                 self._app.log_debug(
                     "Promoted write node knob settings to be applied: %s" % filtered_settings
                 )
-                write_node.readKnobs(r"\n".join(filtered_settings))
+                write_node.readKnobs("\n".join(filtered_settings))
                 self.reset_render_path(node)
 
     def __set_output(self, node, output_name):
