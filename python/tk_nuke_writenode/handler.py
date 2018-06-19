@@ -90,7 +90,8 @@ class TankWriteNodeHandler(object):
                                             'sg_pixel_aspect_ratio',
                                             'sg_short_name',
                                             'sg_delivery_fileset',
-                                            'sg_delivery_fileset_compression'])
+                                            'sg_delivery_fileset_compression',
+                                            'sg_color_space'])
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
 
@@ -1544,9 +1545,14 @@ class TankWriteNodeHandler(object):
                             nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
 
                     proj_reformat.knobs()["format"].setValue(main_format)
-               
+
+            # Set colorspace based of SG values
+            if self.proj_info['sg_color_space']:
+                nuke.tprint(self.proj_info['sg_color_space'])
+                node['colorspace'].setValue(self.proj_info['sg_color_space'])
 
 
+        
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
