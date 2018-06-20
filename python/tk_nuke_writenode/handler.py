@@ -1548,7 +1548,7 @@ class TankWriteNodeHandler(object):
 
             # Set colorspace based of SG values
             if self.proj_info['sg_color_space']:
-                nuke.tprint(self.proj_info['sg_color_space'])
+                nuke.tprint("Setting colorspace to:" + self.proj_info['sg_color_space'])
                 node['colorspace'].setValue(self.proj_info['sg_color_space'])
 
 
