@@ -82,6 +82,14 @@ configuration:
                     allows_empty: True
                     default_value: []
 
+    # Note that converting from a Shotgun Write Node to a standard one and then back again,
+    # may not result in the end Shotgun Write Node matching the same as the original if you are promoting write knobs.
+    # This is because some information can be lost when going to standard node.
+    show_convert_actions:
+        type: bool
+        description: "Setting this to True will add actions for converting to and from Shotgun writenodes.
+                      The actions will be displayed as option next to the to the create write nodes actions."
+        default_value: False
 
     template_script_work:
         type: template

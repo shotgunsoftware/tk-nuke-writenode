@@ -225,6 +225,7 @@ class NukeWriteNode(tank.platform.Application):
     def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
+        and the convert to and from Shotgun writenode actions if configured to do so.
         """
         context = context or self.context
 
@@ -242,6 +243,25 @@ class NukeWriteNode(tank.platform.Application):
                     context=context,
                 )
             )
-            
-            
 
+        # Show the convert actions in the Menu if configured to do so
+        if self.get_setting('show_convert_actions'):
+
+            self.engine.register_command(
+                "Convert from Shotgun Write Nodes",
+                self.convert_to_write_nodes,
+                {
+                    "type": "node",
+                    "icon": os.path.join(self.disk_location, "icon_256.png"),
+                    "context": context,
+                }
+            )
+            self.engine.register_command(
+                "Convert to Shotgun Write Nodes",
+                self.convert_from_write_nodes,
+                {
+                    "type": "node",
+                    "icon": os.path.join(self.disk_location, "icon_256.png"),
+                    "context": context,
+                }
+            )
