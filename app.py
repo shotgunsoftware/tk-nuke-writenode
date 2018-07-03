@@ -251,7 +251,7 @@ class NukeWriteNode(tank.platform.Application):
                 "Convert from Shotgun Write Nodes",
                 self.convert_to_write_nodes,
                 {
-                    "type": "node",
+                    "type": "context_menu",
                     "icon": os.path.join(self.disk_location, "icon_256.png"),
                     "context": context,
                 }
@@ -260,7 +260,7 @@ class NukeWriteNode(tank.platform.Application):
                 "Convert to Shotgun Write Nodes",
                 self.convert_from_write_nodes,
                 {
-                    "type": "node",
+                    "type": "context_menu",
                     "icon": os.path.join(self.disk_location, "icon_256.png"),
                     "context": context,
                 }
