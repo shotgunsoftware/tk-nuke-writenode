@@ -192,7 +192,7 @@ class NukeWriteNode(tank.platform.Application):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
-        the current script path and configuraton.
+        the current script path and configuration.
         
         Note, this should really never be needed now that the
         path is reset automatically when the user changes something.
@@ -204,6 +204,9 @@ class NukeWriteNode(tank.platform.Application):
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
         additional user knobs named 'tk_*'
+
+        :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
+         defaults to False.
         """
 
         # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
@@ -228,6 +231,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         Convert all regular Nuke Write nodes that have previously been converted
         from Shotgun Write nodes, back into Shotgun Write nodes.
+
+        :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
+         defaults to False.
         """
 
         # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
