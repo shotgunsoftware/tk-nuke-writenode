@@ -215,9 +215,9 @@ class NukeWriteNode(tank.platform.Application):
         if show_warning:
             from sgtk.platform.qt import QtGui
             res = QtGui.QMessageBox.question(None,
-                                             "Convert All Shotgun Write Nodes?",
-                                             "Do you want to convert all Shotgun Nuke write nodes to Standard Nuke"
-                                             " Write nodes.",
+                                             "Convert All SG Write Nodes?",
+                                             "Do you want to convert all SG write nodes to standard Nuke "
+                                             "write nodes?",
                                              QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 
             if res != QtGui.QMessageBox.Yes:
@@ -244,8 +244,8 @@ class NukeWriteNode(tank.platform.Application):
             res = QtGui.QMessageBox.question(None,
                                              "Convert All Write Nodes?",
                                              "Do you want to convert all standard Nuke write nodes to "
-                                             "Shotgun write nodes?"
-                                             "\n\nNote: It will only convert nodes that were previously Shotgun write "
+                                             "SG write nodes?"
+                                             "\n\nNote: It will only convert nodes that were previously SG write "
                                              "nodes. It should also be considered experimental, some settings may not "
                                              "convert back correctly.",
                                              QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
