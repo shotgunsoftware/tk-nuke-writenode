@@ -87,8 +87,8 @@ configuration:
     # This is because some information can be lost when going to standard node.
     show_convert_actions:
         type: bool
-        description: "Setting this to True will add actions for converting to and from Shotgun writenodes.
-                      The actions will be displayed as option next to the to the create write nodes actions."
+        description: "Setting this to True will add actions for converting to and from Shotgun write nodes.
+                      The actions will be displayed as options in the Shotgun -> Context menu"
         default_value: False
 
     template_script_work:

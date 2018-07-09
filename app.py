@@ -199,21 +199,59 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self):
+    def convert_to_write_nodes(self, show_warning=False):
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
         additional user knobs named 'tk_*'
         """
-        self.__write_node_handler.convert_sg_to_nuke_write_nodes()
 
-    def convert_from_write_nodes(self):
+        # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
+        continue_with_convert = True
+
+        if show_warning:
+            from sgtk.platform.qt import QtGui
+            res = QtGui.QMessageBox.question(None,
+                                             "Convert All Shotgun Write Nodes?",
+                                             "Do you want to convert all Shotgun Nuke write nodes to Standard Nuke"
+                                             " Write nodes.",
+                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+
+            if res != QtGui.QMessageBox.Yes:
+                # User chose to abort the operation, we should not convert the write nodes
+                continue_with_convert = False
+
+        if continue_with_convert:
+            self.__write_node_handler.convert_sg_to_nuke_write_nodes()
+
+    def convert_from_write_nodes(self, show_warning=False):
         """
         Convert all regular Nuke Write nodes that have previously been converted
         from Shotgun Write nodes, back into Shotgun Write nodes.
         """
-        self.__write_node_handler.convert_nuke_to_sg_write_nodes()
-    
+
+        # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
+        continue_with_convert = True
+
+        if show_warning:
+            from sgtk.platform.qt import QtGui
+            res = QtGui.QMessageBox.question(None,
+                                             "Convert All Write Nodes?",
+                                             "Do you want to convert all standard Nuke write nodes to "
+                                             "Shotgun write nodes?"
+                                             "\n\nNote: It will only convert nodes that were previously Shotgun write "
+                                             "nodes. It should also be considered experimental, some settings may not "
+                                             "convert back correctly.",
+                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+
+
+            if res != QtGui.QMessageBox.Yes:
+                # User chose to abort the operation, we should not convert the write nodes
+                continue_with_convert = False
+
+        if continue_with_convert:
+            self.__write_node_handler.convert_nuke_to_sg_write_nodes()
+
     def create_new_write_node(self, profile_name):
         """
         Creates a Shotgun write node using the provided profile_name.  
@@ -225,7 +263,7 @@ class NukeWriteNode(tank.platform.Application):
     def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
-        and the convert to and from Shotgun writenode actions if configured to do so.
+        and the convert to and from Shotgun write node actions if configured to do so.
         """
         context = context or self.context
 
@@ -245,23 +283,24 @@ class NukeWriteNode(tank.platform.Application):
             )
 
         # Show the convert actions in the Menu if configured to do so
-        if self.get_setting('show_convert_actions'):
+        if self.get_setting("show_convert_actions"):
+
+            convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True)
+            convert_from_write_nodes_action = lambda: self.convert_from_write_nodes(show_warning=True)
 
             self.engine.register_command(
-                "Convert from Shotgun Write Nodes",
-                self.convert_to_write_nodes,
+                "Convert All SG Write Nodes to Write Nodes...",
+                convert_to_write_nodes_action,
                 {
                     "type": "context_menu",
                     "icon": os.path.join(self.disk_location, "icon_256.png"),
-                    "context": context,
                 }
             )
             self.engine.register_command(
-                "Convert to Shotgun Write Nodes",
-                self.convert_from_write_nodes,
+                "Convert All Write Nodes to SG Write Nodes...",
+                convert_from_write_nodes_action,
                 {
                     "type": "context_menu",
                     "icon": os.path.join(self.disk_location, "icon_256.png"),
-                    "context": context,
                 }
             )
