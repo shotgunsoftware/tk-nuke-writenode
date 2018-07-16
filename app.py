@@ -199,7 +199,7 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self, show_warning=False):
+    def convert_to_write_nodes(self, show_warning=False, create_folders=False):
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
@@ -207,6 +207,8 @@ class NukeWriteNode(tank.platform.Application):
 
         :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
          defaults to False.
+        :param create_folders: Optional bool that sets whether the operation will create the required output folders;
+         defaults to False
         """
 
         # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
@@ -226,7 +228,7 @@ class NukeWriteNode(tank.platform.Application):
                 continue_with_convert = False
 
         if continue_with_convert:
-            self.__write_node_handler.convert_sg_to_nuke_write_nodes()
+            self.__write_node_handler.convert_sg_to_nuke_write_nodes(create_folders)
 
     def convert_from_write_nodes(self, show_warning=False):
         """
@@ -300,7 +302,8 @@ class NukeWriteNode(tank.platform.Application):
             if not promoted_knob_write_nodes:
                 # no presets use promoted knobs so we are OK to register the menus.
 
-                convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True)
+                convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True,
+                                                                                    create_folders=True)
                 convert_from_write_nodes_action = lambda: self.convert_from_write_nodes(show_warning=True)
 
                 self.engine.register_command(

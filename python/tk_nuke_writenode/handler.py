@@ -366,7 +366,7 @@ class TankWriteNodeHandler(object):
         nuke.removeOnScriptSave(self.__on_script_save)
         nuke.removeOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
-    def convert_sg_to_nuke_write_nodes(self):
+    def convert_sg_to_nuke_write_nodes(self, create_folders=False):
         """
         Utility function to convert all Shotgun Write nodes to regular
         Nuke Write nodes.
@@ -377,6 +377,9 @@ class TankWriteNodeHandler(object):
         app = eng.apps["tk-nuke-writenode"]
         # Convert Shotgun write nodes to Nuke write nodes:
         app.convert_to_write_nodes()
+
+        :param create_folders: When set to true, it will create the folders on disk for the render and proxy paths.
+         Defaults to false.
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
@@ -465,6 +468,18 @@ class TankWriteNodeHandler(object):
             new_wn.setName(node_name)
             new_wn.setXpos(node_pos[0])
             new_wn.setYpos(node_pos[1])
+
+            if create_folders:
+                # We need to ensure that the folders are created for the output paths.
+
+                out_dir = os.path.dirname(new_wn["file"].value())
+                self._app.ensure_folder_exists(out_dir)
+
+                proxy_file_path = new_wn["proxy"].value()
+                if proxy_file_path:
+                    proxy_out_dir = os.path.dirname(proxy_file_path)
+                    self._app.ensure_folder_exists(proxy_out_dir)
+
             
     def convert_nuke_to_sg_write_nodes(self):
         """
