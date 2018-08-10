@@ -741,8 +741,9 @@ class TankWriteNodeHandler(object):
 
         :returns: True/False
         """
-
+        file_path = ""
         path_dir = os.path.dirname(path)
+
         if os.path.isdir(path_dir):
             file_output_ext = []
             path_items_ext = []
@@ -750,15 +751,17 @@ class TankWriteNodeHandler(object):
             path_file_output_ext = os.path.splitext(path_file_output_ext[-1])[-1]
             file_output_ext.append(path_file_output_ext)
             path_items = os.listdir(path_dir)
+            path_items.sort()
             if path_items:
                 for file in path_items:
                     path_item_ext = os.path.splitext(file)[1]
                     if path_item_ext not in path_items_ext:
                         path_items_ext.append(path_item_ext)
-
+                
+                file_path = os.path.normpath(os.path.join(path_dir,path_items[0]))
             ext_match = list(set(path_items_ext).intersection(set(file_output_ext)))
 
-            return ext_match
+            return (file_path, ext_match)
 
         else:
             return False
@@ -1815,6 +1818,20 @@ class TankWriteNodeHandler(object):
             lines.append(this_line)
         return lines
 
+    def __read_node_metadata(self, read_path):
+
+        read_path = read_path.replace('\\','/')
+        read_metadata = nuke.nodes.Read(file="%s" %(read_path))
+        read_metadata['file'].setValue(read_path)
+        nuke.tprint("Reading metadata from %s" % read_path)
+        read_metadata_info = read_metadata.metadata()
+        nuke.delete(read_metadata)
+
+        try:
+            return read_metadata_info
+        except:
+            return None
+
     def __update_render_path(self, node, force_reset=False, is_proxy=False):
         """
         Update the render path and the various feedback knobs based on the current
@@ -1921,21 +1938,35 @@ class TankWriteNodeHandler(object):
                     # compute the render path:
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
                     if self.test_folder_for_renders(render_path):
-                        ext_match = self.test_folder_for_renders(render_path)
+                        ext_match = self.test_folder_for_renders(render_path)[1]
+                        path_to_test = self.test_folder_for_renders(render_path)[0]
                         ext_match_string = ""
-                        files_warning = " "
+                        files_warning = ""
+                        read_creator = "Unknown"
+                        # Get extension of file
                         if ext_match >1:
                             for i in ext_match:
                                 ext_match_string += " " +i+ " "
                         else:
                             ext_match_string = ext_match[0]
-                        files_warning +=    "<i style='color:orange'><b>" + ext_match_string + "</b> files already in this location."
-                        files_warning +=    "<br>&nbsp;&nbsp;&nbsp;</br>" 
-                        files_warning +=    "<br><b>Test</b> SG write type available for test renders.<i></br>"
+                        # Get user that created files
+                        if not self.__read_node_metadata(path_to_test):
+                            pass
+                        else:
+                            try:
+                                read_creator = self.__read_node_metadata(path_to_test)['exr/nuke/artist_name']
+                            except:
+                                pass
+
+                        files_warning += "<i style='color:orange'><b>" + ext_match_string + "</b> Files already exist in this location."
+                        files_warning += "<p>&nbsp;</p>" 
+                        files_warning += "<i style='color:red'><b>Author: </b> %s</i>" % read_creator
+                        # files_warning +=    "<i style='color:orange'><b>Test</b> SG write type available for test renders.</i>"
                         self.__update_knob_value(node, "files_warning",  
-                                             "<i style='color:orange'><b>Careful Now!</b> <br>%s<i><br>" 
-                                             % "<br>".join(self.__wrap_text(files_warning, 60)))
+                                             "<i style='color:orange'><b>Careful Now!</b> <br>%s<i>" 
+                                             % "".join(self.__wrap_text(files_warning, 100)))
                         node.knob("files_warning").setVisible(True)
+
                     else:
                         self.__update_knob_value(node, "files_warning", "")
                         node.knob("files_warning").setVisible(False)
