@@ -658,7 +658,6 @@ class TankWriteNodeHandler(object):
             node_pos = (wn.xpos(), wn.ypos())
             wn.setName(node_name)
 
-            nuke.tprint(dpx_datatype.value())
             # create new Shotgun Write node:
             new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
             new_sg_wn.setSelected(False)
@@ -742,6 +741,8 @@ class TankWriteNodeHandler(object):
         :returns: True/False
         """
         file_path = ""
+        path_items = []
+        ext_match = []
         path_dir = os.path.dirname(path)
 
         if os.path.isdir(path_dir):
@@ -761,7 +762,7 @@ class TankWriteNodeHandler(object):
                 file_path = os.path.normpath(os.path.join(path_dir,path_items[0]))
             ext_match = list(set(path_items_ext).intersection(set(file_output_ext)))
 
-            return (file_path, ext_match)
+            return (path_items, file_path, ext_match)
 
         else:
             return False
@@ -1476,7 +1477,6 @@ class TankWriteNodeHandler(object):
             node.knob('exr_datatype').setVisible(True)
             node.knob('dpx_datatype').setVisible(False)
             profile_channel = "rgb"       
-            nuke.tprint("Set meata data to all")
             node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
             if (write_type == "Precomp" or 
                 write_type == "Element"):
@@ -1586,10 +1586,8 @@ class TankWriteNodeHandler(object):
             if self.proj_info['sg_data_type']:
                 if profile_name == "Exr":
                     self.__update_knob_value(node, 'exr_datatype', self.proj_info['sg_data_type'])
-                    nuke.tprint(node.knob('exr_datatype').value())
                 elif profile_name == "Dpx":
                     self.__update_knob_value(node, 'dpx_datatype', self.proj_info['sg_data_type'])
-                    nuke.tprint(node.knob('dpx_datatype').value())
         except:
             nuke.tprint("Could not apply data type. Wrong profile: " + profile_name)
 
@@ -1937,35 +1935,38 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path:
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
+                    nuke.tprint(self.test_folder_for_renders(render_path))
                     if self.test_folder_for_renders(render_path):
-                        ext_match = self.test_folder_for_renders(render_path)[1]
-                        path_to_test = self.test_folder_for_renders(render_path)[0]
-                        ext_match_string = ""
-                        files_warning = ""
-                        read_creator = "Unknown"
-                        # Get extension of file
-                        if ext_match >1:
-                            for i in ext_match:
-                                ext_match_string += " " +i+ " "
-                        else:
-                            ext_match_string = ext_match[0]
-                        # Get user that created files
-                        if not self.__read_node_metadata(path_to_test):
-                            pass
-                        else:
-                            try:
-                                read_creator = self.__read_node_metadata(path_to_test)['exr/nuke/artist_name']
-                            except:
+                        if (self.test_folder_for_renders(render_path)[0] and 
+                            self.test_folder_for_renders(render_path)[2]):
+                            ext_match = self.test_folder_for_renders(render_path)[2]
+                            path_to_test = self.test_folder_for_renders(render_path)[1]
+                            ext_match_string = ""
+                            files_warning = ""
+                            read_creator = "Unknown"
+                            # Get extension of file
+                            if ext_match >1:
+                                for i in ext_match:
+                                    ext_match_string += " " +i+ " "
+                            else:
+                                ext_match_string = ext_match[0]
+                            # Get user that created files
+                            if not self.__read_node_metadata(path_to_test):
                                 pass
+                            else:
+                                try:
+                                    read_creator = self.__read_node_metadata(path_to_test)['exr/nuke/artist_name']
+                                except:
+                                    pass
+                            files_warning += "<i style='color:orange'><b>Careful Now!</b><br><i>" 
+                            files_warning += "<i style='color:orange'><b>%s</b> files already exist in this location.<br>" % ext_match_string
+                            files_warning += "<i style='color:red'><b>Author:</b> %s</i>" % read_creator
+                            self.__update_knob_value(node, "files_warning", "".join(self.__wrap_text(files_warning, 100)))
+                            node.knob("files_warning").setVisible(True)
 
-                        files_warning += "<i style='color:orange'><b>" + ext_match_string + "</b> Files already exist in this location."
-                        files_warning += "<p>&nbsp;</p>" 
-                        files_warning += "<i style='color:red'><b>Author: </b> %s</i>" % read_creator
-                        # files_warning +=    "<i style='color:orange'><b>Test</b> SG write type available for test renders.</i>"
-                        self.__update_knob_value(node, "files_warning",  
-                                             "<i style='color:orange'><b>Careful Now!</b> <br>%s<i>" 
-                                             % "".join(self.__wrap_text(files_warning, 100)))
-                        node.knob("files_warning").setVisible(True)
+                        else:
+                            self.__update_knob_value(node, "files_warning", "")
+                            node.knob("files_warning").setVisible(False)
 
                     else:
                         self.__update_knob_value(node, "files_warning", "")
@@ -2577,14 +2578,12 @@ class TankWriteNodeHandler(object):
             self.__embedded_format_option(node, knob.value())
         elif knob.name() == "exr_datatype":   
             try:
-                nuke.tprint(node.node("Write1").knob("datatype").value())            
                 node.node("Write1").knob("datatype").setValue(knob.value())
             except:
                 pass
         elif knob.name() == "dpx_datatype":   
             try:
                 node.node("Write1").knob("datatype").setValue(knob.value())            
-                nuke.tprint(node.node("Write1").knob("datatype").value())
             except:
                 pass
         else:
