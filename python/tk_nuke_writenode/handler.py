@@ -92,6 +92,14 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset',
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space'])
+        # self.software_info = self.sg.find_one("Software", 
+        #                                     [['id', 'is_not', 0],
+        #                                     ['code', 'is', 'RV']], 
+        #                                     ['code',
+        #                                     'windows_path',
+        #                                     "version_names"
+        #                                     ])         
+                                          
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
 
@@ -925,6 +933,52 @@ class TankWriteNodeHandler(object):
         from sgtk.platform.qt import QtGui
         QtGui.QApplication.clipboard().setText(render_path)
     
+    def on_open_in_player_gizmo_callback(self):
+
+        node = nuke.thisNode()
+        if not node:
+            return
+        
+        render_dir = None
+
+        # first, try to just use the current cached path:
+        is_proxy = node.proxy()
+        render_path = self.__get_render_path(node, is_proxy)
+        if render_path:
+            # the above method returns nuke style slashes, so ensure these
+            # are pointing correctly
+            render_path = render_path.replace("/", os.path.sep)
+            
+            dir_name = os.path.dirname(render_path)
+            if os.path.exists(dir_name):
+                render_dir = dir_name
+
+        if os.path.exists(os.path.normpath(self.software_info['windows_path'])):
+            if render_dir:
+                system = sys.platform
+                # run the app
+                if system == "linux2":
+                    pass
+                    # cmd = "xdg-open \"%s\"" % render_dir
+                elif system == "darwin":
+                    pass
+                    # cmd = "open '%s'" % render_dir
+                elif system == "win32":
+                    cmd = "start cmd.exe /c \"%s\" \"%s\" pause" % (self.software_info['windows_path'], render_dir)
+                else:
+                    raise Exception("Platform '%s' is not supported." % system)
+
+                self._app.log_debug("Executing command '%s'" % cmd)
+                exit_code = os.system(cmd)
+                if exit_code != 0:
+                    nuke.message("Failed to launch '%s'!" % cmd)
+
+            else:
+                nuke.message("Could not find the path to render")                    
+        else:
+            nuke.message("Could not find the path to %s: %s" % (self.software_info['code'],     
+                                                            self.software_info['windows_path']))
+        
     def on_before_render_gizmo_callback(self):
         """
         Callback from nuke whenever a tank write node is about to be rendered.
@@ -1332,18 +1386,6 @@ class TankWriteNodeHandler(object):
         tile_color = profile["tile_color"]
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
-        if file_type == "exr" and write_type == "Version":
-            if self.ctx_info.step['name'] == "Roto":
-                nuke.tprint("Task context is " + self.ctx_info.step['name']+". Applying ZIP compression to "+ write_type +" output.")
-                file_settings.update({'compression'     :   'Zip (1 scanline)'})    
-                file_settings.update({'datatype'        :   '16 bit half'})   
-            else:
-                file_settings.update({'compression'     :   'none'})    
-                file_settings.update({'datatype'        :   '16 bit half'})   
-        elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
-            or write_type == "Cleanup" or write_type == "Denoise"):
-            file_settings.update({'compression'     :   'Zip (1 scanline)'})
-            file_settings.update({'datatype'        :   '16 bit half'}) 
         # Make sure any invalid entries are removed from the profile list:
         list_profiles = node.knob("tk_profile_list").values()
         if list_profiles != self._profile_names:
@@ -1367,7 +1409,6 @@ class TankWriteNodeHandler(object):
         # cache the type and settings on the root node so that 
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
-        self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
 
         # Hide the promoted knobs that might exist from the previously
         # active profile.
@@ -1582,15 +1623,41 @@ class TankWriteNodeHandler(object):
             md.fromScript(self.__get_metadata(node))    
 
         # Sets project specific data type
-        try:
-            if self.proj_info['sg_data_type']:
-                if profile_name == "Exr":
-                    self.__update_knob_value(node, 'exr_datatype', self.proj_info['sg_data_type'])
-                elif profile_name == "Dpx":
-                    self.__update_knob_value(node, 'dpx_datatype', self.proj_info['sg_data_type'])
-        except:
-            nuke.tprint("Could not apply data type. Wrong profile: " + profile_name)
+        exr_datayype = '16 bit half'
+        dpx_datatype = '10 bit'
 
+        if profile_name == "Exr":
+            if self.proj_info['sg_data_type']:
+                if self.proj_info['sg_data_type'] == '16 bit':
+                    exr_datayype = '16 bit half'
+                elif self.proj_info['sg_data_type'] == '32 bit':
+                    exr_datayype = '32 bit float'
+        elif profile_name == "Dpx":
+            if self.proj_info['sg_data_type']:            
+                self.__update_knob_value(node, 'dpx_datatype', self.proj_info['sg_data_type'])
+            else:
+                self.__update_knob_value(node, 'dpx_datatype', dpx_datatype)
+        
+        
+        # Apply datatype info based on context
+        if file_type == "exr" and write_type == "Version":
+            if self.ctx_info.step['name'] == "Roto":
+                nuke.tprint("Task context is " + self.ctx_info.step['name']+
+                    ". Applying ZIP compression to "+ write_type +" output.")
+                file_settings.update({'compression' : 'Zip (1 scanline)'})
+                file_settings.update({'datatype' : '16 bit half'})
+                self.__update_knob_value(node, 'exr_datatype', '16 bit half')
+            else:
+                file_settings.update({'compression' : 'none'})
+                file_settings.update({'datatype' : exr_datayype})
+                self.__update_knob_value(node, 'exr_datatype', exr_datayype)
+        elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
+            or write_type == "Cleanup" or write_type == "Denoise"):
+            file_settings.update({'compression' : 'Zip (1 scanline)'})
+            file_settings.update({'datatype' : '16 bit half'})
+            self.__update_knob_value(node, 'exr_datatype', '16 bit half')
+
+        self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
@@ -1821,7 +1888,6 @@ class TankWriteNodeHandler(object):
         read_path = read_path.replace('\\','/')
         read_metadata = nuke.nodes.Read(file="%s" %(read_path))
         read_metadata['file'].setValue(read_path)
-        nuke.tprint("Reading metadata from %s" % read_path)
         read_metadata_info = read_metadata.metadata()
         nuke.delete(read_metadata)
 
@@ -1935,7 +2001,6 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path:
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
-                    nuke.tprint(self.test_folder_for_renders(render_path))
                     if self.test_folder_for_renders(render_path):
                         if (self.test_folder_for_renders(render_path)[0] and 
                             self.test_folder_for_renders(render_path)[2]):
