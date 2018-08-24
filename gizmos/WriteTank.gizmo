@@ -269,11 +269,18 @@ Gizmo {
     +STARTLINE
     -INVISIBLE
  } 
- addUserKnob {
+  addUserKnob {
     4 exr_datatype 
     l "dataype" 
     t "Choose EXR datatype" 
     M {"16 bit half" "32 bit float"}    
+    +STARTLINE
+    -INVISIBLE
+ }  
+ addUserKnob {
+    6 auto_crop 
+    l "autocrop" 
+    t "Choose to crop footage to the Project format." 
     +STARTLINE
     -INVISIBLE
  }  

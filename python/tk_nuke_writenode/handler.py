@@ -572,6 +572,12 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["dpx_datatype"].value())
             new_wn.addKnob(knob)
 
+            # autocrop
+            knob = nuke.String_Knob("tk_autocrop")
+            nuke.tprint(sg_wn["auto_crop"].value())
+            knob.setValue(str(sg_wn["auto_crop"].value()))
+            new_wn.addKnob(knob)
+
             # templates
             knob = nuke.String_Knob("tk_render_template")
             knob.setValue(sg_wn["render_template"].value())
@@ -638,6 +644,7 @@ class TankWriteNodeHandler(object):
             write_type = wn.knob("tk_write_type")    
             exr_datatype = wn.knob("tk_exr_datatype")
             dpx_datatype = wn.knob("tk_dpx_datatype")
+            auto_crop = wn.knob("tk_autocrop")
             output_knob = wn.knob("tk_output")
             use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
             channels_knob = wn.knob("channels")            
@@ -652,7 +659,8 @@ class TankWriteNodeHandler(object):
                 or not use_name_as_output_knob
                 or not write_type
                 or not exr_datatype
-                or not dpx_datatype                
+                or not dpx_datatype     
+                or not auto_crop           
                 or not channels_knob                    
                 or not render_template_knob
                 or not publish_template_knob
@@ -726,6 +734,14 @@ class TankWriteNodeHandler(object):
             # datatype
             new_sg_wn["exr_datatype"].setValue(exr_datatype.value())                     
             new_sg_wn["dpx_datatype"].setValue(dpx_datatype.value())         
+
+            # autocrop
+            if auto_crop.value() == "True":
+                ac_val = True
+            else:
+                ac_val = False
+
+            new_sg_wn["auto_crop"].setValue(ac_val)         
 
             # rename new node:                               
             new_sg_wn.setName(node_name)
@@ -1557,10 +1573,14 @@ class TankWriteNodeHandler(object):
             node.knob('dpx_datatype').setVisible(False)
             profile_channel = "rgb"       
             node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
+            node.knob('auto_crop').setVisible(False)
             if (write_type == "Precomp" or 
                 write_type == "Element"):
-                    profile_channel = "rgba"  
-            if self.ctx_info.step['name'] == "Roto":    
+                    profile_channel = "rgba"
+                    node.knob('auto_crop').setVisible(True)
+                    node.knob('auto_crop').setValue(True)
+            if self.ctx_info.step['name'] == "Roto":   
+                node.knob('auto_crop').setVisible(True) 
                 profile_channel = "rgba"                                           
         elif profile_name == "Jpeg":
             node.knob('dpx_datatype').setVisible(False)            
@@ -2586,6 +2606,7 @@ class TankWriteNodeHandler(object):
                         self.__write_type_changed(node, True)
                         node.node("project_reformat")['disable'].setValue(True)
                         node.node("project_crop")['disable'].setValue(True)                        
+                        node.node("Write1").knob("autocrop").setValue(True)
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
                 new_output_name = ""
@@ -2652,6 +2673,11 @@ class TankWriteNodeHandler(object):
                 node.node("Write1").knob("datatype").setValue(knob.value())            
             except:
                 pass
+        elif knob.name() == "auto_crop":
+            try:
+                node.node("Write1").knob("autocrop").setValue(knob.value())
+            except:
+                pass            
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
