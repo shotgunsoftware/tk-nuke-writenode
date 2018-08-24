@@ -91,7 +91,8 @@ class TankWriteNodeHandler(object):
                                             'sg_short_name',
                                             'sg_delivery_fileset',
                                             'sg_delivery_fileset_compression',
-                                            'sg_color_space'])
+                                            'sg_color_space',
+                                            'sg_project_color_management'])
         # self.software_info = self.sg.find_one("Software", 
         #                                     [['id', 'is_not', 0],
         #                                     ['code', 'is', 'RV']], 
@@ -1616,7 +1617,7 @@ class TankWriteNodeHandler(object):
 
             # Set colorspace based of SG values
             if self.proj_info['sg_color_space']:
-                nuke.tprint("Setting colorspace to:" + self.proj_info['sg_color_space'])
+                nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), self.proj_info['sg_color_space']))
                 node['colorspace'].setValue(self.proj_info['sg_color_space'])
 
             md = content_meta_data['metadata']
@@ -1644,18 +1645,18 @@ class TankWriteNodeHandler(object):
             if self.ctx_info.step['name'] == "Roto":
                 nuke.tprint("Task context is " + self.ctx_info.step['name']+
                     ". Applying ZIP compression to "+ write_type +" output.")
+                self.__update_knob_value(node, 'exr_datatype', '16 bit half')
                 file_settings.update({'compression' : 'Zip (1 scanline)'})
                 file_settings.update({'datatype' : '16 bit half'})
-                self.__update_knob_value(node, 'exr_datatype', '16 bit half')
             else:
+                self.__update_knob_value(node, 'exr_datatype', exr_datayype)
                 file_settings.update({'compression' : 'none'})
                 file_settings.update({'datatype' : exr_datayype})
-                self.__update_knob_value(node, 'exr_datatype', exr_datayype)
         elif (file_type == "exr" and write_type == "Element" or write_type == "Precomp"
             or write_type == "Cleanup" or write_type == "Denoise"):
+            self.__update_knob_value(node, 'exr_datatype', '16 bit half')
             file_settings.update({'compression' : 'Zip (1 scanline)'})
             file_settings.update({'datatype' : '16 bit half'})
-            self.__update_knob_value(node, 'exr_datatype', '16 bit half')
 
         self.__update_knob_value(node, "tk_file_type_settings", pickle.dumps(file_settings))
         # Reset the render path but only if the named profile has changed - this will only
