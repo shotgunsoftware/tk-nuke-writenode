@@ -248,15 +248,18 @@ class TankWriteNodeHandler(object):
         
         return self.__is_render_path_locked(node, render_path, cached_path)
 
-    def reset_render_path(self, node):
+    def reset_render_path(self, node, increase_version=False):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
         the current script path and configuraton
         """
         is_proxy = node.proxy()
-        self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
-        self.__update_render_path(node, force_reset=True, is_proxy=(not is_proxy))
+        if not increase_version:
+            self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
+            self.__update_render_path(node, force_reset=True, is_proxy=(not is_proxy))
+        else:
+            self.__update_render_path(node, force_reset=True, is_proxy=is_proxy, increase_version=True)
 
     def create_new_node(self, profile_name, write_type):
         """
@@ -526,7 +529,8 @@ class TankWriteNodeHandler(object):
             # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():
                 # skip knobs we don't want to copy:
-                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", "name", "xpos", "ypos"]:
+                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
+                "name", "xpos", "ypos"]:
                     continue
                 
                 if knob_name in new_wn.knobs():
@@ -574,7 +578,6 @@ class TankWriteNodeHandler(object):
 
             # autocrop
             knob = nuke.String_Knob("tk_autocrop")
-            nuke.tprint(sg_wn["auto_crop"].value())
             knob.setValue(str(sg_wn["auto_crop"].value()))
             new_wn.addKnob(knob)
 
@@ -706,7 +709,9 @@ class TankWriteNodeHandler(object):
             # copy across and knob values from the internal write node.
             for knob_name, knob in wn.knobs().iteritems():
                 # skip knobs we don't want to copy:
-                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", "name", "xpos", "ypos", "disable", "tile_color", "postage_stamp", "label"]:
+                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
+                "name", "xpos", "ypos", "disable", "tile_color", "postage_stamp", 
+                "label"]:
                     continue
                 
                 if knob_name in int_wn.knobs():
@@ -804,6 +809,13 @@ class TankWriteNodeHandler(object):
         be when the node is created for the first time or when it is loaded
         or imported/pasted from an existing script.
         """
+        # NOTE: Future self or other person: every time we touch this method to
+        # try to fix one of the PythonObject ValueErrors that Nuke occasionally
+        # raises on file open, it breaks something for someone. Most recently, it
+        # was farm setups for a few clients. It's best if we just leave this
+        # alone from now on, unless we someday have a better understanding of
+        # what's going on and the consequences of changing the on_node_created
+        # behavior.        
         current_node = nuke.thisNode()
 
         # We're doing something different here. We have a situation where the
@@ -1385,7 +1397,10 @@ class TankWriteNodeHandler(object):
             return
 
         self._app.log_debug("Changing the profile for node '%s' to: %s" % (node.name(), profile_name))
-     
+
+        # keep track of the old profile name:
+        old_profile_name = node.knob("profile_name").value()
+
         # pull settings from profile:
         render_template = self._app.get_template_by_name(profile["render_template"])
         publish_template = self._app.get_template_by_name(profile["publish_template"])
@@ -1401,7 +1416,7 @@ class TankWriteNodeHandler(object):
         file_type = profile["file_type"]
         file_settings = profile["settings"]
         tile_color = profile["tile_color"]
-
+        promote_write_knobs = profile.get("promote_write_knobs", [])
         # Sets project specific data type
         exr_datayype = '16 bit half'
         dpx_datatype = '10 bit'
@@ -1450,6 +1465,8 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "write_name_cache", str(node.name()))              
         self.__update_knob_value(node, "tk_profile_list", profile_name)
         
+        
+        self.__update_knob_value(node, "write_version_latest", str(1))
         # set the format
         self.__populate_format_settings(
             node,
@@ -1536,6 +1553,7 @@ class TankWriteNodeHandler(object):
                 # don't have exactly three values for RGB so log a warning:
                 self._app.log_warning(("The tile_color setting for profile '%s' must contain 3 values (RGB) - this "
                                     "setting will be ignored!") % profile_name)
+
             # reset tile_color knob value back to default:
             if write_type == "Precomp":
                 default_value = 4121611007
@@ -1679,10 +1697,12 @@ class TankWriteNodeHandler(object):
 
             md = content_meta_data['metadata']
             md.fromScript(self.__get_metadata(node))    
+
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
-        self.reset_render_path(node)
+        if profile_name != old_profile_name:
+            self.reset_render_path(node)
 
     def __get_metadata(self, node):
 
@@ -1761,7 +1781,8 @@ class TankWriteNodeHandler(object):
         # node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setValue(output_name)
 
     def __populate_format_settings(
-        self, node, file_type, file_settings, reset_all_settings=False, promoted_write_knobs=None):
+        self, node, file_type, file_settings, reset_all_settings=False, promoted_write_knobs=None
+        ):
         """
         Controls the file format of the write node
         
@@ -1870,7 +1891,7 @@ class TankWriteNodeHandler(object):
                 write_node.readKnobs(r"\n".join(filtered_settings))
                 self.reset_render_path(node)
 
-    def __set_output(self, node, output_name):
+    def __set_output(self, node, output_name, increase_version=False):
         """
         Set the output on the specified node from user interaction.
         """
@@ -1879,8 +1900,11 @@ class TankWriteNodeHandler(object):
         # update output knob:
         self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, output_name)
         
-        # reset the render path:
-        self.reset_render_path(node)
+        if not increase_version:
+            # reset the render path
+            self.reset_render_path(node)
+        else:
+            self.reset_render_path(node, increase_version=True)
 
     def __wrap_text(self, t, line_length):
         """
@@ -1895,6 +1919,7 @@ class TankWriteNodeHandler(object):
                     lines.append(this_line)
                     this_line = ""
                 lines.append(part)
+                this_line_len = 0
             else:
                 this_line = " ".join([this_line, part]) if this_line else part
                 if len(this_line) >= line_length:
@@ -1917,7 +1942,7 @@ class TankWriteNodeHandler(object):
         except:
             return None
 
-    def __update_render_path(self, node, force_reset=False, is_proxy=False):
+    def __update_render_path(self, node, force_reset=False, is_proxy=False, increase_version=False):
         """
         Update the render path and the various feedback knobs based on the current
         context and other node settings.
@@ -1984,9 +2009,13 @@ class TankWriteNodeHandler(object):
                     if compute_path_error:
                         raise TkComputePathError(compute_path_error)
                 else:
-                    # compute the render path:
-                    render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
-                    
+                    # compute the render path
+                    if not increase_version:
+                        render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
+                    else:
+                        render_path = self.__compute_render_path_from(node, render_template, width, height, output_name, next_version = 2)
+                        nuke.tprint("Increasing Version...")
+
             except TkComputePathError, e:
                 # update cache:
                 self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
@@ -2020,43 +2049,19 @@ class TankWriteNodeHandler(object):
                     # from the cached path ignoring certain dynamic fields (e.g. width, height).
                     path_is_locked = self.__is_render_path_locked(node, render_path, cached_path, is_proxy)
                 else:
-                    # compute the render path:
-                    render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
-                    if self.test_folder_for_renders(render_path):
-                        if (self.test_folder_for_renders(render_path)[0] and 
-                            self.test_folder_for_renders(render_path)[2]):
-                            ext_match = self.test_folder_for_renders(render_path)[2]
-                            path_to_test = self.test_folder_for_renders(render_path)[1]
-                            ext_match_string = ""
-                            files_warning = ""
-                            read_creator = "Unknown"
-                            # Get extension of file
-                            if ext_match >1:
-                                for i in ext_match:
-                                    ext_match_string += " " +i+ " "
-                            else:
-                                ext_match_string = ext_match[0]
-                            # Get user that created files
-                            if not self.__read_node_metadata(path_to_test):
-                                pass
-                            else:
-                                try:
-                                    read_creator = self.__read_node_metadata(path_to_test)['exr/nuke/artist_name']
-                                except:
-                                    pass
-                            files_warning += "<i style='color:orange'><b>Careful Now!</b><br><i>" 
-                            files_warning += "<i style='color:orange'><b>%s</b> files already exist in this location.<br>" % ext_match_string
-                            files_warning += "<i style='color:red'><b>Author:</b> %s</i>" % read_creator
-                            self.__update_knob_value(node, "files_warning", "".join(self.__wrap_text(files_warning, 100)))
-                            node.knob("files_warning").setVisible(True)
-
-                        else:
-                            self.__update_knob_value(node, "files_warning", "")
-                            node.knob("files_warning").setVisible(False)
-
+                    # compute the render path
+                    if not increase_version:
+                        render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
                     else:
-                        self.__update_knob_value(node, "files_warning", "")
-                        node.knob("files_warning").setVisible(False)
+                        files = self.get_files_on_disk(node)
+                        next_version_number = 2
+                        if files:
+                            output_template = self._app.tank.template_from_path(files[0])
+                            output_fields = output_template.get_fields(files[0])
+                            next_version_number = output_fields['version'] + 1
+
+                        render_path = self.__compute_render_path_from(node, render_template, width, height, output_name, next_version = next_version_number)
+                        nuke.tprint("Increasing Version...")              
 
                 if path_is_locked:
                     # render path was not what we expected!
@@ -2163,7 +2168,6 @@ class TankWriteNodeHandler(object):
         file_name = self.__get_render_path(node, is_proxy)
         write_type = self.get_node_write_type_name(node)        
         template = self.__get_render_template(node, write_type, is_proxy, fallback_to_render=True)
-
         if not template.validate(file_name):
             raise Exception("Could not resolve the files on disk for node %s."
                             "The path '%s' is not recognized by Shotgun!" % (node.name(), file_name))
@@ -2279,7 +2283,7 @@ class TankWriteNodeHandler(object):
         # compute the render path:
         return self.__compute_render_path_from(node, render_template, width, height, output_name)
 
-    def __compute_render_path_from(self, node, render_template, width, height, output_name):
+    def __compute_render_path_from(self, node, render_template, width, height, output_name, next_version= 1):
         """
         Computes the render path for a node using the specified settings
 
@@ -2290,6 +2294,9 @@ class TankWriteNodeHandler(object):
         :param output_name:        The toolkit output name specified by the user for this node
         :returns:                  The computed render path        
         """
+        nuke.tprint("Computing render path!")
+        # Get write type
+        write_type = self.get_node_write_type_name(node)
 
         # make sure we have a valid template:
         if not render_template:
@@ -2305,6 +2312,15 @@ class TankWriteNodeHandler(object):
         fields = {}
         if curr_filename and self._script_template and self._script_template.validate(curr_filename):
             fields = self._script_template.get_fields(curr_filename)
+            if (write_type == "Version" or 
+                write_type == "Final" or
+                write_type == "Test"):
+                pass
+            else:
+                nuke.tprint(fields)
+                fields.update({'version': next_version})
+       
+            
         if not fields:
             raise TkComputePathError("The current script is not a Shotgun Work File!")
 
@@ -2352,7 +2368,46 @@ class TankWriteNodeHandler(object):
         # make slahes uniform:
         path = path.replace(os.path.sep, "/")
 
-        return path        
+        # Test for existing folder contents
+        if self.test_folder_for_renders(path):
+            if (self.test_folder_for_renders(path)[0] and 
+                self.test_folder_for_renders(path)[2]):
+                ext_match = self.test_folder_for_renders(path)[2]
+                path_to_test = self.test_folder_for_renders(path)[1]
+                ext_match_string = ""
+                files_warning = ""
+                read_creator = "Unknown"
+
+                # Get extension of file
+                if ext_match >1:
+                    for i in ext_match:
+                        ext_match_string += " " + i + " "
+                else:
+                    ext_match_string = ext_match[0]
+                # Get user that created files
+                if not self.__read_node_metadata(path_to_test):
+                    pass
+                else:
+                    try:
+                        read_creator = self.__read_node_metadata(path_to_test)['exr/nuke/artist_name']
+                    except:
+                        pass
+
+                files_warning += "<i style='color:orange'><b>Careful Now!</b><br><i>" 
+                files_warning += "<i style='color:orange'><b>%s</b> files already exist in this location.<br>" % ext_match_string
+                files_warning += "<i style='color:red'><b>Author:</b> %s</i>" % read_creator
+                self.__update_knob_value(node, "files_warning", "".join(self.__wrap_text(files_warning, 100)))
+                node.knob("files_warning").setVisible(True)
+
+            else:
+                self.__update_knob_value(node, "files_warning", "")
+                node.knob("files_warning").setVisible(False)
+
+        else:
+            self.__update_knob_value(node, "files_warning", "")
+            node.knob("files_warning").setVisible(False)
+
+        return path
 
     def __is_render_path_locked(self, node, render_path, cached_path, is_proxy=False):
         """
@@ -2475,10 +2530,12 @@ class TankWriteNodeHandler(object):
                 if (write_type == "Version" or 
                     write_type == "Final"):
                     if self.ctx_info.step['name'] != "Roto":
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        node.knob("project_crop").setValue(True)
-                        node.node("project_reformat")['disable'].setValue(False)
-                        node.node("project_crop")['disable'].setValue(False)   
+                        pass
+                        # node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                        # self.__version_up_visible(node, False)                          
+                        # node.knob("project_crop").setValue(True)
+                        # node.node("project_reformat")['disable'].setValue(False)
+                        # node.node("project_crop")['disable'].setValue(False)   
                     else:
                         nuke.tprint("Step is roto. Disabling Project crop.")
                         node.knob("project_crop").setValue(False)
@@ -2525,12 +2582,17 @@ class TankWriteNodeHandler(object):
             "\n"
             "Please be aware that this is a temporary location.\n"
             "Renders saved here will be removed at the end of the week.\n")
+    
+    def __version_up_visible(self, node, visible):
+
+        node.knob('increase_version').setVisible(visible)
+        node.knob('revert_to_version').setVisible(visible)
 
     def __embedded_format_option(self, node, value):
-        if value == True:        
+        if value == True:
             node.node("project_reformat")['disable'].setValue(False)
             node.node("project_crop")['disable'].setValue(False)
-        elif value == False:             
+        elif value == False:
             node.node("project_reformat")['disable'].setValue(True)
             node.node("project_crop")['disable'].setValue(True)               
 
@@ -2576,8 +2638,8 @@ class TankWriteNodeHandler(object):
             # node name has changed:
             if write_type != "Version":
                 if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
-                    # set the output to the node name:
-                    self.__set_output(node, knob.value())  
+                    # set the output to the node name
+                    self.__set_output(node, knob.value())
         elif knob.name() == TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME:
             # checkbox controlling if the name should be used as the output has been toggled
             name_as_output = knob.value()
@@ -2595,18 +2657,22 @@ class TankWriteNodeHandler(object):
                         write_type== "Final"):
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
+                        self.__version_up_visible(node, False)                        
                         node.node("project_reformat")['disable'].setValue(False)
                         node.node("project_crop")['disable'].setValue(False)                    
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
                         self.__test_write_message()
+                        self.__version_up_visible(node, False)
                     else:
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
+                        self.__version_up_visible(node, True)                        
                         node.node("project_reformat")['disable'].setValue(True)
                         node.node("project_crop")['disable'].setValue(True)                        
                         node.node("Write1").knob("autocrop").setValue(True)
+
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
                 new_output_name = ""
@@ -2628,22 +2694,27 @@ class TankWriteNodeHandler(object):
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    self.__version_up_visible(node, False)
                     write_type_profile =  "Exr"
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    self.__version_up_visible(node, True)                    
                     write_type_profile = "Exr"
                 elif write_type == "Element":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    self.__version_up_visible(node, True)
                     write_type_profile =  "Exr"
                 elif write_type == "Denoise":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    self.__version_up_visible(node, True)                    
                     write_type_profile =  "Exr"
                 elif write_type == "Cleanup":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
+                    self.__version_up_visible(node, True)                    
                     write_type_profile =  "Exr"
                 elif write_type == "Final":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
@@ -2652,6 +2723,7 @@ class TankWriteNodeHandler(object):
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
+                    self.__version_up_visible(node, False)                    
                     write_type_profile =  "Exr"
                     self.__test_write_message()
                 # Updates the predefined profile based on the write type
@@ -2678,6 +2750,20 @@ class TankWriteNodeHandler(object):
                 node.node("Write1").knob("autocrop").setValue(knob.value())
             except:
                 pass            
+        elif knob.name() == "increase_version":
+            new_output_name = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value()
+            if not new_output_name:
+                nuke.tprint("Get base ouptput for write type!")
+                self.__set_output(node, new_output_name, increase_version=True)  
+            else:
+                node['name'].setValue(write_type+"_"+str(new_output_name))
+                if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
+                    # force output name to be the node name:
+                    new_output_name = node.knob("name").value()
+                self.__set_output(node, new_output_name, increase_version=True)  
+        elif knob.name() == "revert_to_version":
+            nuke.tprint("Reverting to last version.")
+
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
