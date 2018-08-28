@@ -2230,7 +2230,8 @@ class TankWriteNodeHandler(object):
         #print ("sx:", scale_x, "sy:", scale_y, "tx:", offset_x, "ty:", offset_y, 
         #        "w:", scaled_format.width(), "h:", scaled_format.height())
         return (scaled_format.width(), scaled_format.height())
-        
+
+
     def __gather_render_settings(self, node, is_proxy=False):
         """
         Gather the render template, width, height and output name required
@@ -2267,6 +2268,7 @@ class TankWriteNodeHandler(object):
                 output_name = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value()
             
         return (render_template, width, height, output_name)
+
 
     def __compute_render_path(self, node, is_proxy=False):
         """
@@ -2460,9 +2462,19 @@ class TankWriteNodeHandler(object):
                 
     def __setup_new_node(self, node):
         """
-        Setup a node when it's created (either directly or as a result of loading a script).  This
-        allows us to dynamically populate the profile list.
-        
+        Setup a node when it's created (either directly or as a result of loading a script).
+        This allows us to dynamically populate the profile list.
+
+        This method will re-process the node and reapply settings in case it has
+        been previously processed.
+
+        .. note:: There are edge cases in Nuke where a node has already been previously
+                  set up but for another context - this can happen as a consequence of
+                  bugs in the automatic context switching. It is therefore not safe to
+                  assume that setting up of these nodes only needs to happen once -
+                  it needs to happen whenever the toolkit write node configuration
+                  changes.
+
         :param node:    The Shotgun Write Node to set up
         """
         # check that this node is actually a Gizmo.  It might not be if 
@@ -2475,7 +2487,12 @@ class TankWriteNodeHandler(object):
             return
         
         self._app.log_debug("Setting up new node...")
-        
+
+        # reset the construction flag to ensure that
+        # the node is toggled into its incomplete state
+        # this will disable certain callbacks from firing.
+        self.__set_final_construction_flag(node, False)
+
         # populate the profiles list as this isn't stored with the file and is
         # dynamic based on the user's configuration
         profile_names = list(self._profile_names)
@@ -2521,6 +2538,10 @@ class TankWriteNodeHandler(object):
             new_output_name = node.knob("name").value()
             self.__set_output(node, new_output_name)
 
+        # now that the node is constructed, we can process
+        # knob changes correctly.
+        self.__set_final_construction_flag(node, True)
+        
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
@@ -2553,6 +2574,21 @@ class TankWriteNodeHandler(object):
         node.knob("tk_is_fully_constructed").setValue(True)
         node.knob("tk_is_fully_constructed").setEnabled(False)
     
+    def __set_final_construction_flag(self, node, status):
+        """
+        Controls the flag that indicates that a node has been
+        finalized.
+
+        :param node: nuke node object
+        :param status: boolean flag to indicating finalized state.
+        """
+        if status:
+            node.knob("tk_is_fully_constructed").setValue(True)
+            node.knob("tk_is_fully_constructed").setEnabled(False)
+        else:
+            node.knob("tk_is_fully_constructed").setEnabled(True)
+            node.knob("tk_is_fully_constructed").setValue(False)
+
     def __is_node_fully_constructed(self, node):
         """
         The tk_is_fully_constructed knob is set to True after the onCreate callback has completed.  This
