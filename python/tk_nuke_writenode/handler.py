@@ -366,7 +366,7 @@ class TankWriteNodeHandler(object):
         nuke.removeOnScriptSave(self.__on_script_save)
         nuke.removeOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
-    def convert_sg_to_nuke_write_nodes(self, create_folders=False):
+    def convert_sg_to_nuke_write_nodes(self):
         """
         Utility function to convert all Shotgun Write nodes to regular
         Nuke Write nodes.
@@ -407,6 +407,8 @@ class TankWriteNodeHandler(object):
             # make sure file_type is set properly:
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             new_wn["file_type"].setValue(int_wn["file_type"].value())
+
+
         
             # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():
@@ -421,6 +423,10 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+
+            # Set the nuke write node to have create directories ticked on by default
+            # As toolkit hasn't created the output folder at this point.
+            new_wn["create_directories"].setValue(True)
         
             # copy across select knob values from the Shotgun Write node:
             for knob_name in ["tile_color", "postage_stamp", "label"]:
@@ -468,18 +474,6 @@ class TankWriteNodeHandler(object):
             new_wn.setName(node_name)
             new_wn.setXpos(node_pos[0])
             new_wn.setYpos(node_pos[1])
-
-            if create_folders:
-                # We need to ensure that the folders are created for the output paths.
-
-                out_dir = os.path.dirname(new_wn["file"].value())
-                self._app.ensure_folder_exists(out_dir)
-
-                proxy_file_path = new_wn["proxy"].value()
-                if proxy_file_path:
-                    proxy_out_dir = os.path.dirname(proxy_file_path)
-                    self._app.ensure_folder_exists(proxy_out_dir)
-
             
     def convert_nuke_to_sg_write_nodes(self):
         """

@@ -228,7 +228,7 @@ class NukeWriteNode(tank.platform.Application):
                 continue_with_convert = False
 
         if continue_with_convert:
-            self.__write_node_handler.convert_sg_to_nuke_write_nodes(create_folders)
+            self.__write_node_handler.convert_sg_to_nuke_write_nodes()
 
     def convert_from_write_nodes(self, show_warning=False):
         """
