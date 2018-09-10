@@ -1886,7 +1886,7 @@ class TankWriteNodeHandler(object):
                 self._app.log_debug(
                     "Promoted write node knob settings to be applied: %s" % filtered_settings
                 )
-                write_node.readKnobs(r"\n".join(filtered_settings))
+                write_node.readKnobs("\n".join(filtered_settings))
                 self.reset_render_path(node)
 
     def __set_output(self, node, output_name, increase_version=False):
@@ -2489,10 +2489,6 @@ class TankWriteNodeHandler(object):
         if not isinstance(node, nuke.Gizmo):
             return
         
-        if self.__is_node_fully_constructed(node):
-            # node has already been constructed for this session!
-            return
-        
         self._app.log_debug("Setting up new node...")
 
         # reset the construction flag to ensure that
@@ -2549,6 +2545,7 @@ class TankWriteNodeHandler(object):
         # knob changes correctly.
         self.__set_final_construction_flag(node, True)
         
+
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
@@ -2581,6 +2578,16 @@ class TankWriteNodeHandler(object):
         node.knob("tk_is_fully_constructed").setValue(True)
         node.knob("tk_is_fully_constructed").setEnabled(False)
     
+
+        # now that the node is constructed, we can process
+        # knob changes correctly.
+        self.__set_final_construction_flag(node, True)
+
+        # now that the node is constructed, we can process knob changes
+        # correctly.
+        # node.knob("tk_is_fully_constructed").setValue(True)
+        # node.knob("tk_is_fully_constructed").setEnabled(False)
+
     def __set_final_construction_flag(self, node, status):
         """
         Controls the flag that indicates that a node has been
