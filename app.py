@@ -148,7 +148,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         Return the render template for the specified node
         """
-        return self.__write_node_handler.get_render_template(node)
+        write_type = self.__write_node_handler.get_node_write_type_name(node)        
+
+        return self.__write_node_handler.get_render_template(node, write_type)
     
     def get_node_publish_template(self, node):
         """
@@ -221,20 +223,39 @@ class NukeWriteNode(tank.platform.Application):
         self.__write_node_handler.create_new_node(profile_name)
 
     # Private methods
-    #
     def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
         """
         context = context or self.context
-
+        write_type = "Version"
+        profile_list = []
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
+        profile_set = set(self.__write_node_handler.profile_names)
+        # Remove fileset types nt associated with Project
+        if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
+            nuke.tprint("No fileset specified. Loading defaults...")
+            profile_list = self.__write_node_handler.profile_names
+        else:
+            if any(self.__write_node_handler.proj_info['sg_delivery_fileset']['name'] in s.lower() for s in self.__write_node_handler.profile_names):
+                if context.step['name'] != 'Roto':
+                    match_set = {"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}
+                else:
+                    nuke.tprint("Context is " + context.step['name'] + ".")
+                    match_set = {"Jpeg", "Exr"}
 
-        for profile_name in self.__write_node_handler.profile_names:
+                profile_list = list(match_set.intersection(profile_set))
+            else:
+                nuke.tprint("Profile name not in list!")
+                profile_list = self.__write_node_handler.profile_names
+        
+            nuke.tprint("- Project fileset(s): " + str(profile_list))
+
+        for profile_name in profile_list:
             # add to toolbar menu
-            cb_fn = lambda pn=profile_name: self.__write_node_handler.create_new_node(pn)
+            cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
+                "%s" % profile_name,
                 cb_fn, 
                 dict(
                     type="node",
@@ -242,6 +263,3 @@ class NukeWriteNode(tank.platform.Application):
                     context=context,
                 )
             )
-            
-            
-

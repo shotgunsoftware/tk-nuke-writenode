@@ -1,0 +1,41 @@
+Gizmo {
+ note_font Verdana
+ mapsize {0.15 0.15}
+}
+ Input {
+  inputs 0
+  name Input1
+  xpos 195
+  ypos -74
+ }
+ Reformat {
+  type "to format"
+  box_width 800
+  box_height 1
+  black_outside false
+  pbb true  
+  name project_reformat
+  disable true    
+ }
+ Crop {
+  name project_crop     
+  preset format
+  reformat true
+  crop false  
+  disable true  
+ } 
+ AddTimeCode {
+  name project_tc        
+  startcode 01:00:00:01
+  metafps False
+  fps 23.98
+  useFrame True
+  frame 1
+ }
+set N11879e50 [stack 0]
+ Output {
+  name Output1
+  xpos 195
+  ypos 150
+ }
+end_group 
