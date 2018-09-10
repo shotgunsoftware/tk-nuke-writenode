@@ -232,13 +232,11 @@ class NukeWriteNode(tank.platform.Application):
         profile_list = []
         write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
         profile_set = set(self.__write_node_handler.profile_names)
-        nuke.tprint(profile_set)
         # Remove fileset types nt associated with Project
         if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
             nuke.tprint("No fileset specified. Loading defaults...")
             profile_list = self.__write_node_handler.profile_names
         else:
-            nuke.tprint(context.step['name'])
             if any(self.__write_node_handler.proj_info['sg_delivery_fileset']['name'] in s.lower() for s in self.__write_node_handler.profile_names):
                 if context.step['name'] != 'Roto':
                     match_set = {"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}

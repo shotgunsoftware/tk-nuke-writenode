@@ -179,12 +179,14 @@ Gizmo {
     l "+1 version" 
     t "Increases the version number of the given output render." 
     +STARTLINE
+    +INVISIBLE    
  }
   addUserKnob {
     22 revert_to_version
     l "revert" 
     t "Reverts to the previous found version number of the given output render." 
     -STARTLINE
+    +INVISIBLE    
  }
  addUserKnob {
     26 path_warning 
