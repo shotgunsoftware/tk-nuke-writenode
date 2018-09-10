@@ -36,7 +36,7 @@ class TankWriteNodeHandler(object):
     """
     Handles requests and processing from a tank write node.
     """
-
+    # Version up branch
     SG_WRITE_NODE_CLASS = "WriteTank"
     SG_WRITE_DEFAULT_NAME = "SGWrite"
     WRITE_NODE_NAME = "Write1"
