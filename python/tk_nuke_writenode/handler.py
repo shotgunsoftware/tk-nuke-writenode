@@ -2315,7 +2315,9 @@ class TankWriteNodeHandler(object):
                 write_type == "Test"):
                 pass
             else:
-                fields.update({'version': next_version})
+                # TODO: Setup version numbers that start at v001 for precomps
+                # fields.update({'version': next_version})
+                pass
                 
        
             
