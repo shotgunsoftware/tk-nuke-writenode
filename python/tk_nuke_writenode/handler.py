@@ -2719,8 +2719,11 @@ class TankWriteNodeHandler(object):
                         self.__write_type_changed(node, True)
                         # self.__version_up_visible(node, True)                        
                         node.node("project_reformat")['disable'].setValue(True)
-                        node.node("project_crop")['disable'].setValue(True)                        
-                        node.node("Write1").knob("autocrop").setValue(True)
+                        node.node("project_crop")['disable'].setValue(True)
+                        try:
+                            node.node("Write1").knob("autocrop").setValue(True)
+                        except:
+                            pass
 
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
