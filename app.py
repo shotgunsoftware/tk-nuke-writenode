@@ -315,7 +315,7 @@ class NukeWriteNode(tank.platform.Application):
                     }
                 )
                 self.engine.register_command(
-                    "Convert Write Nodes back to SG Format...",
+                    "Convert Write Nodes back to SG format...",
                     convert_from_write_nodes_action,
                     {
                         "type": "context_menu",
