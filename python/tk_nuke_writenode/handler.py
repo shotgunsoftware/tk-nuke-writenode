@@ -407,8 +407,6 @@ class TankWriteNodeHandler(object):
             # make sure file_type is set properly:
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             new_wn["file_type"].setValue(int_wn["file_type"].value())
-
-
         
             # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():

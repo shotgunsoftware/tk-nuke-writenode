@@ -199,7 +199,7 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self, show_warning=False, create_folders=False):
+    def convert_to_write_nodes(self, show_warning=False):
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
@@ -220,7 +220,7 @@ class NukeWriteNode(tank.platform.Application):
             res = QtGui.QMessageBox.question(None,
                                              "Convert All SG Write Nodes?",
                                              "This will convert all Shotgun write nodes to standard write nodes."
-                                             "\nOk to proceed?",
+                                             "\nOK to proceed?",
                                              QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 
             if res != QtGui.QMessageBox.Yes:
@@ -249,7 +249,7 @@ class NukeWriteNode(tank.platform.Application):
                                              "Convert All Write Nodes?",
                                              "This will convert any Shotgun Write Nodes that have been converted "
                                              "into standard write nodes back to their original form."
-                                             "\nOk to proceed?",
+                                             "\nOK to proceed?",
                                              QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 
 
@@ -302,8 +302,7 @@ class NukeWriteNode(tank.platform.Application):
             if not promoted_knob_write_nodes:
                 # no presets use promoted knobs so we are OK to register the menus.
 
-                convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True,
-                                                                                    create_folders=True)
+                convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True)
                 convert_from_write_nodes_action = lambda: self.convert_from_write_nodes(show_warning=True)
 
                 self.engine.register_command(
