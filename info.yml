@@ -82,6 +82,13 @@ configuration:
                     allows_empty: True
                     default_value: []
 
+    # Note that if you have presets which promote write knobs, the convert menu items will not be shown, regardless
+    # of the value applied to this setting, as at present the convert back method doesn't support promoted knobs.
+    show_convert_actions:
+        type: bool
+        description: "Setting this to True will add actions for converting to and from Shotgun write nodes.
+                      The actions will be displayed as options in the Shotgun -> Context menu"
+        default_value: False
 
     template_script_work:
         type: template

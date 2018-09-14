@@ -192,28 +192,74 @@ class NukeWriteNode(tank.platform.Application):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
-        the current script path and configuraton.
+        the current script path and configuration.
         
         Note, this should really never be needed now that the
         path is reset automatically when the user changes something.
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self):
+    def convert_to_write_nodes(self, show_warning=False, create_folders=False):
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
         additional user knobs named 'tk_*'
-        """
-        self.__write_node_handler.convert_sg_to_nuke_write_nodes()
 
-    def convert_from_write_nodes(self):
+        :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
+         defaults to False.
+        :param create_folders: Optional bool that sets whether the operation will create the required output folders;
+         defaults to False
+        """
+
+        # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
+        continue_with_convert = True
+
+        if show_warning:
+            # defer importing the QT module so the app doesn't require QT unless running this method with the warning.
+            from sgtk.platform.qt import QtGui
+            res = QtGui.QMessageBox.question(None,
+                                             "Convert All SG Write Nodes?",
+                                             "This will convert all Shotgun write nodes to standard write nodes."
+                                             "\nOk to proceed?",
+                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+
+            if res != QtGui.QMessageBox.Yes:
+                # User chose to abort the operation, we should not convert the write nodes
+                continue_with_convert = False
+
+        if continue_with_convert:
+            self.__write_node_handler.convert_sg_to_nuke_write_nodes()
+
+    def convert_from_write_nodes(self, show_warning=False):
         """
         Convert all regular Nuke Write nodes that have previously been converted
         from Shotgun Write nodes, back into Shotgun Write nodes.
+
+        :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
+         defaults to False.
         """
-        self.__write_node_handler.convert_nuke_to_sg_write_nodes()
-    
+
+        # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
+        continue_with_convert = True
+
+        if show_warning:
+            # defer importing the QT module so the app doesn't require QT unless running this method with the warning.
+            from sgtk.platform.qt import QtGui
+            res = QtGui.QMessageBox.question(None,
+                                             "Convert All Write Nodes?",
+                                             "This will convert any Shotgun Write Nodes that have been converted "
+                                             "into standard write nodes back to their original form."
+                                             "\nOk to proceed?",
+                                             QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+
+
+            if res != QtGui.QMessageBox.Yes:
+                # User chose to abort the operation, we should not convert the write nodes
+                continue_with_convert = False
+
+        if continue_with_convert:
+            self.__write_node_handler.convert_nuke_to_sg_write_nodes()
+
     def create_new_write_node(self, profile_name):
         """
         Creates a Shotgun write node using the provided profile_name.  
@@ -225,6 +271,7 @@ class NukeWriteNode(tank.platform.Application):
     def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
+        and the convert to and from Shotgun write node actions if configured to do so.
         """
         context = context or self.context
 
@@ -242,6 +289,39 @@ class NukeWriteNode(tank.platform.Application):
                     context=context,
                 )
             )
-            
-            
 
+        # Show the convert actions in the Menu if configured to do so
+        if self.get_setting("show_convert_actions"):
+
+            # We only want to show the convert methods if there are no promoted knobs,
+            # as these aren't supported when converting back
+            # todo: We should check the settings and then scan the scene to see if any SG write nodes use promoted knobs
+            write_nodes = self.get_setting("write_nodes")
+            promoted_knob_write_nodes = next((a_node for a_node in write_nodes if a_node['promote_write_knobs']), None)
+
+            if not promoted_knob_write_nodes:
+                # no presets use promoted knobs so we are OK to register the menus.
+
+                convert_to_write_nodes_action = lambda :self.convert_to_write_nodes(show_warning=True,
+                                                                                    create_folders=True)
+                convert_from_write_nodes_action = lambda: self.convert_from_write_nodes(show_warning=True)
+
+                self.engine.register_command(
+                    "Convert SG Write Nodes to Write Nodes...",
+                    convert_to_write_nodes_action,
+                    {
+                        "type": "context_menu",
+                        "icon": os.path.join(self.disk_location, "icon_256.png"),
+                    }
+                )
+                self.engine.register_command(
+                    "Convert Write Nodes back to SG format...",
+                    convert_from_write_nodes_action,
+                    {
+                        "type": "context_menu",
+                        "icon": os.path.join(self.disk_location, "icon_256.png"),
+                    }
+                )
+            else:
+                self.log_debug("Convert menu options were disabled as "
+                               "promoted knobs were detected in the app settings.")

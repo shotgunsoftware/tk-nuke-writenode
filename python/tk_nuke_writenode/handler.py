@@ -377,6 +377,9 @@ class TankWriteNodeHandler(object):
         app = eng.apps["tk-nuke-writenode"]
         # Convert Shotgun write nodes to Nuke write nodes:
         app.convert_to_write_nodes()
+
+        :param create_folders: When set to true, it will create the folders on disk for the render and proxy paths.
+         Defaults to false.
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
@@ -404,6 +407,8 @@ class TankWriteNodeHandler(object):
             # make sure file_type is set properly:
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             new_wn["file_type"].setValue(int_wn["file_type"].value())
+
+
         
             # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():
@@ -418,6 +423,10 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+
+            # Set the nuke write node to have create directories ticked on by default
+            # As toolkit hasn't created the output folder at this point.
+            new_wn["create_directories"].setValue(True)
         
             # copy across select knob values from the Shotgun Write node:
             for knob_name in ["tile_color", "postage_stamp", "label"]:
