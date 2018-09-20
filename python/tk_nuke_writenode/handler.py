@@ -1692,9 +1692,17 @@ class TankWriteNodeHandler(object):
             if self.proj_info['sg_color_space']:
                 if (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] != "OCIO"):
-                    node['colorspace'].setValue("linear")                
-                else:
+                    node['colorspace'].setValue("linear")    
+                elif (self.ctx_info.step['name'] == "Roto" and
+                self.proj_info['sg_project_color_management'] == "OCIO"):
+                    node['colorspace'].setValue("acescg")                                     
+                elif (self.ctx_info.step['name'] != "Roto" and
+                write_type == "Version"):
                     node['colorspace'].setValue(self.proj_info['sg_color_space'])
+                    nuke.tprint("Setting color space from SG")
+                else:
+                    default_match = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
+                    node.knob('colorspace').setValue(default_match)
 
                 nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), self.proj_info['sg_color_space']))
 
@@ -2675,7 +2683,12 @@ class TankWriteNodeHandler(object):
             # all knob changes
             #print "Ignoring change to %s.%s value = %s" % (node.name(), knob.name(), knob.value())
             return
-        write_type = self.get_node_write_type_name(node)                      
+        write_type = self.get_node_write_type_name(node)    
+        write_type_profile = "Exr"
+        if self.proj_info['sg_delivery_fileset'] != None:
+            if write_type == "Version":
+                write_type_profile = self.proj_info['sg_delivery_fileset']['name'].capitalize() 
+        # Main handler area for knob changed
         if knob.name() == "tk_profile_list":
             # change the profile for the specified node:
             new_profile_name = knob.value()
@@ -2706,12 +2719,11 @@ class TankWriteNodeHandler(object):
                 self.__set_output(node, node.knob("name").value())
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
-                write_type_profile =  "Exr"
                 if self.proj_info['name'] == "Breakdowns":
                     pass
                 else:
-                    if (write_type== "Version" or
-                        write_type== "Final"):
+                    if (write_type == "Version" or
+                        write_type == "Final"):
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
                         # self.__version_up_visible(node, False)                        
@@ -2725,6 +2737,7 @@ class TankWriteNodeHandler(object):
                     else:
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
+                        write_type_profile = "Exr"
                         # self.__version_up_visible(node, True)                        
                         node.node("project_reformat")['disable'].setValue(True)
                         node.node("project_crop")['disable'].setValue(True)
@@ -2750,12 +2763,11 @@ class TankWriteNodeHandler(object):
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
             elif self._curr_entity_type == 'Asset':
-                write_type_profile = "Exr"
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     # self.__version_up_visible(node, False)
-                    write_type_profile =  "Exr"
+
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2770,21 +2782,17 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     # self.__version_up_visible(node, True)                    
-                    write_type_profile =  "Exr"
                 elif write_type == "Cleanup":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     # self.__version_up_visible(node, True)                    
-                    write_type_profile =  "Exr"
                 elif write_type == "Final":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    write_type_profile =  "Exr"
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     # self.__version_up_visible(node, False)                    
-                    write_type_profile =  "Exr"
                     self.__test_write_message()
                 # Updates the predefined profile based on the write type
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
@@ -2826,7 +2834,6 @@ class TankWriteNodeHandler(object):
             """
         elif knob.name() == "revert_to_version":
             nuke.tprint("Reverting to last version.")
-
         else:
             # Propogate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
