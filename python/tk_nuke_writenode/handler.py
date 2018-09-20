@@ -42,6 +42,7 @@ class TankWriteNodeHandler(object):
     WRITE_NODE_NAME = "Write1"
     EMBED_TIME_CODE = "project_tc"
     EMBED_META_DATA = "content_meta_data"    
+    EMBED_SHOT_OCIO_DATA = "shot_ocio"        
     EMBED_PROJECT_REFORMAT = "project_reformat"
     EMBED_CROP = "project_crop"
 
@@ -60,6 +61,7 @@ class TankWriteNodeHandler(object):
         # Context info
         self._curr_entity_type = self._app.context.entity['type']        
         self._project = self._app.context.project
+        self._entity = self._app.context.entity
 
         # cache the profiles:
         self._promoted_knobs = {}
@@ -93,6 +95,10 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space',
                                             'sg_project_color_management'])
+        self.shot_info = self.sg.find_one("Shot", 
+                                            [['id', 'is', self._entity['id']]],     
+                                            ['name',
+                                            'sg_main_plate']) 
         # self.software_info = self.sg.find_one("Software", 
         #                                     [['id', 'is_not', 0],
         #                                     ['code', 'is', 'RV']], 
@@ -437,7 +443,9 @@ class TankWriteNodeHandler(object):
         project_tc = nuke.createNode("AddTimeCode")
         project_tc['name'].setValue("project_tc")
         content_metadata = nuke.createNode("ModifyMetaData")       
-        content_metadata['name'].setValue("content_meta_data")         
+        content_metadata['name'].setValue("content_meta_data")     
+        shot_ocio = nuke.createNode("OCIOColorSpace")       
+        shot_ocio['name'].setValue("shot_ocio")
         proj_group_nodes.append(project_reformat)
         proj_group_nodes.append(project_crop)
         proj_group_nodes.append(project_tc)
@@ -513,6 +521,10 @@ class TankWriteNodeHandler(object):
             # Embed metadata
             md = extra_node.node('content_meta_data')['metadata']
             md.fromScript(self.__get_metadata(sg_wn))  
+            # Embed OCIO
+            extra_node.node('shot_ocio')['channels'].setValue(sg_wn.node('shot_ocio')['channels'].value())
+            extra_node.node('in_colorspace')['channels'].setValue(sg_wn.node('in_colorspace')['channels'].value())
+            extra_node.node('out_colorspace')['channels'].setValue(sg_wn.node('out_colorspace')['channels'].value())
 
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
@@ -1619,7 +1631,8 @@ class TankWriteNodeHandler(object):
             proj_reformat = node.node(TankWriteNodeHandler.EMBED_PROJECT_REFORMAT)
             project_crop = node.node(TankWriteNodeHandler.EMBED_CROP)
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
-            content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)            
+            content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
+            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO_DATA)                  
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
 
@@ -1687,11 +1700,17 @@ class TankWriteNodeHandler(object):
                             nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
 
                     proj_reformat.knobs()["format"].setValue(main_format)
-
+            
+            nuke.tprint(self.shot_info['sg_main_plate'])
             # Set colorspace based of SG values
             if self.proj_info['sg_color_space']:
-                nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), self.proj_info['sg_color_space']))
-                node['colorspace'].setValue(self.proj_info['sg_color_space'])
+                if self.proj_info['sg_project_color_management'] == "OCIO":
+                    color_space = "acescg"
+                else:
+                    color_space = self.proj_info['sg_color_space']
+
+                node['colorspace'].setValue(color_space)
+                nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), color_space))
 
             md = content_meta_data['metadata']
             md.fromScript(self.__get_metadata(node))    
