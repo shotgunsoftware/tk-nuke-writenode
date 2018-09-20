@@ -1690,8 +1690,13 @@ class TankWriteNodeHandler(object):
 
             # Set colorspace based of SG values
             if self.proj_info['sg_color_space']:
+                if (self.ctx_info.step['name'] == "Roto" and
+                self.proj_info['sg_project_color_management'] != "OCIO"):
+                    node['colorspace'].setValue("linear")                
+                else:
+                    node['colorspace'].setValue(self.proj_info['sg_color_space'])
+
                 nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), self.proj_info['sg_color_space']))
-                node['colorspace'].setValue(self.proj_info['sg_color_space'])
 
             md = content_meta_data['metadata']
             md.fromScript(self.__get_metadata(node))    
@@ -2559,18 +2564,21 @@ class TankWriteNodeHandler(object):
             else:
                 if (write_type == "Version" or 
                     write_type == "Final"):
-                    if self.ctx_info.step['name'] != "Roto":
-                        # pass
-                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                        # self.__version_up_visible(node, False)                          
-                        node.knob("project_crop").setValue(True)
-                        node.node("project_reformat")['disable'].setValue(False)
-                        node.node("project_crop")['disable'].setValue(False)
-                    else:
-                        nuke.tprint("Step is roto. Disabling Project crop.")
+                    if self.ctx_info.step['name'] == "Roto":
+                        nuke.tprint("Creating Roto SG Write node")
+                        node.knob('write_type').setValues(['Version', 'Denoise'])
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop").setValue(False)
                         node.node("project_reformat")['disable'].setValue(True)
                         node.node("project_crop")['disable'].setValue(True)
+                    elif self.ctx_info.step['name'] == "Cleanup":
+                        node.knob("project_crop").setValue(False)
+                        node.node("project_reformat")['disable'].setValue(True)                   
+                    else:
+                        node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
+                        node.knob("project_crop").setValue(True)
+                        node.node("project_reformat")['disable'].setValue(False)
+                        node.node("project_crop")['disable'].setValue(False)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
