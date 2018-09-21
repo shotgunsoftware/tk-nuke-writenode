@@ -2696,14 +2696,15 @@ class TankWriteNodeHandler(object):
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
             new_output_name = knob.value()
-            if not new_output_name:
+            if (not new_output_name or
+            write_type == 'Version'):
                 pass
             else:
                 node['name'].setValue(write_type+"_"+str(new_output_name))
                 if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
                     # force output name to be the node name:
                     new_output_name = node.knob("name").value()
-                self.__set_output(node, new_output_name)      
+            self.__set_output(node, new_output_name)      
         elif knob.name() == "name":
             # node name has changed:
             if write_type != "Version":
