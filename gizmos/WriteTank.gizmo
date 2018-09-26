@@ -283,12 +283,19 @@ Gizmo {
     -INVISIBLE
  }
  addUserKnob {
-    6 project_crop 
+    6 project_crop_bool
     l "Crop to Project delivery format" 
     t "Choose to crop footage to the Project format." 
     +STARTLINE
     -INVISIBLE
  } 
+ addUserKnob {
+    6 shot_ocio_bool
+    l "Apply shot OCIO" 
+    t "Choose to apply the embeded shot OCIO." 
+    +STARTLINE
+    -INVISIBLE
+ }  
   addUserKnob {
     4 exr_datatype 
     l "dataype" 

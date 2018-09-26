@@ -1486,7 +1486,6 @@ class TankWriteNodeHandler(object):
         self.__update_knob_value(node, "tk_profile_list", profile_name)
         
         
-        self.__update_knob_value(node, "write_version_latest", str(1))
         # set the format
         self.__populate_format_settings(
             node,
@@ -1728,9 +1727,25 @@ class TankWriteNodeHandler(object):
                                 if not main_plate_name:
                                     pass
                                 else:
-                                    shot_ocio['in_colorspace'].setValue(main_plate_name)
+                                    if write_type != "Version":
+                                        node['shot_ocio_bool'].setVisible(False)   
+                                        node['shot_ocio_bool'].setValue(False) 
+                                        shot_ocio['disable'].setValue(True)                                           
+                                    else:
+                                        in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
+                                        if in_color_space:
+                                            nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
+                                            shot_ocio['in_colorspace'].setValue(main_plate_name)
+                                            shot_ocio['disable'].setValue(False)
+                                            node['shot_ocio_bool'].setVisible(True)
+                                            node['shot_ocio_bool'].setValue(True)
+                                        else:
+                                            node['shot_ocio_bool'].setVisible(False)   
+                                            node['shot_ocio_bool'].setValue(False) 
+                                            shot_ocio['disable'].setValue(True)                                                                            
+                                            nuke.tprint("No in_colorspace value called: %s. Skipping..." % main_plate_name)
                             else:
-                                nuke.tprint("!!! Could not find SG Info node that is required for OCIO color setup.")
+                                nuke.message("Could not find SG Info node that is required for OCIO color setup.")
 
                 else:
                     color_space = self.proj_info['sg_color_space']
@@ -1744,6 +1759,9 @@ class TankWriteNodeHandler(object):
                 elif (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):
                     color_space = self.proj_info['sg_color_space']
+                    if color_space not in node.knob('colorspace').values():
+                        color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
+
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
@@ -2612,7 +2630,8 @@ class TankWriteNodeHandler(object):
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
                 node.node("project_crop")['disable'].setValue(True)    
-                node.knob('project_crop').setVisible(False)                       
+                node.knob('project_crop_bool').setVisible(False)                       
+                node.knob('shot_ocio_bool').setVisible(False)                   
             else:
                 if (write_type == "Version" or 
                     write_type == "Final"):
@@ -2620,7 +2639,7 @@ class TankWriteNodeHandler(object):
                         nuke.tprint("Creating Roto SG Write node")
                         node.knob('write_type').setValues(['Version', 'Denoise'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                        node.knob("project_crop").setValue(False)
+                        node.knob("project_crop_bool").setValue(False)
                         node.node("project_reformat")['disable'].setValue(True)
                         node.node("project_crop")['disable'].setValue(True)
                     elif self.ctx_info.step['name'] == "Cleanup":
@@ -2628,7 +2647,7 @@ class TankWriteNodeHandler(object):
                         node.node("project_reformat")['disable'].setValue(True)                   
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
-                        node.knob("project_crop").setValue(True)
+                        node.knob("project_crop_bool").setValue(True)
                         node.node("project_reformat")['disable'].setValue(False)
                         node.node("project_crop")['disable'].setValue(False)
         if self._curr_entity_type == 'Asset':
@@ -2636,7 +2655,7 @@ class TankWriteNodeHandler(object):
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
                 node.node("project_crop")['disable'].setValue(True)   
-                node.knob('project_crop').setVisible(False)                      
+                node.knob('project_crop_bool').setVisible(False)                      
 
         # now that the node is constructed, we can process
         # knob changes correctly.
@@ -2703,10 +2722,16 @@ class TankWriteNodeHandler(object):
             node.node("project_crop")['disable'].setValue(False)
         elif value == False:
             node.node("project_reformat")['disable'].setValue(True)
-            node.node("project_crop")['disable'].setValue(True)               
+            node.node("project_crop")['disable'].setValue(True)    
+
+    def __embedded_ocio_option(self, node, value):
+        if value == True:
+            node.node("shot_ocio")['disable'].setValue(False)
+        elif value == False:
+            node.node("shot_ocio")['disable'].setValue(True)
 
     def __set_project_crop(self, node, bool):
-        node["project_crop"].setValue(bool)
+        node["project_crop_bool"].setValue(bool)
 
     def __on_knob_changed(self):
         """
@@ -2846,8 +2871,10 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.10.239/mediawiki-1.25.2/index.php?title=VFX_Wiki#SG_Write_Nodes"
             webbrowser.open_new_tab(write_type_url)     
-        elif knob.name() == "project_crop":   
+        elif knob.name() == "project_crop_bool":   
             self.__embedded_format_option(node, knob.value())
+        elif knob.name() == "shot_ocio_bool":   
+            self.__embedded_ocio_option(node, knob.value())            
         elif knob.name() == "exr_datatype":   
             try:
                 node.node("Write1").knob("datatype").setValue(knob.value())
