@@ -95,10 +95,10 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space',
                                             'sg_project_color_management'])
-        self.shot_info = self.sg.find_one("Shot", 
-                                            [['id', 'is', self._entity['id']]],     
-                                            ['name',
-                                            'sg_main_plate']) 
+        # self.shot_info = self.sg.find_one("Shot", 
+        #                                     [['id', 'is', self._entity['id']]],     
+        #                                     ['name',
+        #                                     'sg_main_plate']) 
         # self.software_info = self.sg.find_one("Software", 
         #                                     [['id', 'is_not', 0],
         #                                     ['code', 'is', 'RV']], 
@@ -162,7 +162,17 @@ class TankWriteNodeHandler(object):
                                  recurseGroups = True)
         else:
             return []
-            
+
+    def get_nodes_by_class(self, class_name):
+        """
+        Returns a list of tank write nodes
+        """
+        if nuke.exists("root"):
+            return nuke.allNodes(group=nuke.root(), 
+                                 filter=class_name, 
+                                 recurseGroups = True)
+        else:
+            return []            
     def get_node_name(self, node):
         """
         Return the name for the specified node
@@ -450,7 +460,8 @@ class TankWriteNodeHandler(object):
         proj_group_nodes.append(project_crop)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)        
-        
+        proj_group_nodes.append(shot_ocio)     
+
         for i in proj_group_nodes:
             i.setSelected(True)
 
@@ -522,10 +533,9 @@ class TankWriteNodeHandler(object):
             md = extra_node.node('content_meta_data')['metadata']
             md.fromScript(self.__get_metadata(sg_wn))  
             # Embed OCIO
-            extra_node.node('shot_ocio')['channels'].setValue(sg_wn.node('shot_ocio')['channels'].value())
-            extra_node.node('in_colorspace')['channels'].setValue(sg_wn.node('in_colorspace')['channels'].value())
-            extra_node.node('out_colorspace')['channels'].setValue(sg_wn.node('out_colorspace')['channels'].value())
-
+            extra_node.node('shot_ocio')['in_colorspace'].setValue(sg_wn.node('shot_ocio')['in_colorspace'].value())
+            extra_node.node('shot_ocio')['out_colorspace'].setValue(sg_wn.node('shot_ocio')['out_colorspace'].value())
+            
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
             if sg_wn["proxy_render_template"].value():
@@ -1700,12 +1710,27 @@ class TankWriteNodeHandler(object):
                             nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
 
                     proj_reformat.knobs()["format"].setValue(main_format)
-            
-            nuke.tprint(self.shot_info['sg_main_plate'])
+
             # Set colorspace based of SG values
             if self.proj_info['sg_color_space']:
                 if self.proj_info['sg_project_color_management'] == "OCIO":
                     color_space = "acescg"
+                    if not nuke.root()['customOCIOConfigPath']:
+                        pass
+                    else:
+                        sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
+                        if not sg_info_nodes:
+                            pass
+                        else:
+                            if len(sg_info_nodes)==1:
+                                main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
+                                if not main_plate_name:
+                                    pass
+                                else:
+                                    shot_ocio['in_colorspace'].setValue(main_plate_name)
+                            else:
+                                nuke.tprint("!!! Could not find SG Info node that is required for OCIO color setup.")
+
                 else:
                     color_space = self.proj_info['sg_color_space']
 
