@@ -1623,7 +1623,8 @@ class TankWriteNodeHandler(object):
                 profile_channel = "rgba"                                           
         elif profile_name == "Jpeg":
             node.knob('dpx_datatype').setVisible(False)            
-            node.knob('exr_datatype').setVisible(False)                  
+            node.knob('exr_datatype').setVisible(False)   
+            node.knob('auto_crop').setVisible(False)                           
             profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
