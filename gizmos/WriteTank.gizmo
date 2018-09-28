@@ -296,6 +296,10 @@ Gizmo {
     +STARTLINE
     -INVISIBLE
  }  
+ addUserKnob {
+   25 ""
+   - STARTLINE
+ } 
   addUserKnob {
     4 exr_datatype 
     l "dataype" 
