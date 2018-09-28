@@ -1603,7 +1603,9 @@ class TankWriteNodeHandler(object):
         profile_channel = "rgba"
         if profile_name == "Dpx":
             node.knob('dpx_datatype').setVisible(True)            
-            node.knob('exr_datatype').setVisible(False)                    
+            node.knob('exr_datatype').setVisible(False)   
+            node.knob('auto_crop').setVisible(False)
+            node.knob('auto_crop').setValue(False)            
             profile_channel = "rgb"
         elif profile_name == "Exr":
             node.knob('exr_datatype').setVisible(True)
@@ -1621,7 +1623,8 @@ class TankWriteNodeHandler(object):
                 profile_channel = "rgba"                                           
         elif profile_name == "Jpeg":
             node.knob('dpx_datatype').setVisible(False)            
-            node.knob('exr_datatype').setVisible(False)                  
+            node.knob('exr_datatype').setVisible(False)   
+            node.knob('auto_crop').setVisible(False)                           
             profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
@@ -1729,7 +1732,7 @@ class TankWriteNodeHandler(object):
                                 else:
                                     if write_type != "Version":
                                         node['shot_ocio_bool'].setVisible(False)   
-                                        node['shot_ocio_bool'].setValue(False) 
+                                        node['shot_ocio_bool'].setValue(False)                               
                                         shot_ocio['disable'].setValue(True)                                           
                                     else:
                                         in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
@@ -1749,6 +1752,9 @@ class TankWriteNodeHandler(object):
 
                 else:
                     color_space = self.proj_info['sg_color_space']
+                    node['shot_ocio_bool'].setVisible(False)   
+                    node['shot_ocio_bool'].setValue(False)                               
+                    shot_ocio['disable'].setValue(False)                           
                
                 if (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] != "OCIO"):
