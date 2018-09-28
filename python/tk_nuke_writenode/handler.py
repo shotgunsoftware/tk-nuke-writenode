@@ -1759,17 +1759,21 @@ class TankWriteNodeHandler(object):
                 if (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] != "OCIO"):
                     color_space = "linear"
+                    nuke.tprint("Roto/Non OCIO")                    
                 elif (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] == "OCIO"):
                     color_space = "acescg"
+                    nuke.tprint("Roto/OCIO")                       
                 elif (self.ctx_info.step['name'] != "Roto" and
-                write_type == "Version"):
+                write_type == "Version" and
+                self.proj_info['sg_project_color_management'] == "OCIO"):
+                    nuke.tprint("NonRoto/Version/OCIO")                      
                     color_space = self.proj_info['sg_color_space']
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
+                    nuke.tprint("--- Could not get color space info. Setting default.")
                 
                 node['colorspace'].setValue(color_space)
                 nuke.tprint("Setting colorspace of %s to: %s" % (node['name'].value(), self.proj_info['sg_color_space']))
