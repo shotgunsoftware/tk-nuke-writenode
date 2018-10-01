@@ -1759,9 +1759,11 @@ class TankWriteNodeHandler(object):
                 if (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] != "OCIO"):
                     color_space = "linear"                 
+                    nuke.tprint("--- Setting color space to %s for non-OCIO Roto" % color_space)
                 elif (self.ctx_info.step['name'] == "Roto" and
                 self.proj_info['sg_project_color_management'] == "OCIO"):
-                    color_space = "acescg"                  
+                    color_space = "acescg"      
+                    nuke.tprint("--- Setting color space to %s for OCIO Roto" % color_space)                                
                 elif (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
                     color_space = self.proj_info['sg_color_space']
@@ -2636,7 +2638,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.node("project_crop")['disable'].setValue(True)    
+                # node.node("project_crop")['disable'].setValue(True)    
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
@@ -2648,21 +2650,21 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
                         node.node("project_reformat")['disable'].setValue(True)
-                        node.node("project_crop")['disable'].setValue(True)
+                        # node.node("project_crop")['disable'].setValue(True)
                     elif self.ctx_info.step['name'] == "Cleanup":
-                        node.knob("project_crop").setValue(False)
                         node.node("project_reformat")['disable'].setValue(True)                   
+                        # node.knob("project_crop").setValue(False)
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
                         node.knob("project_crop_bool").setValue(True)
                         node.node("project_reformat")['disable'].setValue(False)
-                        node.node("project_crop")['disable'].setValue(False)
+                        # node.node("project_crop")['disable'].setValue(False)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.node("project_crop")['disable'].setValue(True)   
                 node.knob('project_crop_bool').setVisible(False)                      
+                # node.node("project_crop")['disable'].setValue(True)   
 
         # now that the node is constructed, we can process
         # knob changes correctly.
@@ -2803,9 +2805,8 @@ class TankWriteNodeHandler(object):
                         write_type == "Final"):
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
-                        # self.__version_up_visible(node, False)                        
-                        node.node("project_reformat")['disable'].setValue(False)
-                        node.node("project_crop")['disable'].setValue(False)                    
+                        # self.__version_up_visible(node, False)        
+                        self.__embedded_format_option(node, True)             
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
@@ -2815,10 +2816,10 @@ class TankWriteNodeHandler(object):
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
                         write_type_profile = "Exr"
-                        # self.__version_up_visible(node, True)                        
-                        node.node("project_reformat")['disable'].setValue(True)
-                        node.node("project_crop")['disable'].setValue(True)
+                        # self.__version_up_visible(node, True)     
+                        self.__embedded_format_option(node, True)
                         try:
+                            node.node("Write1").knob("autocrop").setValue(True)
                             node.node("Write1").knob("autocrop").setValue(True)
                         except:
                             pass
