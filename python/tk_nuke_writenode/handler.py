@@ -1757,13 +1757,10 @@ class TankWriteNodeHandler(object):
                     shot_ocio['disable'].setValue(False)                           
                
                 if (self.ctx_info.step['name'] == "Roto" and
-                self.proj_info['sg_project_color_management'] != "OCIO"):
-                    color_space = "linear"                 
-                    nuke.tprint("--- Setting color space to %s for non-OCIO Roto" % color_space)
-                elif (self.ctx_info.step['name'] == "Roto" and
+                self.proj_info['sg_project_color_management'] != "OCIO" or 
                 self.proj_info['sg_project_color_management'] == "OCIO"):
-                    color_space = "acescg"      
-                    nuke.tprint("--- Setting color space to %s for OCIO Roto" % color_space)                                
+                    color_space = "linear"                 
+                    nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
                 elif (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
                     color_space = self.proj_info['sg_color_space']
@@ -1771,7 +1768,7 @@ class TankWriteNodeHandler(object):
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                         nuke.tprint("--- Could not get color space info. Setting default.")
                     else:
-                        nuke.tprint("--- Setting color space to %s from Projects page." % color_space)
+                        nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
