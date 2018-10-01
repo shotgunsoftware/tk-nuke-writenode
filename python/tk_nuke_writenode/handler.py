@@ -2817,7 +2817,7 @@ class TankWriteNodeHandler(object):
                         self.__write_type_changed(node, True)
                         write_type_profile = "Exr"
                         # self.__version_up_visible(node, True)     
-                        self.__embedded_format_option(node, True)
+                        self.__embedded_format_option(node, False)
                         try:
                             node.node("Write1").knob("autocrop").setValue(True)
                             node.node("Write1").knob("autocrop").setValue(True)
