@@ -173,6 +173,7 @@ class TankWriteNodeHandler(object):
                                  recurseGroups = True)
         else:
             return []            
+    
     def get_node_name(self, node):
         """
         Return the name for the specified node
@@ -1610,7 +1611,7 @@ class TankWriteNodeHandler(object):
         elif profile_name == "Exr":
             node.knob('exr_datatype').setVisible(True)
             node.knob('dpx_datatype').setVisible(False)
-            profile_channel = "rgb"       
+            profile_channel = "rgba"
             node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
             node.knob('auto_crop').setVisible(False)
             if (write_type == "Precomp" or 
@@ -2605,16 +2606,7 @@ class TankWriteNodeHandler(object):
             # sure we reset all settings 
             reset_all_profile_settings = True 
 
-        # set the write type for creation of correct output
-        write_type = self.get_node_write_type_name(node)        
-        # ensure that the correct entry is selected from the list:
-        self.__update_knob_value(node, "tk_profile_list", current_profile_name)
-        # and make sure the node is up-to-date with the profile:
-        self.__set_profile(node, current_profile_name, write_type, reset_all_settings=reset_all_profile_settings)
-                   
-        # ensure that the disable value properly propogates to the internal write node:
-        write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-        write_node["disable"].setValue(node["disable"].value())
+
 
         # Ensure that the output name matches the node name if
         # that option is enabled on the node. This is primarily
@@ -2632,6 +2624,8 @@ class TankWriteNodeHandler(object):
         # knob changes correctly.
         self.__set_final_construction_flag(node, True)
         
+        # set the write type for creation of correct output
+        write_type = self.get_node_write_type_name(node)        
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
@@ -2643,6 +2637,7 @@ class TankWriteNodeHandler(object):
                     write_type == "Final"):
                     if self.ctx_info.step['name'] == "Roto":
                         nuke.tprint("Creating Roto SG Write node")
+                        self.__update_knob_value(node, "tk_profile_list", "Exr")
                         node.knob('write_type').setValues(['Version', 'Denoise'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
@@ -2661,7 +2656,16 @@ class TankWriteNodeHandler(object):
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
                 node.knob('project_crop_bool').setVisible(False)                      
-                # node.node("project_crop")['disable'].setValue(True)   
+                # node.node("project_crop")['disable'].setValue(True)  
+                #  
+        # ensure that the correct entry is selected from the list:
+        self.__update_knob_value(node, "tk_profile_list", current_profile_name)
+        # and make sure the node is up-to-date with the profile:
+        self.__set_profile(node, current_profile_name, write_type, reset_all_settings=reset_all_profile_settings)
+                   
+        # ensure that the disable value properly propogates to the internal write node:
+        write_node = node.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+        write_node["disable"].setValue(node["disable"].value())
 
         # now that the node is constructed, we can process
         # knob changes correctly.
