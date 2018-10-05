@@ -535,7 +535,8 @@ class TankWriteNodeHandler(object):
             md.fromScript(self.__get_metadata(sg_wn))  
             # Embed OCIO
             extra_node.node('shot_ocio')['in_colorspace'].setValue(sg_wn.node('shot_ocio')['in_colorspace'].value())
-            extra_node.node('shot_ocio')['out_colorspace'].setValue(sg_wn.node('shot_ocio')['out_colorspace'].value())
+            extra_node.node('shot_ocio')['in_colorspace'].setValue(sg_wn.node('shot_ocio')['in_colorspace'].value())
+            extra_node.node('shot_ocio')['disable'].setValue(sg_wn.node('shot_ocio')['disable'].value())
             
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
