@@ -42,7 +42,7 @@ class TankWriteNodeHandler(object):
     WRITE_NODE_NAME = "Write1"
     EMBED_TIME_CODE = "project_tc"
     EMBED_META_DATA = "content_meta_data"    
-    EMBED_SHOT_OCIO_DATA = "shot_ocio"        
+    EMBED_SHOT_OCIO = "shot_ocio"        
     EMBED_PROJECT_REFORMAT = "project_reformat"
     EMBED_CROP = "project_crop"
 
@@ -1645,7 +1645,7 @@ class TankWriteNodeHandler(object):
             project_crop = node.node(TankWriteNodeHandler.EMBED_CROP)
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
-            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO_DATA)                  
+            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)                  
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
 
@@ -1731,45 +1731,41 @@ class TankWriteNodeHandler(object):
                                 if not main_plate_name:
                                     pass
                                 else:
+                                    in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
+                                    if in_color_space:
+                                        nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
+                                        shot_ocio['in_colorspace'].setValue(main_plate_name)
+                                        shot_ocio['disable'].setValue(False)
+                                    else:
+                                        shot_ocio['disable'].setValue(True)                                                                            
+                                        nuke.tprint("No in_colorspace value called: %s. Skipping..." % main_plate_name)
                                     if write_type != "Version":
-                                        node['shot_ocio_bool'].setVisible(False)   
                                         node['shot_ocio_bool'].setValue(False)                               
                                         shot_ocio['disable'].setValue(True)                                           
                                     else:
-                                        in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
-                                        if in_color_space:
-                                            nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
-                                            shot_ocio['in_colorspace'].setValue(main_plate_name)
-                                            shot_ocio['disable'].setValue(False)
-                                            node['shot_ocio_bool'].setVisible(True)
-                                            node['shot_ocio_bool'].setValue(True)
-                                        else:
-                                            node['shot_ocio_bool'].setVisible(False)   
-                                            node['shot_ocio_bool'].setValue(False) 
-                                            shot_ocio['disable'].setValue(True)                                                                            
-                                            nuke.tprint("No in_colorspace value called: %s. Skipping..." % main_plate_name)
+                                        node['shot_ocio_bool'].setValue(True)                               
+                                        shot_ocio['disable'].setValue(False)     
                             else:
                                 nuke.message("Could not find SG Info node that is required for OCIO color setup.")
-
                 else:
                     color_space = self.proj_info['sg_color_space']
                     node['shot_ocio_bool'].setVisible(False)   
                     node['shot_ocio_bool'].setValue(False)                               
                     shot_ocio['disable'].setValue(False)                           
                
-                if (self.ctx_info.step['name'] == "Roto" and
-                self.proj_info['sg_project_color_management'] != "OCIO" or 
-                self.proj_info['sg_project_color_management'] == "OCIO"):
-                    color_space = "linear"                 
-                    nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
-                elif (self.ctx_info.step['name'] != "Roto" and
+                if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
                     color_space = self.proj_info['sg_color_space']
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                        nuke.tprint("--- Could not get color space info. Setting default.")
+                        nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
                     else:
                         nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
+                elif (self.ctx_info.step['name'] == "Roto"):#and
+                # self.proj_info['sg_project_color_management'] != "OCIO" or 
+                # self.proj_info['sg_project_color_management'] == "OCIO"):
+                    color_space = "linear"                 
+                    nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
