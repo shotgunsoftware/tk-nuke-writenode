@@ -44,7 +44,7 @@ class TankWriteNodeHandler(object):
     EMBED_META_DATA = "content_meta_data"    
     EMBED_SHOT_OCIO = "shot_ocio"        
     EMBED_PROJECT_REFORMAT = "project_reformat"
-    EMBED_CROP = "project_crop"
+    EMBED_DELIVERY_REFORMAT = "delivery_reformat"
 
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
@@ -449,8 +449,8 @@ class TankWriteNodeHandler(object):
         proj_group_nodes = []
         project_reformat = nuke.createNode("Reformat")
         project_reformat['name'].setValue("project_reformat")
-        project_crop = nuke.createNode("Crop")
-        project_crop['name'].setValue("project_crop")
+        delivery_reformat = nuke.createNode("Crop")
+        delivery_reformat['name'].setValue("delivery_reformat")
         project_tc = nuke.createNode("AddTimeCode")
         project_tc['name'].setValue("project_tc")
         content_metadata = nuke.createNode("ModifyMetaData")       
@@ -458,7 +458,7 @@ class TankWriteNodeHandler(object):
         shot_ocio = nuke.createNode("OCIOColorSpace")       
         shot_ocio['name'].setValue("shot_ocio")
         proj_group_nodes.append(project_reformat)
-        proj_group_nodes.append(project_crop)
+        proj_group_nodes.append(delivery_reformat)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)        
         proj_group_nodes.append(shot_ocio)     
@@ -520,10 +520,10 @@ class TankWriteNodeHandler(object):
             extra_node.node('project_reformat')['pbb'].setValue(sg_wn.node('project_reformat')['pbb'].value())
             extra_node.node('project_reformat')['black_outside'].setValue(sg_wn.node('project_reformat')['black_outside'].value())
             # Embed crop            
-            extra_node.node('project_crop')['disable'].setValue(sg_wn.node('project_crop')['disable'].value())
-            extra_node.node('project_crop')['box'].setValue(sg_wn.node('project_crop')['box'].value())            
-            extra_node.node('project_crop')['reformat'].setValue(sg_wn.node('project_crop')['reformat'].value())
-            extra_node.node('project_crop')['crop'].setValue(sg_wn.node('project_crop')['crop'].value())            
+            extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
+            extra_node.node('delivery_reformat')['box'].setValue(sg_wn.node('delivery_reformat')['box'].value())            
+            extra_node.node('delivery_reformat')['reformat'].setValue(sg_wn.node('delivery_reformat')['reformat'].value())
+            extra_node.node('delivery_reformat')['crop'].setValue(sg_wn.node('delivery_reformat')['crop'].value())            
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
@@ -1642,8 +1642,8 @@ class TankWriteNodeHandler(object):
 
         if self._curr_entity_type == 'Shot':
             # Update embeded time code
-            proj_reformat = node.node(TankWriteNodeHandler.EMBED_PROJECT_REFORMAT)
-            project_crop = node.node(TankWriteNodeHandler.EMBED_CROP)
+            project_reformat = node.node(TankWriteNodeHandler.EMBED_PROJECT_REFORMAT)
+            delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
             shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)                  
@@ -1652,7 +1652,8 @@ class TankWriteNodeHandler(object):
 
             # Add sG reformat settings
             if not self.proj_info['sg_delivery_reformat_filter'] == None:
-                proj_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             # Timecode settings
             if not self.frame_range[0]:
@@ -1673,47 +1674,56 @@ class TankWriteNodeHandler(object):
             time_code.knobs()["metafps"].setValue(use_meta_data)
 
             # Embeded Crop settings
+            # Set the project reformat first
+            scriptFormats = nuke.formats()
+            main_format = None                
+            for f in scriptFormats:
+                if (f.width() == int(self.proj_info['sg_format_width']) and 
+                    f.height() == int(self.proj_info['sg_format_height'])):
+                    main_format = f
+                    break
+            if not main_format:
+                try:
+                    main_format = nuke.addFormat("%s %s %s %s" % (str(self.proj_info['sg_delivery_format_width']), 
+                            str(self.proj_info['sg_delivery_format_height']), 
+                            str(self.proj_info['sg_pixel_aspect_ratio']), 
+                            (self.proj_info['sg_short_name']+"_"+str(self.proj_info['sg_format_width']))))
+                except:
+                    nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
+
+            project_reformat.knobs()["format"].setValue(main_format)
+
+            # Set the embeded delivery reformat next
             if not (self.proj_info['sg_delivery_format_width'] and 
-                self.proj_info['sg_delivery_format_height']):
-                    if (self.proj_info['sg_format_width'] and 
-                        self.proj_info['sg_format_height']):
-                        project_crop.knobs()["box"].setValue((0, 
-                        0, 
-                        self.proj_info['sg_format_width'], 
-                        self.proj_info['sg_format_height']))
-
-                        self._app.log_debug("Applied Project format to embeded Crop: " + 
-                        str(self.proj_info['sg_format_width']) + 
-                        str(self.proj_info['sg_format_height']))
+            self.proj_info['sg_delivery_format_height']):
+                node.node("delivery_reformat")['disable'].setValue(True)  
             else:            
-                project_crop.knobs()["box"].setValue((0, 
-                0, 
-                self.proj_info['sg_delivery_format_width'], 
-                self.proj_info['sg_delivery_format_height']))
-                self._app.log_debug("Applied Project Delivery format to embeded Crop")
+                # If delivery format matches project format disable
+                if (self.proj_info['sg_format_width'] == self.proj_info['sg_delivery_format_width'] and 
+                self.proj_info['sg_format_height']==self.proj_info['sg_delivery_format_height']):
+                    node.node("delivery_reformat")['disable'].setValue(True)
+                else:
+                    # Set the delivery_reformat node
+                    if (self.proj_info['sg_delivery_format_width'] and
+                        self.proj_info['sg_delivery_format_height'] and
+                        self.proj_info['sg_pixel_aspect_ratio'] and
+                        self.proj_info['sg_short_name']):
+                            main_format = None                
+                            for f in scriptFormats:
+                                if (f.width() == int(self.proj_info['sg_delivery_format_width']) and 
+                                    f.height() == int(self.proj_info['sg_delivery_format_height'])):
+                                    main_format = f
+                                    break
+                            if not main_format:
+                                try:
+                                    main_format = nuke.addFormat("%s %s %s %s" % (str(self.proj_info['sg_delivery_format_width']), 
+                                            str(self.proj_info['sg_delivery_format_height']), 
+                                            str(self.proj_info['sg_pixel_aspect_ratio']), 
+                                            (self.proj_info['sg_short_name']+"_"+str(self.proj_info['sg_format_width']))))
+                                except:
+                                    nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
 
-            # Set reformat info
-            if (self.proj_info['sg_delivery_format_width'] and 
-                self.proj_info['sg_delivery_format_height'] and
-                self.proj_info['sg_pixel_aspect_ratio'] and
-                self.proj_info['sg_short_name']):    
-                    scriptFormats = nuke.formats()
-                    main_format = None                
-                    for f in scriptFormats:
-                        if (f.width() == int(self.proj_info['sg_delivery_format_width']) and 
-                            f.height() == int(self.proj_info['sg_delivery_format_height'])):
-                            main_format = f
-                            break
-                    if not main_format:
-                        try:
-                            main_format = nuke.addFormat("%s %s %s %s" % (str(self.proj_info['sg_delivery_format_width']), 
-                                    str(self.proj_info['sg_delivery_format_height']), 
-                                    str(self.proj_info['sg_pixel_aspect_ratio']), 
-                                    (self.proj_info['sg_short_name']+"_"+str(self.proj_info['sg_format_width']))))
-                        except:
-                            nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
-
-                    proj_reformat.knobs()["format"].setValue(main_format)
+                            delivery_reformat.knobs()["format"].setValue(main_format)
 
             # Set colorspace based of SG values
             color_space = None
@@ -2626,7 +2636,6 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.node("project_reformat")['disable'].setValue(True)                    
-                # node.node("project_crop")['disable'].setValue(True)    
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
@@ -2639,22 +2648,17 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
                         node.node("project_reformat")['disable'].setValue(True)
-                        # node.node("project_crop")['disable'].setValue(True)
                     elif self.ctx_info.step['name'] == "Cleanup":
                         node.node("project_reformat")['disable'].setValue(True)                   
-                        # node.knob("project_crop").setValue(False)
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
                         node.knob("project_crop_bool").setValue(True)
                         node.node("project_reformat")['disable'].setValue(False)
-                        # node.node("project_crop")['disable'].setValue(False)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
                 node.knob('project_crop_bool').setVisible(False)                      
-                # node.node("project_crop")['disable'].setValue(True)  
-                #  
         # ensure that the correct entry is selected from the list:
         self.__update_knob_value(node, "tk_profile_list", current_profile_name)
         # and make sure the node is up-to-date with the profile:
@@ -2726,10 +2730,10 @@ class TankWriteNodeHandler(object):
     def __embedded_format_option(self, node, value):
         if value == True:
             node.node("project_reformat")['disable'].setValue(False)
-            node.node("project_crop")['disable'].setValue(False)
+            node.node("delivery_reformat")['disable'].setValue(False)
         elif value == False:
             node.node("project_reformat")['disable'].setValue(True)
-            node.node("project_crop")['disable'].setValue(True)    
+            node.node("delivery_reformat")['disable'].setValue(True)    
 
     def __embedded_ocio_option(self, node, value):
         if value == True:
