@@ -284,7 +284,7 @@ Gizmo {
  }
  addUserKnob {
     6 project_crop_bool
-    l "Crop to Project delivery format" 
+    l "Project delivery format" 
     t "Choose to crop footage to the Project format." 
     +STARTLINE
     -INVISIBLE
@@ -567,20 +567,23 @@ Gizmo {
   ypos -74
  }
 Reformat {
+  name project_reformat
   type "to format"
   box_width 800
   box_height 1
   black_outside false
   pbb true  
-  name project_reformat
   disable true    
  }
- Crop {
-  name project_crop
-  preset format
-  reformat true
-  crop false  
-  disable true  
+ Reformat {
+  name delivery_reformat
+  type "to format"
+  box_width 800
+  box_height 1
+  black_outside false
+  resize width
+  pbb false  
+  disable true
  } 
  AddTimeCode {
   startcode 01:00:00:01
