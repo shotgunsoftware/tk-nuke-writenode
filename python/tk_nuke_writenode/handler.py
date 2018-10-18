@@ -447,9 +447,13 @@ class TankWriteNodeHandler(object):
 
         # Primary group setup 
         proj_group_nodes = []
+        project_group = nuke.createNode("Group")
+        project_group_process = nuke.toNode('Group1')
+        project_group_process.begin()
+        input_node = nuke.createNode("Input")
         project_reformat = nuke.createNode("Reformat")
         project_reformat['name'].setValue("project_reformat")
-        delivery_reformat = nuke.createNode("Crop")
+        delivery_reformat = nuke.createNode("Reformat")
         delivery_reformat['name'].setValue("delivery_reformat")
         project_tc = nuke.createNode("AddTimeCode")
         project_tc['name'].setValue("project_tc")
@@ -457,21 +461,22 @@ class TankWriteNodeHandler(object):
         content_metadata['name'].setValue("content_meta_data")     
         shot_ocio = nuke.createNode("OCIOColorSpace")       
         shot_ocio['name'].setValue("shot_ocio")
+        input_node = nuke.createNode("Output")        
         proj_group_nodes.append(project_reformat)
         proj_group_nodes.append(delivery_reformat)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)        
         proj_group_nodes.append(shot_ocio)     
+        project_group_process.end()
 
-        for i in proj_group_nodes:
-            i.setSelected(True)
-
-        project_group = nuke.makeGroup('showControlPanel')
+        # for i in proj_group_nodes:
+        #     i.setSelected(True)
         project_group.setXpos(nodePos[0])
         project_group.setYpos(nodePos[1] - 30)   
         project_group.setSelected(False)
-        for i in proj_group_nodes:
-            nuke.delete(i)
+
+        # for i in proj_group_nodes:
+        #     nuke.delete(i)
         project_group.setInput(0, parent_node)
         node.setInput(0, project_group)
         return project_group
@@ -519,11 +524,17 @@ class TankWriteNodeHandler(object):
             extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
             extra_node.node('project_reformat')['pbb'].setValue(sg_wn.node('project_reformat')['pbb'].value())
             extra_node.node('project_reformat')['black_outside'].setValue(sg_wn.node('project_reformat')['black_outside'].value())
-            # Embed crop            
+            # Embed crop      
             extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
-            extra_node.node('delivery_reformat')['box'].setValue(sg_wn.node('delivery_reformat')['box'].value())            
-            extra_node.node('delivery_reformat')['reformat'].setValue(sg_wn.node('delivery_reformat')['reformat'].value())
-            extra_node.node('delivery_reformat')['crop'].setValue(sg_wn.node('delivery_reformat')['crop'].value())            
+            extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
+            extra_node.node('delivery_reformat')['format'].setValue(sg_wn.node('delivery_reformat')['format'].value())
+            extra_node.node('delivery_reformat')['pbb'].setValue(sg_wn.node('delivery_reformat')['pbb'].value())
+            extra_node.node('delivery_reformat')['black_outside'].setValue(sg_wn.node('delivery_reformat')['black_outside'].value())
+
+            # extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
+            # extra_node.node('delivery_reformat')['box'].setValue(sg_wn.node('delivery_reformat')['box'].value())            
+            # extra_node.node('delivery_reformat')['reformat'].setValue(sg_wn.node('delivery_reformat')['reformat'].value())
+            # extra_node.node('delivery_reformat')['crop'].setValue(sg_wn.node('delivery_reformat')['crop'].value())            
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
