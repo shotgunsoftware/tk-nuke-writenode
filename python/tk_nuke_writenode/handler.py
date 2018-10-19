@@ -438,7 +438,6 @@ class TankWriteNodeHandler(object):
     def create_project_settings_group(self, node):
 
         # Get properties of selected node to use for new group
-        # node = nuke.selectedNode()
         nodePos = (node.xpos(), node.ypos())
 
         # Primary group setup 
@@ -465,15 +464,9 @@ class TankWriteNodeHandler(object):
         proj_group_nodes.append(shot_ocio)     
         project_group_process.end()
 
-        # for i in proj_group_nodes:
-        #     i.setSelected(True)
         project_group.setXpos(nodePos[0])
         project_group.setYpos(nodePos[1] - 30)   
         project_group.setSelected(False)
-        # node['selected'].setValue(False)
-
-        # for i in proj_group_nodes:
-        #     nuke.delete(i)
 
         return project_group
 
@@ -504,8 +497,6 @@ class TankWriteNodeHandler(object):
 
             if new_wn.input(0):
                 parent_node = new_wn.input(0)
-                # new_wn['selected'].setValue(False)     
-                # parent_node['selected'].setValue(True)      
                 extra_node = self.create_project_settings_group(sg_wn)   
 
                 parent_node = None
@@ -527,12 +518,7 @@ class TankWriteNodeHandler(object):
             extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
             extra_node.node('delivery_reformat')['format'].setValue(sg_wn.node('delivery_reformat')['format'].value())
             extra_node.node('delivery_reformat')['pbb'].setValue(sg_wn.node('delivery_reformat')['pbb'].value())
-            extra_node.node('delivery_reformat')['black_outside'].setValue(sg_wn.node('delivery_reformat')['black_outside'].value())
-
-            # extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
-            # extra_node.node('delivery_reformat')['box'].setValue(sg_wn.node('delivery_reformat')['box'].value())            
-            # extra_node.node('delivery_reformat')['reformat'].setValue(sg_wn.node('delivery_reformat')['reformat'].value())
-            # extra_node.node('delivery_reformat')['crop'].setValue(sg_wn.node('delivery_reformat')['crop'].value())            
+            extra_node.node('delivery_reformat')['black_outside'].setValue(sg_wn.node('delivery_reformat')['black_outside'].value())      
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
