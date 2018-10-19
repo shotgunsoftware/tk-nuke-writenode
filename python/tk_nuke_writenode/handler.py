@@ -440,9 +440,7 @@ class TankWriteNodeHandler(object):
         # Get properties of selected node to use for new group
         node = nuke.selectedNode()
         nodePos = (node.xpos(), node.ypos())
-        parent_node = None
-        if node.input(0):
-            parent_node = node.input(0)
+
         node['selected'].setValue(False)  
 
         # Primary group setup 
@@ -477,8 +475,7 @@ class TankWriteNodeHandler(object):
 
         # for i in proj_group_nodes:
         #     nuke.delete(i)
-        project_group.setInput(0, parent_node)
-        node.setInput(0, project_group)
+
         return project_group
 
     def convert_sg_to_nuke_write_nodes(self):
@@ -514,10 +511,16 @@ class TankWriteNodeHandler(object):
                 parent_node['selected'].setValue(True)      
 
                 extra_node = self.create_project_settings_group(sg_wn)   
+
+                parent_node = None
+                if sg_wn.input(0):
+                    parent_node = sg_wn.input(0)
+                extra_node.setInput(0, parent_node)
+                new_wn.setInput(0, extra_node)       
+
                 self._project_setting_groups.append(extra_node)
 
             new_wn.setSelected(False)
-            
             # Embed reformat
             extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
             extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
@@ -1771,9 +1774,9 @@ class TankWriteNodeHandler(object):
                                 nuke.message("Could not find SG Info node that is required for OCIO color setup.")
                 else:
                     color_space = self.proj_info['sg_color_space']
-                    node['shot_ocio_bool'].setVisible(False)   
                     node['shot_ocio_bool'].setValue(False)                               
-                    shot_ocio['disable'].setValue(False)                           
+                    node['shot_ocio_bool'].setVisible(False)   
+                    shot_ocio['disable'].setValue(True)                           
                
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
