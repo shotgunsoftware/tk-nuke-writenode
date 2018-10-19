@@ -1397,6 +1397,7 @@ class TankWriteNodeHandler(object):
                                     be reset.  For example, if colorspace has been set in the profile and force
                                     is False then the knob won't get reset to the value from the profile.
         """
+        nuke.tprint("Setting profile for %s" %profile_name)
         # can't change the profile if this isn't a valid profile:
         if profile_name not in self._profiles:
             # at the very least, try to restore the file format settings from the cached values:
@@ -1725,8 +1726,9 @@ class TankWriteNodeHandler(object):
             if self.proj_info['sg_color_space']:
                 if self.proj_info['sg_project_color_management'] == "OCIO":
                     color_space = "acescg"
-                    if not nuke.root()['customOCIOConfigPath']:
-                        pass
+                    if (not nuke.root()['customOCIOConfigPath'].value()
+                    and not nuke.root()['colorManagement'].value() == "OCIO"):
+                        shot_ocio['disable'].setValue(True)  
                     else:
                         sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
                         if not sg_info_nodes:
