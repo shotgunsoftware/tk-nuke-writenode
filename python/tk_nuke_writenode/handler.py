@@ -438,15 +438,13 @@ class TankWriteNodeHandler(object):
     def create_project_settings_group(self, node):
 
         # Get properties of selected node to use for new group
-        node = nuke.selectedNode()
+        # node = nuke.selectedNode()
         nodePos = (node.xpos(), node.ypos())
-
-        node['selected'].setValue(False)  
 
         # Primary group setup 
         proj_group_nodes = []
         project_group = nuke.createNode("Group")
-        project_group_process = nuke.toNode('Group1')
+        project_group_process = nuke.toNode(project_group['name'].value())
         project_group_process.begin()
         input_node = nuke.createNode("Input")
         project_reformat = nuke.createNode("Reformat")
@@ -472,6 +470,7 @@ class TankWriteNodeHandler(object):
         project_group.setXpos(nodePos[0])
         project_group.setYpos(nodePos[1] - 30)   
         project_group.setSelected(False)
+        # node['selected'].setValue(False)
 
         # for i in proj_group_nodes:
         #     nuke.delete(i)
@@ -496,20 +495,17 @@ class TankWriteNodeHandler(object):
         # get write nodes:
         sg_write_nodes = self.get_nodes()
         for sg_wn in sg_write_nodes:
-        
-            # set as selected:
+            extra_node = None
             sg_wn.setSelected(True)
             node_name = sg_wn.name()
             node_pos = (sg_wn.xpos(), sg_wn.ypos())
-            
             # create new regular Write node:
             new_wn = nuke.createNode("Write")
 
             if new_wn.input(0):
                 parent_node = new_wn.input(0)
-                new_wn['selected'].setValue(False)     
-                parent_node['selected'].setValue(True)      
-
+                # new_wn['selected'].setValue(False)     
+                # parent_node['selected'].setValue(True)      
                 extra_node = self.create_project_settings_group(sg_wn)   
 
                 parent_node = None
@@ -520,7 +516,6 @@ class TankWriteNodeHandler(object):
 
                 self._project_setting_groups.append(extra_node)
 
-            new_wn.setSelected(False)
             # Embed reformat
             extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
             extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
