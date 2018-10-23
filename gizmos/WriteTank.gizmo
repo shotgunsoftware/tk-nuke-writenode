@@ -571,7 +571,7 @@ Reformat {
   type "to format"
   box_width 800
   box_height 1
-  black_outside false
+  black_outside true
   pbb true  
   disable true    
  }
@@ -580,7 +580,7 @@ Reformat {
   type "to format"
   box_width 800
   box_height 1
-  black_outside false
+  black_outside true
   resize width
   pbb false  
   disable true
