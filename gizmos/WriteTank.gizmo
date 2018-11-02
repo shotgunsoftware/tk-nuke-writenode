@@ -218,17 +218,24 @@ Gizmo {
  addUserKnob {
     22 tk_copy_path 
     l "Copy Path" 
-    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(False)" 
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(False, False)" 
     t "Copies the current render/proxy path to the clipboard" 
     -STARTLINE
  }
  addUserKnob {
     22 tk_copy_path_win 
     l "Copy Path - Windows" 
-    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(True)" 
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(True, False)" 
     t "Copies the current render/proxy path to the clipboard" 
     -STARTLINE
  }
+ addUserKnob {
+    22 tk_copy_folder_win 
+    l "Copy Folder - Windows" 
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.on_copy_path_to_clipboard_gizmo_callback(True, True)" 
+    t "Copies the current render/proxy path folder to the clipboard" 
+    -STARTLINE
+ } 
  addUserKnob {
     26 "" 
     l "" 
@@ -246,23 +253,16 @@ Gizmo {
    T "  "
  }
  addUserKnob {
+   22 convert_to_write 
+   l "Convert Node"
+   T "  "
+ } 
+ addUserKnob {
     1 write_type_cache
     l "SG Write Type Cache" 
     t "The cached Write Type for this node"
     +INVISIBLE
  }
- addUserKnob {
-    1 write_name_cache
-    l "SG Write Name Cache" 
-    t "The cached Write Name for this node"
-    +INVISIBLE
- } 
- addUserKnob {
-    1 write_version_latest
-    l "SG Write Version number Cache" 
-    t "The cached Write Name for this node"
-    +INVISIBLE
- }  
  addUserKnob {
    25 ""
    - STARTLINE
@@ -572,7 +572,7 @@ Reformat {
   box_width 800
   box_height 1
   black_outside true
-  pbb true  
+  pbb false  
   disable true    
  }
  Reformat {
