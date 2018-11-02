@@ -553,15 +553,6 @@ class TankWriteNodeHandler(object):
                 new_wn["proxy"].setValue(sg_wn["tk_cached_proxy_path"].evaluate())
             else:
                 new_wn["proxy"].setValue("")
-            # Copy across colorspace
-            colorspace_name = r'default \((\w{1,9})\)'
-            colorspace_match = re.match(colorspace_name, sg_wn['colorspace'].value())
-            if colorspace_match:
-                new_wn['colorspace'].setValue(colorspace_match.group(1))
-                nuke.tprint("Setting colorspace to %s" % colorspace_match.group(1))
-            else:
-                nuke.tprint("Setting colorspace to default")
-                new_wn['colorspace'].setValue(sg_wn['colorspace'].value())
 
             # make sure file_type is set properly:
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
@@ -649,6 +640,16 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["write_type_cache"].value())
             new_wn.addKnob(knob)
 
+            # Copy across colorspace
+            colorspace_name = r'default \((\w{1,9})\)'
+            colorspace_match = re.match(colorspace_name, sg_wn['colorspace'].value())
+            if colorspace_match:
+                new_wn['colorspace'].setValue(str(colorspace_match.group(1)))
+                nuke.tprint("Setting colorspace to %s" % colorspace_match.group(1))
+            else:
+                nuke.tprint("Setting colorspace to default")
+                new_wn['colorspace'].setValue(sg_wn['colorspace'].value())
+                
             # delete original node:
             nuke.delete(sg_wn)
         
