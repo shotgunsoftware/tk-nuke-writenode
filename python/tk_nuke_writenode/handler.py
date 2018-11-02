@@ -553,13 +553,14 @@ class TankWriteNodeHandler(object):
                 new_wn["proxy"].setValue(sg_wn["tk_cached_proxy_path"].evaluate())
             else:
                 new_wn["proxy"].setValue("")
-                
             # Copy across colorspace
             colorspace_name = r'default \((\w{1,9})\)'
-            if re.match(colorspace_name, sg_wn['colorspace'].value()):
-                new_wn['colorspace'].setValue(re.match(colorspace_name, 
-                                            sg_wn['colorspace'].value()).group(1))
+            colorspace_match = re.match(colorspace_name, sg_wn['colorspace'].value())
+            if colorspace_match:
+                new_wn['colorspace'].setValue(colorspace_match.group(1))
+                nuke.tprint("Setting colorspace to %s" % colorspace_match.group(1))
             else:
+                nuke.tprint("Setting colorspace to default")
                 new_wn['colorspace'].setValue(sg_wn['colorspace'].value())
 
             # make sure file_type is set properly:
@@ -603,7 +604,7 @@ class TankWriteNodeHandler(object):
             new_wn.addKnob(knob)
 
             # channels
-            knob = nuke.String_Knob("tk_channels")
+            knob = nuke.String_Knob("tk_channel_cache")
             knob.setValue(sg_wn["channels"].value())
             new_wn.addKnob(knob)
 
@@ -733,7 +734,7 @@ class TankWriteNodeHandler(object):
                 new_sg_wn["publish_template"].setValue(publish_template_knob.value())
                 new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
                 new_sg_wn["proxy_publish_template"].setValue(proxy_publish_template_knob.value())
-                new_sg_wn["tank_channel_cache"].setValue(tk_tank_channel.value())
+                new_sg_wn["tk_channel_cache"].setValue(tk_tank_channel.value())
 
                 # set the profile & output - this will cause the paths to be reset:
                 # Note, we don't call the method __set_profile() as we don't want to
@@ -1628,7 +1629,7 @@ class TankWriteNodeHandler(object):
         
         # set the channel info based on the profile type
         profile_channel = "rgba"
-        if node.knob('tank_channel_cache').value() == "":
+        if node.knob('tk_channel_cache').value() == "":
             nuke.tprint("No cached channel info")
             if profile_name == "Dpx":
                 node.knob('dpx_datatype').setVisible(True)            
@@ -1658,7 +1659,7 @@ class TankWriteNodeHandler(object):
             else:
                 nuke.tprint("No profile with that name")   
         else:
-            profile_channel = node.knob('tank_channel_cache').value()
+            profile_channel = node.knob('tk_channel_cache').value()
             nuke.tprint("Cached channel info: %s" % profile_channel)
         
         self.__update_knob_value(node, "channels", profile_channel)
@@ -2803,6 +2804,7 @@ class TankWriteNodeHandler(object):
         node = nuke.thisNode()
         knob = nuke.thisKnob()
         grp = nuke.thisGroup()
+
         if not self.__is_node_fully_constructed(node):
             # knobChanged will be called during script load for all knobs with non-default 
             # values.  We want to ignore these implicit changes so we make use of a knob to
@@ -2990,7 +2992,6 @@ class TankWriteNodeHandler(object):
                                     % (grp.name(), knob_name, grp.name(), write_node.name(), knob_name))
                 
                 write_node.knob(knob_name).setValue(nuke.thisKnob().value())
-
     def __get_current_script_path(self):
         """
         Get the current script path (if the current script has been saved).  This will

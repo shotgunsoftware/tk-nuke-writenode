@@ -122,6 +122,13 @@ Gizmo {
     +INVISIBLE 
  }
  addUserKnob {
+    1 tk_channel_cache
+    l "" 
+    t "Cache location for user entered text to change the output naming for write nodes" 
+    +STARTLINE
+    +INVISIBLE
+ } 
+ addUserKnob {
     1 tk_last_known_script
     l "Last Known Script"
     t "The last known script this Write node was saved in - used to determine if the script is being saved as a new file or not"
@@ -327,13 +334,6 @@ Gizmo {
    25 ""
    - STARTLINE
  } 
- addUserKnob {
-    1 tank_channel_cache
-    l "" 
-    t "Cache location for user entered text to change the output naming for write nodes" 
-    +STARTLINE
-    +INVISIBLE
- }
  addUserKnob {
     6 tk_use_name_as_channel 
     l "Use node name" 
