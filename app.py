@@ -201,13 +201,13 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self):
+    def convert_to_write_nodes(self, selected_node=None):
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
         additional user knobs named 'tk_*'
         """
-        self.__write_node_handler.convert_sg_to_nuke_write_nodes()
+        self.__write_node_handler.convert_sg_to_nuke_write_nodes(selected_node=None)
 
     def convert_from_write_nodes(self):
         """
