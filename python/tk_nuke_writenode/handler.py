@@ -710,7 +710,7 @@ class TankWriteNodeHandler(object):
                     or not exr_datatype
                     or not dpx_datatype     
                     or not auto_crop           
-                    or not channels_knob                    
+                    # or not channels_knob                    
                     or not render_template_knob
                     or not publish_template_knob
                     or not proxy_render_template_knob
