@@ -696,7 +696,7 @@ class TankWriteNodeHandler(object):
                 auto_crop = wn.knob("tk_autocrop")
                 output_knob = wn.knob("tk_output")
                 use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
-                channels_knob = wn.knob("channels")            
+                # channels_knob = wn.knob("channels")            
                 render_template_knob = wn.knob("tk_render_template")
                 publish_template_knob = wn.knob("tk_publish_template")
                 proxy_render_template_knob = wn.knob("tk_proxy_render_template")
@@ -730,7 +730,7 @@ class TankWriteNodeHandler(object):
                 # copy across file & proxy knobs as well as all cached templates:
                 new_sg_wn["cached_path"].setValue(wn["file"].value())
                 new_sg_wn["tk_cached_proxy_path"].setValue(wn["proxy"].value())
-                new_sg_wn["channels"].setValue(channels_knob.value())
+                # new_sg_wn["channels"].setValue(channels_knob.value())
                 new_sg_wn["render_template"].setValue(render_template_knob.value())
                 new_sg_wn["publish_template"].setValue(publish_template_knob.value())
                 new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
@@ -1194,10 +1194,6 @@ class TankWriteNodeHandler(object):
             template = self.__get_template(node, "cleanup_render_template")
             if template or not fallback_to_render:            
                 return template
-        elif write_type == "Final":
-            template = self.__get_template(node, "final_render_template")
-            if template or not fallback_to_render:            
-                return template
         elif write_type == "Test":
             template = self.__get_template(node, "test_render_template")
             if template or not fallback_to_render:
@@ -1319,8 +1315,6 @@ class TankWriteNodeHandler(object):
                     context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Cleanup": 
                     context_info = self._app.tank.templates['shot_render_global']
-                elif write_type == "Final": 
-                    context_info = self._app.tank.templates['shot_render_global']
                 else:
                     context_info = self._app.tank.templates['shot_render_global']  
 
@@ -1344,8 +1338,6 @@ class TankWriteNodeHandler(object):
                 elif write_type == "Denoise": 
                     context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Cleanup": 
-                    context_info = self._app.tank.templates['asset_render_global']
-                elif write_type == "Final": 
                     context_info = self._app.tank.templates['asset_render_global']
                 else:
                     context_info = self._app.tank.templates['asset_render_global']  
@@ -1611,8 +1603,6 @@ class TankWriteNodeHandler(object):
                 default_value = 309868287
             elif write_type == "Cleanup":
                 default_value = 4287911423
-            elif write_type == "Final":
-                default_value = 16711935
             elif write_type == "Test":
                 default_value = 4278190081
             else:
@@ -2444,7 +2434,6 @@ class TankWriteNodeHandler(object):
         if curr_filename and self._script_template and self._script_template.validate(curr_filename):
             fields = self._script_template.get_fields(curr_filename)
             if (write_type == "Version" or 
-                write_type == "Final" or
                 write_type == "Test"):
                 pass
             else:
@@ -2683,8 +2672,8 @@ class TankWriteNodeHandler(object):
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
-                if (write_type == "Version" or 
-                    write_type == "Final"):
+                if write_type == "Version":
+                    node.knob('convert_to_write').setVisible(False) 
                     if self.ctx_info.step['name'] == "Roto":
                         nuke.tprint("Creating Roto SG Write node")
                         self.__update_knob_value(node, "tk_profile_list", "Exr")
@@ -2857,8 +2846,8 @@ class TankWriteNodeHandler(object):
                 if self.proj_info['name'] == "Breakdowns":
                     pass
                 else:
-                    if (write_type == "Version" or
-                        write_type == "Final"):
+                    if write_type == "Version":
+                        node.knob('convert_to_write').setVisible(False)  
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
                         # self.__version_up_visible(node, False)        
@@ -2869,6 +2858,7 @@ class TankWriteNodeHandler(object):
                         self.__test_write_message()
                         self.__embedded_format_option(node, False)
                     else:
+                        node.knob('convert_to_write').setVisible(True) 
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
                         write_type_profile = "Exr"
@@ -2920,9 +2910,6 @@ class TankWriteNodeHandler(object):
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                     # self.__version_up_visible(node, True)                    
-                elif write_type == "Final":
-                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
