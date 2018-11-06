@@ -294,7 +294,7 @@ class TankWriteNodeHandler(object):
             return
 
         # new node please!
-        node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+        node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS, inpanel = False)
 
         # rename to our new default name:
         existing_node_names = [n.name() for n in nuke.allNodes()]
@@ -725,7 +725,7 @@ class TankWriteNodeHandler(object):
                 wn.setName(node_name)
 
                 # create new Shotgun Write node:
-                new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+                new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS, inpanel = False)
                 new_sg_wn.setSelected(False)
                 # copy across file & proxy knobs as well as all cached templates:
                 new_sg_wn["cached_path"].setValue(wn["file"].value())
