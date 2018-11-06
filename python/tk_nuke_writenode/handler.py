@@ -1619,25 +1619,33 @@ class TankWriteNodeHandler(object):
         
         # set the channel info based on the profile type
         profile_channel = "rgba"
-                node.knob('auto_crop').setVisible(False)
-                if (write_type == "Precomp" or 
-                    write_type == "Element"):
-                        profile_channel = "rgba"
-                        node.knob('auto_crop').setVisible(True)
-                        node.knob('auto_crop').setValue(True)
-                if self.ctx_info.step['name'] == "Roto":   
-                    node.knob('auto_crop').setVisible(True) 
-                    profile_channel = "all"                                           
-            elif profile_name == "Jpeg":
-                node.knob('dpx_datatype').setVisible(False)            
-                node.knob('exr_datatype').setVisible(False)   
-                node.knob('auto_crop').setVisible(False)                           
-                profile_channel = "rgb"
-            else:
-                nuke.tprint("No profile with that name")   
+        if profile_name == "Dpx":
+            node.knob('dpx_datatype').setVisible(True)            
+            node.knob('exr_datatype').setVisible(False)   
+            node.knob('auto_crop').setVisible(False)
+            node.knob('auto_crop').setValue(False)            
+            profile_channel = "rgb"
+        elif profile_name == "Exr":
+            node.knob('exr_datatype').setVisible(True)
+            node.knob('dpx_datatype').setVisible(False)
+            profile_channel = "rgba"
+            node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
+            node.knob('auto_crop').setVisible(False)
+            if (write_type == "Precomp" or 
+                write_type == "Element"):
+                    profile_channel = "rgba"
+                    node.knob('auto_crop').setVisible(True)
+                    node.knob('auto_crop').setValue(True)
+            if self.ctx_info.step['name'] == "Roto":   
+                node.knob('auto_crop').setVisible(True) 
+                profile_channel = "all"                                           
+        elif profile_name == "Jpeg":
+            node.knob('dpx_datatype').setVisible(False)            
+            node.knob('exr_datatype').setVisible(False)   
+            node.knob('auto_crop').setVisible(False)                           
+            profile_channel = "rgb"
         else:
-            profile_channel = node.knob('tk_channel_cache').value()
-            nuke.tprint("Cached channel info: %s" % profile_channel)
+            nuke.tprint("No profile with that name")   
         
         self.__update_knob_value(node, "channels", profile_channel)
 
