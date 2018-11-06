@@ -798,7 +798,6 @@ class TankWriteNodeHandler(object):
                 new_sg_wn.setName(node_name)
                 new_sg_wn.setXpos(node_pos[0])
                 new_sg_wn.setYpos(node_pos[1])       
-
     ################################################################################################
     # Public methods called from gizmo - although these are public, they should 
     # be considered as private and not used directly!
@@ -1620,19 +1619,6 @@ class TankWriteNodeHandler(object):
         
         # set the channel info based on the profile type
         profile_channel = "rgba"
-        if node.knob('tk_channel_cache').value() == "":
-            nuke.tprint("No cached channel info")
-            if profile_name == "Dpx":
-                node.knob('dpx_datatype').setVisible(True)            
-                node.knob('exr_datatype').setVisible(False)   
-                node.knob('auto_crop').setVisible(False)
-                node.knob('auto_crop').setValue(False)            
-                profile_channel = "rgb"
-            elif profile_name == "Exr":
-                node.knob('exr_datatype').setVisible(True)
-                node.knob('dpx_datatype').setVisible(False)
-                profile_channel = "rgba"
-                node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
                 node.knob('auto_crop').setVisible(False)
                 if (write_type == "Precomp" or 
                     write_type == "Element"):
@@ -2735,7 +2721,8 @@ class TankWriteNodeHandler(object):
             if not node.knob("tk_is_fully_constructed"):
                 return False
             else:
-                self._app.log_debug("Fully constructed: %s" % node.knob("tk_is_fully_constructed").value())
+                pass
+                # self._app.log_debug("Fully constructed: %s" % node.knob("tk_is_fully_constructed").value())
         except:
             return False
 
