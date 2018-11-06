@@ -1803,7 +1803,9 @@ class TankWriteNodeHandler(object):
                 elif (self.ctx_info.step['name'] == "Roto"):#and
                 # self.proj_info['sg_project_color_management'] != "OCIO" or 
                 # self.proj_info['sg_project_color_management'] == "OCIO"):
-                    color_space = "linear"                 
+                    color_space = "linear"          
+                    node.knob("project_crop_bool").setValue(False)      
+                    self.__embedded_format_option(node, False) 
                     nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
@@ -2847,6 +2849,8 @@ class TankWriteNodeHandler(object):
                         self.__write_type_changed(node, False)
                         # self.__version_up_visible(node, False)        
                         self.__embedded_format_option(node, True)             
+                        if self.ctx_info.step['name'] == "Roto":
+                            self.__set_project_crop(node, False)
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
