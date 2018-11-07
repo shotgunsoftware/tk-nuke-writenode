@@ -1636,10 +1636,12 @@ class TankWriteNodeHandler(object):
                     profile_channel = "rgba"
                     node.knob('auto_crop').setVisible(True)
                     node.knob('auto_crop').setValue(True)
+                    node.node("Write1").knob("autocrop").setValue(True)                    
             if self.ctx_info.step['name'] == "Roto":   
-                node.knob('auto_crop').setVisible(True) 
-                node.knob('auto_crop').setValue(True)                
                 profile_channel = "all"                                           
+                node.knob('auto_crop').setVisible(True) 
+                node.knob('auto_crop').setValue(True)    
+                node.node("Write1").knob("autocrop").setValue(True)            
         elif profile_name == "Jpeg":
             node.knob('dpx_datatype').setVisible(False)            
             node.knob('exr_datatype').setVisible(False)   
@@ -2865,7 +2867,6 @@ class TankWriteNodeHandler(object):
                         # self.__version_up_visible(node, True)     
                         self.__embedded_format_option(node, False)
                         try:
-                            node.node("Write1").knob("autocrop").setValue(True)
                             node.node("Write1").knob("autocrop").setValue(True)
                         except:
                             pass
