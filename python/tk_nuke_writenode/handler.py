@@ -1638,6 +1638,7 @@ class TankWriteNodeHandler(object):
                     node.knob('auto_crop').setValue(True)
             if self.ctx_info.step['name'] == "Roto":   
                 node.knob('auto_crop').setVisible(True) 
+                node.knob('auto_crop').setValue(True)                
                 profile_channel = "all"                                           
         elif profile_name == "Jpeg":
             node.knob('dpx_datatype').setVisible(False)            
