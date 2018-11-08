@@ -640,6 +640,14 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["write_type_cache"].value())
             new_wn.addKnob(knob)
 
+            # project bool
+            knob = nuke.String_Knob("tk_project_format_cache")
+            if sg_wn["project_crop_bool"].value():
+                knob.setValue("True")
+            else:
+                knob.setValue("False")
+            new_wn.addKnob(knob)            
+            
             # Copy across colorspace
             colorspace_name = r'default \((\w{1,9})\)'
             colorspace_match = re.match(colorspace_name, sg_wn['colorspace'].value())
@@ -702,6 +710,7 @@ class TankWriteNodeHandler(object):
                 proxy_render_template_knob = wn.knob("tk_proxy_render_template")
                 proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
                 tk_tank_channel = wn.knob("tk_tank_channel")
+                project_format_knob = wn.knob("tk_project_format_cache")
             
                 if (not profile_knob
                     or not output_knob
@@ -710,7 +719,8 @@ class TankWriteNodeHandler(object):
                     or not exr_datatype
                     or not dpx_datatype     
                     or not auto_crop           
-                    # or not channels_knob                    
+                    # or not channels_knob  
+                    or not project_format_knob                  
                     or not render_template_knob
                     or not publish_template_knob
                     or not proxy_render_template_knob
@@ -791,8 +801,14 @@ class TankWriteNodeHandler(object):
                     ac_val = True
                 else:
                     ac_val = False
+                new_sg_wn["auto_crop"].setValue(ac_val)  
 
-                new_sg_wn["auto_crop"].setValue(ac_val)         
+                # project format
+                if project_format_knob.value() == "True":
+                    project_format_val = True
+                elif project_format_knob.value() == "False":
+                    project_format_val = False
+                new_sg_wn["project_crop_bool"].setValue(project_format_val)
 
                 # rename new node:                               
                 new_sg_wn.setName(node_name)
@@ -2684,8 +2700,10 @@ class TankWriteNodeHandler(object):
                         node.node("project_reformat")['disable'].setValue(True)                   
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
-                        node.knob("project_crop_bool").setValue(True)
                         node.node("project_reformat")['disable'].setValue(False)
+                        node.knob("project_crop_bool").setValue(True)
+                        if node['tk_project_format_cache'].value() == "False":
+                            node.knob("project_crop_bool").setValue(False)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
@@ -2780,8 +2798,13 @@ class TankWriteNodeHandler(object):
         elif value == False:
             node.node("shot_ocio")['disable'].setValue(True)
 
-    def __set_project_crop(self, node, bool):
-        node["project_crop_bool"].setValue(bool)
+    def __set_project_crop(self, node, bool_value):
+        node["project_crop_bool"].setValue(bool_value)
+
+    def __set_project_crop_cache(self, node, bool_value):
+        if not bool_value:
+            node['tk_project_format_cache'].setValue("False")
+            nuke.tprint("Disabling project reformat and caching.")
 
     def __on_knob_changed(self):
         """
@@ -2925,6 +2948,7 @@ class TankWriteNodeHandler(object):
             webbrowser.open_new_tab(write_type_url)     
         elif knob.name() == "project_crop_bool":   
             self.__embedded_format_option(node, knob.value())
+            self.__set_project_crop_cache(node, knob.value())
         elif knob.name() == "shot_ocio_bool":   
             self.__embedded_ocio_option(node, knob.value())            
         elif knob.name() == "exr_datatype":   
@@ -2981,6 +3005,7 @@ class TankWriteNodeHandler(object):
                                     % (grp.name(), knob_name, grp.name(), write_node.name(), knob_name))
                 
                 write_node.knob(knob_name).setValue(nuke.thisKnob().value())
+    
     def __get_current_script_path(self):
         """
         Get the current script path (if the current script has been saved).  This will

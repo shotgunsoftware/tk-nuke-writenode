@@ -271,6 +271,12 @@ Gizmo {
     +INVISIBLE
  }
  addUserKnob {
+    1 tk_project_format_cache
+    l "Project Format Cache" 
+    t "The cached option to apply the Project format"
+    +INVISIBLE
+ } 
+ addUserKnob {
    25 ""
    - STARTLINE
  }
