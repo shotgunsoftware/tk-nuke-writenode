@@ -2701,9 +2701,13 @@ class TankWriteNodeHandler(object):
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
                         node.node("project_reformat")['disable'].setValue(False)
-                        node.knob("project_crop_bool").setValue(True)
+                        # node.knob("project_crop_bool").setValue(True)  
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
+                        elif node['tk_project_format_cache'].value() == "True":
+                            node.knob("project_crop_bool").setValue(True)      
+                        else:    
+                            node.knob("project_crop_bool").setValue(True)                      
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
@@ -2802,7 +2806,11 @@ class TankWriteNodeHandler(object):
         node["project_crop_bool"].setValue(bool_value)
 
     def __set_project_crop_cache(self, node, bool_value):
-        if not bool_value:
+
+        if bool_value == True:
+            nuke.tprint("Enabling project reformat and caching.")            
+            node['tk_project_format_cache'].setValue("True")
+        elif bool_value == False:
             node['tk_project_format_cache'].setValue("False")
             nuke.tprint("Disabling project reformat and caching.")
 
