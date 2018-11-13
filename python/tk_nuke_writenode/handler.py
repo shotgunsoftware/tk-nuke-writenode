@@ -2695,19 +2695,22 @@ class TankWriteNodeHandler(object):
                         node.knob('write_type').setValues(['Version', 'Denoise'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
+                        self.__embedded_format_option(node, False)   
                         node.node("project_reformat")['disable'].setValue(True)
                     elif self.ctx_info.step['name'] == "Cleanup":
                         node.node("project_reformat")['disable'].setValue(True)                   
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
                         node.node("project_reformat")['disable'].setValue(False)
-                        # node.knob("project_crop_bool").setValue(True)  
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
+                            self.__embedded_format_option(node, False)                               
                         elif node['tk_project_format_cache'].value() == "True":
-                            node.knob("project_crop_bool").setValue(True)      
+                            node.knob("project_crop_bool").setValue(True)
+                            self.__embedded_format_option(node, True)   
                         else:    
-                            node.knob("project_crop_bool").setValue(True)                      
+                            node.knob("project_crop_bool").setValue(True)
+                            self.__embedded_format_option(node, True)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
