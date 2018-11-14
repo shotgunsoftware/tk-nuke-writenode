@@ -230,17 +230,6 @@ class TankWriteNodeHandler(object):
         # new node please!
         node = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
-        # rename to our new default name:
-        existing_node_names = [n.name() for n in nuke.allNodes()]
-        postfix = 1
-        while True:
-            new_name = "%s%d" % (TankWriteNodeHandler.SG_WRITE_DEFAULT_NAME, postfix)
-            if new_name not in existing_node_names:
-                node.knob("name").setValue(new_name)
-                break
-            else:
-                postfix += 1
-
         self._app.log_debug("Created Shotgun Write Node %s" % node.name())
 
         # set the profile:
@@ -357,7 +346,30 @@ class TankWriteNodeHandler(object):
         # set up all existing nodes:
         for n in self.get_nodes():
             self.__setup_new_node(n)
-        
+
+    def __concat_result_string(self, name, label):
+        if label is None or label == "":
+            return name
+        return str(name + "\n" + label).strip()
+
+    def __autolabel(self):
+        name = nuke.value("name")
+        label = nuke.value("label")
+        filename = nuke.filename(replace=nuke.REPLACE)
+        if filename is not None:
+            name = self.__concat_result_string(name, os.path.basename(filename))
+        order = nuke.numvalue("this.render_order", 1)
+        if int(order) != 1:
+            profile = "({} / {})".format(nuke.value("tk_profile_list"), int(order))
+        else:
+            profile = "({0})".format(nuke.value("tk_profile_list"))
+        name = self.__concat_result_string(name, profile)
+        result = self.__concat_result_string(name, label)
+        return result
+
+    def add_autolabel(self):
+        nuke.addAutolabel(self.__autolabel, nodeClass='WriteTank')
+
     def remove_callbacks(self):
         """
         Removed previously added callbacks
@@ -896,13 +908,6 @@ class TankWriteNodeHandler(object):
         """
         Updates the path preview fields on the tank write node.
         """
-        # first set up the node label
-        # this will be displayed on the node in the graph
-        # useful to tell what type of node it is
-        pn = node.knob("profile_name").value()
-        label = "Shotgun Write %s" % pn
-        self.__update_knob_value(node, "label", label)
-
         # get the render path:
         path = self.__get_render_path(node, is_proxy)
 

@@ -36,6 +36,9 @@ class NukeWriteNode(tank.platform.Application):
         # add WriteNodes to nuke menu
         self.__add_write_node_commands()
 
+        # add autolabel callback to WriteTank
+        self.__write_node_handler.add_autolabel()
+
         # add callbacks:
         self.__write_node_handler.add_callbacks()
 
