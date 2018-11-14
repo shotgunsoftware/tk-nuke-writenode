@@ -1,11 +1,11 @@
 # Copyright (c) 2013 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -54,10 +54,10 @@ class NukeWriteNode(tank.platform.Application):
         Called when the app is unloaded/destroyed
         """
         self.log_debug("Destroying tk-nuke-writenode app")
-        
+
         # remove any callbacks that were registered by the handler:
         self.__write_node_handler.remove_callbacks()
-        
+
         # clean up the nuke module:
         if hasattr(nuke, "_shotgun_write_node_handler"):
             del nuke._shotgun_write_node_handler
@@ -78,7 +78,7 @@ class NukeWriteNode(tank.platform.Application):
         self.__write_node_handler.populate_profiles_from_settings()
         self.__write_node_handler.populate_script_template()
         self.__add_write_node_commands(new_context)
-        
+
     def process_placeholder_nodes(self):
         """
         Convert any placeholder nodes to TK Write Nodes
@@ -87,14 +87,14 @@ class NukeWriteNode(tank.platform.Application):
 
     # interface for other apps to query write node info:
     #
-    
+
     # access general information:
     def get_write_nodes(self):
         """
         Return list of all write nodes
         """
         return self.__write_node_handler.get_nodes()
-    
+
     def get_node_name(self, node):
         """
         Return the name for the specified node
@@ -107,11 +107,11 @@ class NukeWriteNode(tank.platform.Application):
         is using
         """
         return self.__write_node_handler.get_node_profile_name(node)
-    
+
     def get_node_tank_type(self, node):
         """
         Return the tank type for the specified node
-        
+
         Note: Legacy version with old 'Tank Type' name - use
         get_node_published_file_type instead!
         """
@@ -122,7 +122,7 @@ class NukeWriteNode(tank.platform.Application):
         Return the published file type for the specified node
         """
         return self.__write_node_handler.get_node_tank_type(node)
-    
+
     def is_node_render_path_locked(self, node):
         """
         Determine if the render path for the specified node
@@ -132,71 +132,71 @@ class NukeWriteNode(tank.platform.Application):
         can happen if the file is moved on disk or if the template
         is changed.
         """
-        return self.__write_node_handler.render_path_is_locked(node)    
-    
+        return self.__write_node_handler.render_path_is_locked(node)
+
     # access full-res render information:
     def get_node_render_path(self, node):
         """
         Return the render path for the specified node
         """
-        return self.__write_node_handler.compute_render_path(node)    
-    
+        return self.__write_node_handler.compute_render_path(node)
+
     def get_node_render_files(self, node):
         """
         Return the list of rendered files for the node
         """
         return self.__write_node_handler.get_files_on_disk(node)
-    
+
     def get_node_render_template(self, node):
         """
         Return the render template for the specified node
         """
         return self.__write_node_handler.get_render_template(node)
-    
+
     def get_node_publish_template(self, node):
         """
         Return the publish template for the specified node
         """
         return self.__write_node_handler.get_publish_template(node)
-    
+
     # access proxy-res render information:
     def get_node_proxy_render_path(self, node):
         """
         Return the render path for the specified node
         """
-        return self.__write_node_handler.compute_proxy_path(node)    
-    
+        return self.__write_node_handler.compute_proxy_path(node)
+
     def get_node_proxy_render_files(self, node):
         """
         Return the list of rendered files for the node
         """
         return self.__write_node_handler.get_proxy_files_on_disk(node)
-    
+
     def get_node_proxy_render_template(self, node):
         """
         Return the render template for the specified node
         """
         return self.__write_node_handler.get_proxy_render_template(node)
-    
+
     def get_node_proxy_publish_template(self, node):
         """
         Return the publish template for the specified node
         """
-        return self.__write_node_handler.get_proxy_publish_template(node)    
-    
+        return self.__write_node_handler.get_proxy_publish_template(node)
+
     # useful utility functions:
     def generate_node_thumbnail(self, node):
         """
         Generate a thumnail for the specified node
         """
         return self.__write_node_handler.generate_thumbnail(node)
-    
+
     def reset_node_render_path(self, node):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
         the current script path and configuration.
-        
+
         Note, this should really never be needed now that the
         path is reset automatically when the user changes something.
         """
@@ -205,7 +205,7 @@ class NukeWriteNode(tank.platform.Application):
     def convert_to_write_nodes(self, show_warning=False):
         """
         Convert all Shotgun write nodes found in the current Script to regular
-        Nuke Write nodes.  Additional toolkit information will be stored on 
+        Nuke Write nodes.  Additional toolkit information will be stored on
         additional user knobs named 'tk_*'
 
         :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
@@ -265,7 +265,7 @@ class NukeWriteNode(tank.platform.Application):
 
     def create_new_write_node(self, profile_name):
         """
-        Creates a Shotgun write node using the provided profile_name.  
+        Creates a Shotgun write node using the provided profile_name.
         """
         self.__write_node_handler.create_new_node(profile_name)
 
@@ -284,8 +284,8 @@ class NukeWriteNode(tank.platform.Application):
             # add to toolbar menu
             cb_fn = lambda pn=profile_name: self.__write_node_handler.create_new_node(pn)
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
-                cb_fn, 
+                "sgWrite: %s" % profile_name,
+                cb_fn,
                 dict(
                     type="node",
                     icon=write_node_icon,
