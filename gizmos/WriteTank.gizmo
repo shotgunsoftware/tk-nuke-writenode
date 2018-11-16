@@ -308,7 +308,15 @@ Gizmo {
     t "Choose to apply the embeded shot OCIO." 
     +STARTLINE
     -INVISIBLE
- }  
+ }
+ addUserKnob {
+    26 ocio_warning 
+    l "Ocio Warning" 
+    T "" 
+    t "Flag with the artist if the OCIO is not being applied."
+    +STARTLINE
+    +INVISIBLE    
+ }
  addUserKnob {
    25 ""
    - STARTLINE
