@@ -1782,6 +1782,7 @@ class TankWriteNodeHandler(object):
                             if len(sg_info_nodes)==1:
                                 main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
                                 if not main_plate_name:
+                                    nuke.message("WARNING:\nOCIO is a requirement for this shot but required info cannot be found.")
                                     pass
                                 else:
                                     in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
@@ -1796,6 +1797,7 @@ class TankWriteNodeHandler(object):
                                         node['shot_ocio_bool'].setValue(False)                               
                                         shot_ocio['disable'].setValue(True)                                           
                                     else:
+                                        nuke.tprint("Step is", self.ctx_info.step['name'])
                                         if (self.ctx_info.step['name'] == 'Comp_Texture' or
                                         self.ctx_info.step['name'] == 'Comp_Warp'):
                                             node['shot_ocio_bool'].setValue(False)
