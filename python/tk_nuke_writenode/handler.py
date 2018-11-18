@@ -2719,7 +2719,8 @@ class TankWriteNodeHandler(object):
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
-                if write_type == "Version":
+                if (write_type == "Version" or
+                write_type == "Matte"):
                     node.knob('convert_to_write').setVisible(False) 
                     if self.ctx_info.step['name'] == "Roto":
                         nuke.tprint("Creating Roto SG Write node")
@@ -2740,7 +2741,7 @@ class TankWriteNodeHandler(object):
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.knob('project_crop_bool').setVisible(False)                      
+                node.knob('project_crop_bool').setVisible(False)
         # ensure that the correct entry is selected from the list:
         self.__update_knob_value(node, "tk_profile_list", current_profile_name)
         # and make sure the node is up-to-date with the profile:
@@ -2901,23 +2902,24 @@ class TankWriteNodeHandler(object):
                 if self.proj_info['name'] == "Breakdowns":
                     pass
                 else:
-                    if write_type == "Version":
+                    if (write_type == "Version" or 
+                    write_type == "Matte"):
                         node.knob('convert_to_write').setVisible(False)  
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
                         self.__embedded_format_option(node, True)             
                         if self.ctx_info.step['name'] == "Roto":
                             self.__set_project_crop(node, False)
+                    # elif write_type == "Matte":
+                    #     self.__set_project_crop(node, True)
+                    #     self.__write_type_changed(node, False)
+                    #     self.__embedded_format_option(node, True)   
+                    #     write_type_profile = "Dpx"
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
                         self.__test_write_message()
                         self.__embedded_format_option(node, False)
-                    elif write_type == "Matte":
-                        self.__set_project_crop(node, True)
-                        self.__write_type_changed(node, True)
-                        self.__embedded_format_option(node, True)   
-                        write_type_profile = "Dpx"
                     else:
                         node.knob('convert_to_write').setVisible(True) 
                         self.__set_project_crop(node, False)
