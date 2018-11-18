@@ -45,6 +45,7 @@ class TankWriteNodeHandler(object):
     EMBED_SHOT_OCIO = "shot_ocio"
     EMBED_PROJECT_REFORMAT = "project_reformat"
     EMBED_DELIVERY_REFORMAT = "delivery_reformat"
+    EMBED_MATTE_CLAMP = "matte_clamp"    
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
 
@@ -456,12 +457,16 @@ class TankWriteNodeHandler(object):
         content_metadata['name'].setValue("content_meta_data")     
         shot_ocio = nuke.createNode("OCIOColorSpace", inpanel = False)       
         shot_ocio['name'].setValue("shot_ocio")
-        input_node = nuke.createNode("Output", inpanel = False)        
+        matte_clamp = nuke.createNode("Clamp", inpanel = False)
+        matte_clamp['name'].setValue("matte_clamp")
+        # matte_clamp['disable'].setValue(True)
+        output_node = nuke.createNode("Output", inpanel = False)        
         proj_group_nodes.append(project_reformat)
         proj_group_nodes.append(delivery_reformat)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)        
-        proj_group_nodes.append(shot_ocio)     
+        proj_group_nodes.append(shot_ocio)
+        proj_group_nodes.append(matte_clamp)
         project_group_process.end()
 
         project_group.setXpos(nodePos[0])
@@ -546,8 +551,9 @@ class TankWriteNodeHandler(object):
             extra_node.node('shot_ocio')['in_colorspace'].setValue(sg_wn.node('shot_ocio')['in_colorspace'].value())
             extra_node.node('shot_ocio')['in_colorspace'].setValue(sg_wn.node('shot_ocio')['in_colorspace'].value())
             extra_node.node('shot_ocio')['disable'].setValue(sg_wn.node('shot_ocio')['disable'].value())
-            
-          
+            # Embed matte
+            extra_node.node('matte_clamp')['disable'].setValue(sg_wn.node('matte_clamp')['disable'].value())
+
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
             if sg_wn["proxy_render_template"].value():
@@ -1231,6 +1237,10 @@ class TankWriteNodeHandler(object):
             template = self.__get_template(node, "test_render_template")
             if template or not fallback_to_render:
                 return template
+        elif write_type == "Matte":
+            template = self.__get_template(node, "matte_render_template")
+            if template or not fallback_to_render:
+                return template                
         else:
             return self.__get_template(node, "render_template") 
     
@@ -1348,6 +1358,8 @@ class TankWriteNodeHandler(object):
                     context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "Cleanup": 
                     context_info = self._app.tank.templates['shot_render_global']
+                elif write_type == "Matte": 
+                    context_info = self._app.tank.templates['shot_render_global']                    
                 else:
                     context_info = self._app.tank.templates['shot_render_global']  
 
@@ -1372,6 +1384,8 @@ class TankWriteNodeHandler(object):
                     context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "Cleanup": 
                     context_info = self._app.tank.templates['asset_render_global']
+                elif write_type == "Matte": 
+                    context_info = self._app.tank.templates['asset_render_global']                    
                 else:
                     context_info = self._app.tank.templates['asset_render_global']  
 
@@ -1488,6 +1502,7 @@ class TankWriteNodeHandler(object):
         cleanup_render_template = self._app.get_template_by_name(profile["cleanup_render_template"])
         final_render_template = self._app.get_template_by_name(profile["final_render_template"])
         test_render_template = self._app.get_template_by_name(profile["test_render_template"])
+        matte_render_template = self._app.get_template_by_name(profile["matte_render_template"])
 
         file_type = profile["file_type"]
         file_settings = profile["settings"]
@@ -1527,6 +1542,8 @@ class TankWriteNodeHandler(object):
             file_settings.update({'compression' : 'Zip (1 scanline)'})
             file_settings.update({'datatype' : '16 bit half'})
             nuke.tprint("Applying ZIP compression to %s output." % write_type)
+        elif (file_type == "dpx" and write_type == "Matte"):
+            self.__update_knob_value(node, 'exr_datatype', '16 bit half')
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
         # Make sure any invalid entries are removed from the profile list:
@@ -1619,6 +1636,8 @@ class TankWriteNodeHandler(object):
             final_render_template.name)
         self.__update_knob_value(node, "test_render_template", 
             test_render_template.name)
+        self.__update_knob_value(node, "matte_render_template", 
+            matte_render_template.name)
 
         # If a node's tile_color was defined in the profile then set it:
         if not tile_color or len(tile_color) != 3:
@@ -1638,6 +1657,8 @@ class TankWriteNodeHandler(object):
                 default_value = 4287911423
             elif write_type == "Test":
                 default_value = 4278190081
+            elif write_type == "Matte":
+                default_value = 572662527                
             else:
                 default_value = int(node["tile_color"].defaultValue())
 
@@ -1699,7 +1720,8 @@ class TankWriteNodeHandler(object):
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
-            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)                  
+            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)         
+            matte_clamp = node.node(TankWriteNodeHandler.EMBED_MATTE_CLAMP)
             proj_fps = self.proj_info['sg_frame_rate']
             timecode = "01:00:00:01"
 
@@ -1744,6 +1766,13 @@ class TankWriteNodeHandler(object):
                     nuke.tprint("Could not apply embeded format settings. Missing info from Projects...")
 
             project_reformat.knobs()["format"].setValue(main_format)
+
+
+            # Embed clamp 
+            if write_type == "Matte":
+                matte_clamp['disable'].setValue(False)
+            else:
+                matte_clamp['disable'].setValue(True)
 
             # Set the embeded delivery reformat next
             if not (self.proj_info['sg_delivery_format_width'] and 
@@ -1847,6 +1876,9 @@ class TankWriteNodeHandler(object):
                         nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
                     else:
                         nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
+                elif (self.ctx_info.step['name'] != "Roto" and
+                write_type == "Matte"):  
+                    color_space = "linear"
                 elif (self.ctx_info.step['name'] == "Roto"):#and
                     color_space = "linear"          
                     node.knob("project_crop_bool").setValue(False)      
@@ -2704,7 +2736,7 @@ class TankWriteNodeHandler(object):
         # now that the node is constructed, we can process
         # knob changes correctly.
         self.__set_final_construction_flag(node, True)
-        
+
         # set the write type for creation of correct output
         write_type = self.get_node_write_type_name(node)        
         if self._curr_entity_type == 'Shot':
@@ -2713,7 +2745,8 @@ class TankWriteNodeHandler(object):
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
-                if write_type == "Version":
+                if (write_type == "Version" or
+                write_type == "Matte"):
                     node.knob('convert_to_write').setVisible(False) 
                     if self.ctx_info.step['name'] == "Roto":
                         nuke.tprint("Creating Roto SG Write node")
@@ -2734,7 +2767,7 @@ class TankWriteNodeHandler(object):
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.node("project_reformat")['disable'].setValue(True)                    
-                node.knob('project_crop_bool').setVisible(False)                      
+                node.knob('project_crop_bool').setVisible(False)
         # ensure that the correct entry is selected from the list:
         self.__update_knob_value(node, "tk_profile_list", current_profile_name)
         # and make sure the node is up-to-date with the profile:
@@ -2894,14 +2927,19 @@ class TankWriteNodeHandler(object):
                 if self.proj_info['name'] == "Breakdowns":
                     pass
                 else:
-                    if write_type == "Version":
+                    if (write_type == "Version" or 
+                    write_type == "Matte"):
                         node.knob('convert_to_write').setVisible(False)  
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
-                        # self.__version_up_visible(node, False)        
                         self.__embedded_format_option(node, True)             
                         if self.ctx_info.step['name'] == "Roto":
                             self.__set_project_crop(node, False)
+                    # elif write_type == "Matte":
+                    #     self.__set_project_crop(node, True)
+                    #     self.__write_type_changed(node, False)
+                    #     self.__embedded_format_option(node, True)   
+                    #     write_type_profile = "Dpx"
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
@@ -2911,8 +2949,7 @@ class TankWriteNodeHandler(object):
                         node.knob('convert_to_write').setVisible(True) 
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
-                        write_type_profile = "Exr"
-                        # self.__version_up_visible(node, True)     
+                        write_type_profile = "Exr"   
                         self.__embedded_format_option(node, False)
                         try:
                             node.node("Write1").knob("autocrop").setValue(True)
@@ -2939,30 +2976,23 @@ class TankWriteNodeHandler(object):
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    # self.__version_up_visible(node, False)
-
                 elif write_type == "Precomp":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    # self.__version_up_visible(node, True)                    
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                 
                     write_type_profile = "Exr"
                 elif write_type == "Element":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    # self.__version_up_visible(node, True)
                     write_type_profile =  "Exr"
                 elif write_type == "Denoise":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    # self.__version_up_visible(node, True)                    
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                  
                 elif write_type == "Cleanup":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)
-                    # self.__version_up_visible(node, True)                    
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
                 elif write_type == "Test":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
-                    # self.__version_up_visible(node, False)                    
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                 
                     self.__test_write_message()
                 # Updates the predefined profile based on the write type
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                

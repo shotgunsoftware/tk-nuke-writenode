@@ -72,6 +72,12 @@ Gizmo {
     +INVISIBLE 
  }
  addUserKnob {
+    1 matte_render_template
+    l "Sgtk Matte Template" 
+    t "The Sgtk matte template associated with this node"
+    +INVISIBLE 
+ } 
+ addUserKnob {
     6 tk_is_fully_constructed 
     l "Is Fully Constructed" 
     t "Internal - Gets set to True in 'onCreate'.  All 'knobChanged' calls before this are ignored" 
@@ -252,7 +258,7 @@ Gizmo {
     4 write_type 
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
-    M {Version Precomp Element Denoise Cleanup Test}
+    M {Version Precomp Element Denoise Cleanup Test Matte}
  }
  addUserKnob {
    22 write_type_info 
@@ -604,6 +610,10 @@ Reformat {
   pbb false  
   disable true
  } 
+ Clamp {
+  name matte_clamp
+  disable true
+ }  
  AddTimeCode {
   startcode 01:00:00:01
   name project_tc
