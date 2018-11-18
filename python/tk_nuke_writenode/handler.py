@@ -95,10 +95,11 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space',
                                             'sg_project_color_management'])
-        # self.shot_info = self.sg.find_one("Shot", 
-        #                                     [['id', 'is', self._entity['id']]],     
-        #                                     ['name',
-        #                                     'sg_main_plate']) 
+        self.shot_info = self.sg.find_one("Shot", 
+                                            [['id', 'is', self._entity['id']]],     
+                                            ['name',
+                                            'sg_main_plate',
+                                            'sg_without_ocio']) 
         # self.software_info = self.sg.find_one("Software", 
         #                                     [['id', 'is_not', 0],
         #                                     ['code', 'is', 'RV']], 
@@ -653,7 +654,15 @@ class TankWriteNodeHandler(object):
             else:
                 knob.setValue("False")
             new_wn.addKnob(knob)            
-            
+
+            # ocio bool
+            knob = nuke.String_Knob("tk_apply_ocio_cache")
+            if sg_wn["shot_ocio_bool"].value():
+                knob.setValue("True")
+            else:
+                knob.setValue("False")
+            new_wn.addKnob(knob)           
+
             # Copy across colorspace
             colorspace_name = r'default \((\w{1,9})\)'
             colorspace_match = re.match(colorspace_name, sg_wn['colorspace'].value())
@@ -717,7 +726,8 @@ class TankWriteNodeHandler(object):
                 proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
                 tk_tank_channel = wn.knob("tk_tank_channel")
                 project_format_knob = wn.knob("tk_project_format_cache")
-            
+                shot_ocio_knob = wn.knob("tk_apply_ocio_cache")
+
                 if (not profile_knob
                     or not output_knob
                     or not use_name_as_output_knob
@@ -727,6 +737,7 @@ class TankWriteNodeHandler(object):
                     or not auto_crop           
                     # or not channels_knob  
                     or not project_format_knob                  
+                    or not shot_ocio_knob                       
                     or not render_template_knob
                     or not publish_template_knob
                     or not proxy_render_template_knob
@@ -815,6 +826,13 @@ class TankWriteNodeHandler(object):
                 elif project_format_knob.value() == "False":
                     project_format_val = False
                 new_sg_wn["project_crop_bool"].setValue(project_format_val)
+
+                # shot ocio
+                if shot_ocio_knob.value() == "True":
+                    shot_ocio_val = True
+                elif shot_ocio_knob.value() == "False":
+                    shot_ocio_val = False
+                new_sg_wn["shot_ocio_bool"].setValue(shot_ocio_val)
 
                 # rename new node:                               
                 new_sg_wn.setName(node_name)
@@ -1792,37 +1810,39 @@ class TankWriteNodeHandler(object):
                             node.node("delivery_reformat")['disable'].setValue(False)  
                     else:
                         nuke.tprint("Missing info from SG Projects")
-
-            # Set colorspace based of SG values
+            
+            # Set internal ocio if required
             color_space = None
             if self.proj_info['sg_color_space']:
-                if self.proj_info['sg_project_color_management'] == "OCIO":
+                if (self.proj_info['sg_project_color_management'] == "OCIO" and not
+                self.shot_info['sg_without_ocio']):
                     color_space = "acescg"
-                    if (not nuke.root()['customOCIOConfigPath'].value()
-                    and not nuke.root()['colorManagement'].value() == "OCIO"):
-                        shot_ocio['disable'].setValue(True)  
+                    ocio_warning = ""
+                    sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
+                    if not sg_info_nodes:
+                        nuke.message("Could not find SG Info node that is required for OCIO color setup.")
+                        shot_ocio['disable'].setValue(True)
                     else:
-                        sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
-                        if not sg_info_nodes:
-                            pass
-                        else:
-                            if len(sg_info_nodes)==1:
-                                main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
-                                if not main_plate_name:
-                                    pass
-                                else:
-                                    in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
-                                    if in_color_space:
-                                        nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
-                                        shot_ocio['in_colorspace'].setValue(main_plate_name)
-                                        shot_ocio['disable'].setValue(False)
-                                    else:
-                                        shot_ocio['disable'].setValue(True)                                                                            
-                                        nuke.tprint("No in_colorspace value called: %s. Skipping..." % main_plate_name)
+                        if len(sg_info_nodes)==1:
+                            main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
+                            if not main_plate_name:
+                                nuke.message("WARNING:\nOCIO is a requirement for this shot but required info cannot be found.")
+                                pass
+                            else:
+                                in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
+                                # Check of the colorspace exists within the embed shot ocio node
+                                if in_color_space:
+                                    nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
+                                    shot_ocio['in_colorspace'].setValue(main_plate_name)
+                                    shot_ocio['disable'].setValue(False)
+                                    ocio_warning += "<i style='color:lawngreen'><b>OCIO Found and set.</b><br><i>"
+                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
+                                    # Set OCIO based on task type
                                     if write_type != "Version":
                                         node['shot_ocio_bool'].setValue(False)                               
                                         shot_ocio['disable'].setValue(True)                                           
                                     else:
+                                        nuke.tprint("Step is", self.ctx_info.step['name'])
                                         if (self.ctx_info.step['name'] == 'Comp_Texture' or
                                         self.ctx_info.step['name'] == 'Comp_Warp'):
                                             node['shot_ocio_bool'].setValue(False)
@@ -1830,17 +1850,25 @@ class TankWriteNodeHandler(object):
                                         else:
                                             node['shot_ocio_bool'].setValue(True)
                                             shot_ocio['disable'].setValue(False)
-                            else:
-                                nuke.message("Could not find SG Info node that is required for OCIO color setup.")
+                                else:
+                                    nuke.tprint("!!! Could not set internal OCIO in color value to %s" % main_plate_name)
+                                    shot_ocio['disable'].setValue(True)
+                                    node['shot_ocio_bool'].setValue(False)
+                                    ocio_warning += "<i style='color:red'><b>Warning. OCIO could not set!</b><br><i>"    
+                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
+                                
                 else:
+                    # Nuke default - disabling OCIO
+                    nuke.tprint("Disabling OCIO related settings.")
                     color_space = self.proj_info['sg_color_space']
                     node['shot_ocio_bool'].setValue(False)                               
                     node['shot_ocio_bool'].setVisible(False)   
-                    shot_ocio['disable'].setValue(True)                           
+                    shot_ocio['disable'].setValue(True)  
+                    node.knob("ocio_warning").setVisible(True)                         
                
+                # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
-                    color_space = self.proj_info['sg_color_space']
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                         nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
@@ -1849,9 +1877,7 @@ class TankWriteNodeHandler(object):
                 elif (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Matte"):  
                     color_space = "linear"
-                elif self.ctx_info.step['name'] == "Roto":
-                # self.proj_info['sg_project_color_management'] != "OCIO" or 
-                # self.proj_info['sg_project_color_management'] == "OCIO"):
+                elif (self.ctx_info.step['name'] == "Roto"):#and
                     color_space = "linear"          
                     node.knob("project_crop_bool").setValue(False)      
                     self.__embedded_format_option(node, False) 
@@ -2887,8 +2913,7 @@ class TankWriteNodeHandler(object):
                     # force output name to be the node name:
                     new_output_name = node.knob("name").value()
             self.__set_output(node, new_output_name)      
-        elif knob.name() == "name":
-            nuke.tprint(knob.name())            
+        elif knob.name() == "name":      
             # node name has changed:
             if write_type != "Version":
                 if node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value():
