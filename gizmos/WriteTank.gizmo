@@ -277,6 +277,12 @@ Gizmo {
     +INVISIBLE
  } 
  addUserKnob {
+    1 tk_apply_ocio_cache
+    l "Apply OCIO apply Cache" 
+    t "The cached option to apply the Project format"
+    +INVISIBLE
+ }  
+ addUserKnob {
    25 ""
    - STARTLINE
  }
@@ -308,7 +314,14 @@ Gizmo {
     t "Choose to apply the embeded shot OCIO." 
     +STARTLINE
     -INVISIBLE
- }  
+ }
+ addUserKnob {
+    26 ocio_warning 
+    l "Ocio Warning" 
+    T "" 
+    t "Flag with the artist if the OCIO is not being applied."
+    +STARTLINE 
+ }
  addUserKnob {
    25 ""
    - STARTLINE
