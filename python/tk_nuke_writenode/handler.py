@@ -2743,6 +2743,10 @@ class TankWriteNodeHandler(object):
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
+                if self.proj_info['sg_delivery_fileset'] == "Dpx":
+                    pass
+                else:
+                    print "Removing Matte from",list_profiles
                 if write_type == "Version":
                     node.knob('convert_to_write').setVisible(False) 
                     if self.ctx_info.step['name'] == "Roto":
