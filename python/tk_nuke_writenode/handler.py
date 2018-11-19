@@ -36,7 +36,6 @@ class TankWriteNodeHandler(object):
     """
     Handles requests and processing from a tank write node.
     """
-    # Version up branch
     SG_WRITE_NODE_CLASS = "WriteTank"
     SG_WRITE_DEFAULT_NAME = "SGWrite"
     WRITE_NODE_NAME = "Write1"
@@ -1772,7 +1771,7 @@ class TankWriteNodeHandler(object):
             else:
                 matte_clamp['disable'].setValue(True)
 
-            # Set the embeded delivery reformat next
+            # Set the embeded delivery reformat 
             if not (self.proj_info['sg_delivery_format_width'] and 
             self.proj_info['sg_delivery_format_height']):
                 node.node("delivery_reformat")['disable'].setValue(True)  
@@ -1783,7 +1782,8 @@ class TankWriteNodeHandler(object):
                 self.proj_info['sg_format_height']==self.proj_info['sg_delivery_format_height']):
                     node.node("delivery_reformat")['disable'].setValue(True)
                     nuke.tprint("Deliver format and Project format are the same. Disabling delivery reformat.")
-                elif write_type != "Version":
+                elif (write_type != "Version" and
+                write_type != "Matte"):
                     node.node("delivery_reformat")['disable'].setValue(True)
                 else:
                     # Set the delivery_reformat node
@@ -1864,7 +1864,7 @@ class TankWriteNodeHandler(object):
                     node['shot_ocio_bool'].setValue(False)                               
                     node['shot_ocio_bool'].setVisible(False)   
                     shot_ocio['disable'].setValue(True)  
-                    node.knob("ocio_warning").setVisible(True)                         
+                    node.knob("ocio_warning").setVisible(False)                         
                
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
@@ -2760,12 +2760,6 @@ class TankWriteNodeHandler(object):
                         node.knob("project_crop_bool").setValue(True)
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
-                elif write_type == "Matte":
-                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                       
-                    node.node("project_reformat")['disable'].setValue(False)
-                    node.knob("project_crop_bool").setValue(True)
-                    if node['tk_project_format_cache'].value() == "False":
-                        node.knob("project_crop_bool").setValue(False)
 
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
@@ -2888,11 +2882,13 @@ class TankWriteNodeHandler(object):
             # all knob changes
             #print "Ignoring change to %s.%s value = %s" % (node.name(), knob.name(), knob.value())
             return
-            
+        
+        # Set project fileset based on SG info
         write_type = self.get_node_write_type_name(node)
         write_type_profile = "Exr"
         if self.proj_info['sg_delivery_fileset'] != None:
-            if write_type == "Version":
+            if (write_type == "Version" or
+            write_type == "Matte"):
                 write_type_profile = self.proj_info['sg_delivery_fileset']['name'].capitalize()
 
         
@@ -2938,10 +2934,10 @@ class TankWriteNodeHandler(object):
                         self.__embedded_format_option(node, True)             
                         if self.ctx_info.step['name'] == "Roto":
                             self.__set_project_crop(node, False)
-                    if write_type == "Matte":
+                    elif write_type == "Matte":
                         node.knob('convert_to_write').setVisible(False)
                         self.__set_project_crop(node, True)
-                        self.__write_type_changed(node, False)
+                        self.__write_type_changed(node, True)
                         self.__embedded_format_option(node, True)
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
