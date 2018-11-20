@@ -600,6 +600,11 @@ Reformat {
   pbb false  
   disable true    
  }
+ Log2Lin  {
+  name lin_to_log_got
+  operation lin2log
+  disable true   
+ }
  Reformat {
   name delivery_reformat
   type "to format"
@@ -609,11 +614,15 @@ Reformat {
   resize width
   pbb false  
   disable true
+ }
+ Log2Lin {
+  name log_to_lin_got
+  disable true   
  } 
  Clamp {
   name matte_clamp
   disable true
- }  
+ }
  AddTimeCode {
   startcode 01:00:00:01
   name project_tc
