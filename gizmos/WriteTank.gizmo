@@ -591,19 +591,21 @@ Gizmo {
   xpos 195
   ypos -74
  }
+ Log2Lin  {
+  name lin_to_log_got
+  operation lin2log
+  disable true   
+ }
 Reformat {
   name project_reformat
   type "to format"
+  resize none
+  filter "Impulse"
   box_width 800
   box_height 1
   black_outside true
   pbb false  
   disable true    
- }
- Log2Lin  {
-  name lin_to_log_got
-  operation lin2log
-  disable true   
  }
  Reformat {
   name delivery_reformat
