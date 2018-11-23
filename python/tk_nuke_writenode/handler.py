@@ -446,10 +446,10 @@ class TankWriteNodeHandler(object):
         project_group_process = nuke.toNode(project_group['name'].value())
         project_group_process.begin()
         input_node = nuke.createNode("Input", inpanel = False)
-        project_reformat = nuke.createNode("Reformat", inpanel = False)
-        project_reformat['name'].setValue("project_reformat")
         lin_to_log = nuke.createNode("Log2Lin", inpanel = False)
         lin_to_log['name'].setValue("lin_to_log_got")        
+        project_reformat = nuke.createNode("Reformat", inpanel = False)
+        project_reformat['name'].setValue("project_reformat")
         delivery_reformat = nuke.createNode("Reformat", inpanel = False)
         delivery_reformat['name'].setValue("delivery_reformat")
         log_to_lin = nuke.createNode("Log2Lin", inpanel = False)
@@ -531,15 +531,16 @@ class TankWriteNodeHandler(object):
             else:
                 node_name = sg_wn.name()+"_converted"
 
+            # Lin2Log
+            extra_node.node('lin_to_log_got')['disable'].setValue(sg_wn.node('lin_to_log_got')['disable'].value())
+            extra_node.node('lin_to_log_got')['operation'].setValue(sg_wn.node('lin_to_log_got')['operation'].value())
             # Embed reformat
             extra_node.node('project_reformat')['disable'].setValue(sg_wn.node('project_reformat')['disable'].value())
+            extra_node.node('project_reformat')['resize'].setValue(sg_wn.node('project_reformat')['resize'].value())
             extra_node.node('project_reformat')['filter'].setValue(sg_wn.node('project_reformat')['filter'].value())
             extra_node.node('project_reformat')['format'].setValue(sg_wn.node('project_reformat')['format'].value())
             extra_node.node('project_reformat')['pbb'].setValue(sg_wn.node('project_reformat')['pbb'].value())
             extra_node.node('project_reformat')['black_outside'].setValue(sg_wn.node('project_reformat')['black_outside'].value())
-            # Lin2Log
-            extra_node.node('lin_to_log_got')['disable'].setValue(sg_wn.node('lin_to_log_got')['disable'].value())
-            extra_node.node('lin_to_log_got')['operation'].setValue(sg_wn.node('lin_to_log_got')['operation'].value())
             # Embed crop      
             extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
             extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
@@ -2759,7 +2760,7 @@ class TankWriteNodeHandler(object):
         write_type = self.get_node_write_type_name(node)        
         if self._curr_entity_type == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
-                node.node("project_reformat")['disable'].setValue(True)                    
+                # node.node("project_reformat")['disable'].setValue(True)                    
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
             else:
@@ -2776,12 +2777,10 @@ class TankWriteNodeHandler(object):
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
                         self.__embedded_format_option(node, False)   
-                        node.node("project_reformat")['disable'].setValue(True)
-                    elif self.ctx_info.step['name'] == "Cleanup":
-                        node.node("project_reformat")['disable'].setValue(True)                   
+                        # node.node("project_reformat")['disable'].setValue(True)               
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
-                        node.node("project_reformat")['disable'].setValue(False)
+                        # node.node("project_reformat")['disable'].setValue(False)
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
                             self.__embedded_format_option(node, False)                               
@@ -2794,7 +2793,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
-                node.node("project_reformat")['disable'].setValue(True)                    
+                # node.node("project_reformat")['disable'].setValue(True)                    
                 node.knob('project_crop_bool').setVisible(False)
         # ensure that the correct entry is selected from the list:
         self.__update_knob_value(node, "tk_profile_list", current_profile_name)
@@ -2873,10 +2872,10 @@ class TankWriteNodeHandler(object):
 
     def __embedded_format_option(self, node, value):
         if value == True:
-            node.node("project_reformat")['disable'].setValue(False)
+            # node.node("project_reformat")['disable'].setValue(False)
             node.node("delivery_reformat")['disable'].setValue(False)
         elif value == False:
-            node.node("project_reformat")['disable'].setValue(True)
+            # node.node("project_reformat")['disable'].setValue(True)
             node.node("delivery_reformat")['disable'].setValue(True)    
 
     def __embedded_ocio_option(self, node, value):
