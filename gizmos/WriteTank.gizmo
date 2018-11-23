@@ -72,6 +72,12 @@ Gizmo {
     +INVISIBLE 
  }
  addUserKnob {
+    1 matte_render_template
+    l "Sgtk Matte Template" 
+    t "The Sgtk matte template associated with this node"
+    +INVISIBLE 
+ } 
+ addUserKnob {
     6 tk_is_fully_constructed 
     l "Is Fully Constructed" 
     t "Internal - Gets set to True in 'onCreate'.  All 'knobChanged' calls before this are ignored" 
@@ -252,7 +258,7 @@ Gizmo {
     4 write_type 
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
-    M {Version Precomp Element Denoise Cleanup Test}
+    M {Version Precomp Element Denoise Cleanup Test Matte}
  }
  addUserKnob {
    22 write_type_info 
@@ -276,6 +282,12 @@ Gizmo {
     t "The cached option to apply the Project format"
     +INVISIBLE
  } 
+ addUserKnob {
+    1 tk_apply_ocio_cache
+    l "Apply OCIO apply Cache" 
+    t "The cached option to apply the Project format"
+    +INVISIBLE
+ }  
  addUserKnob {
    25 ""
    - STARTLINE
@@ -308,7 +320,14 @@ Gizmo {
     t "Choose to apply the embeded shot OCIO." 
     +STARTLINE
     -INVISIBLE
- }  
+ }
+ addUserKnob {
+    26 ocio_warning 
+    l "Ocio Warning" 
+    T "" 
+    t "Flag with the artist if the OCIO is not being applied."
+    +STARTLINE 
+ }
  addUserKnob {
    25 ""
    - STARTLINE
@@ -581,6 +600,11 @@ Reformat {
   pbb false  
   disable true    
  }
+ Log2Lin  {
+  name lin_to_log_got
+  operation lin2log
+  disable true   
+ }
  Reformat {
   name delivery_reformat
   type "to format"
@@ -590,7 +614,15 @@ Reformat {
   resize width
   pbb false  
   disable true
+ }
+ Log2Lin {
+  name log_to_lin_got
+  disable true   
  } 
+ Clamp {
+  name matte_clamp
+  disable true
+ }
  AddTimeCode {
   startcode 01:00:00:01
   name project_tc
