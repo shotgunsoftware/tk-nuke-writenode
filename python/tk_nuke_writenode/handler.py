@@ -1736,7 +1736,7 @@ class TankWriteNodeHandler(object):
 
             # Add sG reformat settings
             if not self.proj_info['sg_delivery_reformat_filter'] == None:
-                project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                # project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
                 delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             # Timecode settings
@@ -2775,16 +2775,22 @@ class TankWriteNodeHandler(object):
                         node.knob('write_type').setValues(['Version', 'Denoise'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
+                        self.__embedded_format_option(node, False)   
                         node.node("project_reformat")['disable'].setValue(True)
                     elif self.ctx_info.step['name'] == "Cleanup":
                         node.node("project_reformat")['disable'].setValue(True)                   
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
                         node.node("project_reformat")['disable'].setValue(False)
-                        node.knob("project_crop_bool").setValue(True)
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
-
+                            self.__embedded_format_option(node, False)                               
+                        elif node['tk_project_format_cache'].value() == "True":
+                            node.knob("project_crop_bool").setValue(True)
+                            self.__embedded_format_option(node, True)   
+                        else:    
+                            node.knob("project_crop_bool").setValue(True)
+                            self.__embedded_format_option(node, True)
         if self._curr_entity_type == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
@@ -2883,7 +2889,11 @@ class TankWriteNodeHandler(object):
         node["project_crop_bool"].setValue(bool_value)
 
     def __set_project_crop_cache(self, node, bool_value):
-        if not bool_value:
+
+        if bool_value == True:
+            nuke.tprint("Enabling project reformat and caching.")            
+            node['tk_project_format_cache'].setValue("True")
+        elif bool_value == False:
             node['tk_project_format_cache'].setValue("False")
             nuke.tprint("Disabling project reformat and caching.")
 
