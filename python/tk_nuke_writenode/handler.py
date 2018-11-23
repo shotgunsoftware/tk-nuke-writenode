@@ -48,6 +48,7 @@ class TankWriteNodeHandler(object):
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
 
+
     ################################################################################################
     # Construction
 
