@@ -48,7 +48,6 @@ class TankWriteNodeHandler(object):
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
 
-
     ################################################################################################
     # Construction
 
@@ -1737,7 +1736,7 @@ class TankWriteNodeHandler(object):
 
             # Add sG reformat settings
             if not self.proj_info['sg_delivery_reformat_filter'] == None:
-                # project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
                 delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             # Timecode settings
@@ -2782,7 +2781,7 @@ class TankWriteNodeHandler(object):
                         node.node("project_reformat")['disable'].setValue(True)                   
                     else:
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                       
-                        # node.node("project_reformat")['disable'].setValue(False)
+                        node.node("project_reformat")['disable'].setValue(False)
                         if node['tk_project_format_cache'].value() == "False":
                             node.knob("project_crop_bool").setValue(False)
                             self.__embedded_format_option(node, False)                               
@@ -2874,10 +2873,10 @@ class TankWriteNodeHandler(object):
 
     def __embedded_format_option(self, node, value):
         if value == True:
-            # node.node("project_reformat")['disable'].setValue(False)
+            node.node("project_reformat")['disable'].setValue(False)
             node.node("delivery_reformat")['disable'].setValue(False)
         elif value == False:
-            # node.node("project_reformat")['disable'].setValue(True)
+            node.node("project_reformat")['disable'].setValue(True)
             node.node("delivery_reformat")['disable'].setValue(True)    
 
     def __embedded_ocio_option(self, node, value):
