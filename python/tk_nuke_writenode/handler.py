@@ -1736,7 +1736,7 @@ class TankWriteNodeHandler(object):
 
             # Add sG reformat settings
             if not self.proj_info['sg_delivery_reformat_filter'] == None:
-                project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                # project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
                 delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             # Timecode settings
