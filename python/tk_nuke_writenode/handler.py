@@ -1737,8 +1737,10 @@ class TankWriteNodeHandler(object):
 
             # Add sG reformat settings
             if not self.proj_info['sg_delivery_reformat_filter'] == None:
-                # project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
-                delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                if "Comp" in self.ctx_info.step['name']:
+                    nuke.tprint("Task is comp. Applying reformat filter")
+                    # project_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
+                    delivery_reformat['filter'].setValue(self.proj_info['sg_delivery_reformat_filter'])
 
             # Timecode settings
             if not self.frame_range[0]:
