@@ -610,6 +610,7 @@ Reformat {
  Reformat {
   name delivery_reformat
   type "to format"
+  filter "Impulse"
   box_width 800
   box_height 1
   black_outside true
