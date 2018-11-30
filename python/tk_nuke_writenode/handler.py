@@ -2966,14 +2966,18 @@ class TankWriteNodeHandler(object):
                         node.knob('convert_to_write').setVisible(False)  
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, False)
-                        self.__embedded_format_option(node, True)             
+                        self.__embedded_format_option(node, True)      
                         if self.ctx_info.step['name'] == "Roto":
                             self.__set_project_crop(node, False)
+                        if write_type_profile == "Dpx":
+                            node.node("Write1").knob("transfer").setValue('(auto detect)')      
                     elif write_type == "Matte":
                         node.knob('convert_to_write').setVisible(False)
                         self.__set_project_crop(node, True)
                         self.__write_type_changed(node, True)
                         self.__embedded_format_option(node, True)
+                        if write_type_profile == "Dpx":                        
+                            node.node("Write1").knob("transfer").setValue('linear')
                     elif write_type == "Test":
                         self.__set_project_crop(node, False)
                         self.__write_type_changed(node, True)
