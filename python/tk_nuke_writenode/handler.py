@@ -1829,6 +1829,7 @@ class TankWriteNodeHandler(object):
             # Set internal ocio if required
             color_space = None
             if self.proj_info['sg_color_space']:
+                """
                 if (self.proj_info['sg_project_color_management'] == "OCIO" and not
                 self.shot_info['sg_without_ocio']):
                     color_space = "acescg"
@@ -1880,7 +1881,7 @@ class TankWriteNodeHandler(object):
                     node['shot_ocio_bool'].setVisible(False)   
                     shot_ocio['disable'].setValue(True)  
                     node.knob("ocio_warning").setVisible(False)                         
-               
+                """
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
