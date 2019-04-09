@@ -69,12 +69,14 @@ class NukeWriteNode(tank.platform.Application):
         :param old_context: The sgtk.context.Context being switched from.
         :param new_context: The sgtk.context.Context being switched to.
         """
-        for node in self.get_write_nodes():
-            self.reset_node_render_path(node)
 
         self.__write_node_handler.populate_profiles_from_settings()
         self.__write_node_handler.populate_script_template()
         self.__add_write_node_commands(new_context)
+
+        # now the writenode handler settings have been updated we can update the paths of all existing SG writenodes
+        for node in self.get_write_nodes():
+            self.reset_node_render_path(node)
         
     def process_placeholder_nodes(self):
         """

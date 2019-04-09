@@ -204,7 +204,7 @@ class TankWriteNodeHandler(object):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
-        the current script path and configuraton
+        the current script path and configuration.
         """
         is_proxy = node.proxy()
         self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
@@ -1346,6 +1346,7 @@ class TankWriteNodeHandler(object):
                             just update the normal render path.
         :returns:           The updated render path
         """
+        self._app.logger.info("__update_render_path %r reset: %r" % (node, force_reset))
         try:
             # get the cached path without evaluating:
             cached_path = (node.knob("tk_cached_proxy_path").toScript() if is_proxy
@@ -1404,7 +1405,8 @@ class TankWriteNodeHandler(object):
                     # compute the render path:
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
                     
-            except TkComputePathError, e:
+            except TkComputePathError as e:
+                self._app.log_exception(e)
                 # update cache:
                 self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
                 
