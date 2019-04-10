@@ -356,7 +356,7 @@ class TankWriteNodeHandler(object):
 
         # set up all existing nodes:
         for n in self.get_nodes():
-            self.__setup_new_node(n)
+            self.setup_new_node(n)
         
     def remove_callbacks(self):
         """
@@ -596,7 +596,7 @@ class TankWriteNodeHandler(object):
         # alone from now on, unless we someday have a better understanding of
         # what's going on and the consequences of changing the on_node_created
         # behavior.
-        self.__setup_new_node(nuke.thisNode())
+        self.setup_new_node(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
         """
@@ -1781,8 +1781,8 @@ class TankWriteNodeHandler(object):
                             break
                         
         return path_is_locked     
-                
-    def __setup_new_node(self, node):
+
+    def setup_new_node(self, node):
         """
         Setup a node when it's created (either directly or as a result of loading a script).
         This allows us to dynamically populate the profile list.
@@ -2051,7 +2051,7 @@ class TankWriteNodeHandler(object):
             return
         
         # setup the new node:
-        self.__setup_new_node(node)
+        self.setup_new_node(node)
         
         # populate the initial output name based on the render template:
         render_template = self.get_render_template(node)
