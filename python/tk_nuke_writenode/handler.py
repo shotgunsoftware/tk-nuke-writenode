@@ -1405,7 +1405,6 @@ class TankWriteNodeHandler(object):
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
                     
             except TkComputePathError as e:
-                self._app.log_exception(e)
                 # update cache:
                 self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
                 
