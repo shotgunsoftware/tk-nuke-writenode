@@ -1346,7 +1346,6 @@ class TankWriteNodeHandler(object):
                             just update the normal render path.
         :returns:           The updated render path
         """
-        self._app.logger.info("__update_render_path %r reset: %r" % (node, force_reset))
         try:
             # get the cached path without evaluating:
             cached_path = (node.knob("tk_cached_proxy_path").toScript() if is_proxy

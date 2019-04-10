@@ -76,7 +76,10 @@ class NukeWriteNode(tank.platform.Application):
 
         # now the writenode handler settings have been updated we can update the paths of all existing SG writenodes
         for node in self.get_write_nodes():
-            self.reset_node_render_path(node)
+            # Although there are nuke callbacks to handle setting up the new node; on automatic context change
+            # these are triggered before the engine changes context, so we must manually call it here.
+            # this will force the path to reset and the profiles to be rebuilt.
+            self.__setup_new_node(node)
         
     def process_placeholder_nodes(self):
         """
