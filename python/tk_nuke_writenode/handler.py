@@ -386,7 +386,7 @@ class TankWriteNodeHandler(object):
         
         if nodes:
             # filter list to only sg write nodes:
-            sg_write_nodes = [x for x in nodes if x.Class() == SG_WRITE_NODE_CLASS]
+            sg_write_nodes = [x for x in nodes if x.Class() == TankWriteNodeHandler.SG_WRITE_NODE_CLASS]
         else:
             # get all sg write nodes:
             sg_write_nodes = self.get_nodes()
@@ -529,7 +529,7 @@ class TankWriteNodeHandler(object):
             or not proxy_render_template_knob
             or not proxy_publish_template_knob):
             # can't convert to a Shotgun Write Node as we have missing parameters!
-            continue
+            return
 
         # set as selected:
         wn.setSelected(True)
