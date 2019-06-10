@@ -366,7 +366,7 @@ class TankWriteNodeHandler(object):
         nuke.removeOnScriptSave(self.__on_script_save)
         nuke.removeOnUserCreate(self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
 
-    def convert_sg_to_nuke_write_nodes(self):
+    def convert_sg_to_nuke_write_nodes(self, nodes=list()):
         """
         Utility function to convert all Shotgun Write nodes to regular
         Nuke Write nodes.
@@ -384,96 +384,105 @@ class TankWriteNodeHandler(object):
         # clear current selection:
         nukescripts.clear_selection_recursive()
         
-        # get write nodes:
-        sg_write_nodes = self.get_nodes()
+        if nodes:
+            # filter list to only sg write nodes:
+            sg_write_nodes = [x for x in nodes if x.Class() == TankWriteNodeHandler.SG_WRITE_NODE_CLASS]
+        else:
+            # get all sg write nodes:
+            sg_write_nodes = self.get_nodes()
+
         for sg_wn in sg_write_nodes:
-        
-            # set as selected:
-            sg_wn.setSelected(True)
-            node_name = sg_wn.name()
-            node_pos = (sg_wn.xpos(), sg_wn.ypos())
-            
-            # create new regular Write node:
-            new_wn = nuke.createNode("Write")
-            new_wn.setSelected(False)
-        
-            # copy across file & proxy knobs (if we've defined a proxy template):
-            new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
-            if sg_wn["proxy_render_template"].value():
-                new_wn["proxy"].setValue(sg_wn["tk_cached_proxy_path"].evaluate())
-            else:
-                new_wn["proxy"].setValue("")
+            self.convert_sg_to_nuke_write_node(sg_wn)
 
-            # make sure file_type is set properly:
-            int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-            new_wn["file_type"].setValue(int_wn["file_type"].value())
-        
-            # copy across any knob values from the internal write node.
-            for knob_name, knob in int_wn.knobs().iteritems():
-                # skip knobs we don't want to copy:
-                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
-                              "name", "xpos", "ypos"]:
-                    continue
-                
-                if knob_name in new_wn.knobs():
-                    try:
-                        new_wn[knob_name].setValue(knob.value())
-                    except TypeError:
-                        # ignore type errors:
-                        pass
+    def convert_sg_to_nuke_write_node(self, node):
+        sg_wn = node
 
-            # Set the nuke write node to have create directories ticked on by default
-            # As toolkit hasn't created the output folder at this point.
-            new_wn["create_directories"].setValue(True)
+        # set as selected:
+        sg_wn.setSelected(True)
+        node_name = sg_wn.name()
+        node_pos = (sg_wn.xpos(), sg_wn.ypos())
         
-            # copy across select knob values from the Shotgun Write node:
-            for knob_name in ["tile_color", "postage_stamp", "label"]:
-                new_wn[knob_name].setValue(sg_wn[knob_name].value())
-        
-            # Store Toolkit specific information on write node
-            # so that we can reverse this process later
+        # create new regular Write node:
+        new_wn = nuke.createNode("Write")
+        new_wn.setSelected(False)
+    
+        # copy across file & proxy knobs (if we've defined a proxy template):
+        new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
+        if sg_wn["proxy_render_template"].value():
+            new_wn["proxy"].setValue(sg_wn["tk_cached_proxy_path"].evaluate())
+        else:
+            new_wn["proxy"].setValue("")
 
-            # profile
-            knob = nuke.String_Knob("tk_profile_name")
-            knob.setValue(sg_wn["profile_name"].value())
-            new_wn.addKnob(knob)
+        # make sure file_type is set properly:
+        int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+        new_wn["file_type"].setValue(int_wn["file_type"].value())
+    
+        # copy across any knob values from the internal write node.
+        for knob_name, knob in int_wn.knobs().iteritems():
+            # skip knobs we don't want to copy:
+            if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
+                            "name", "xpos", "ypos"]:
+                continue
             
-            # output
-            knob = nuke.String_Knob("tk_output")
-            knob.setValue(sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].value())
-            new_wn.addKnob(knob)
-            
-            # use node name for output
-            knob = nuke.Boolean_Knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
-            knob.setValue(sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].value())
-            new_wn.addKnob(knob)
+            if knob_name in new_wn.knobs():
+                try:
+                    new_wn[knob_name].setValue(knob.value())
+                except TypeError:
+                    # ignore type errors:
+                    pass
+
+        # Set the nuke write node to have create directories ticked on by default
+        # As toolkit hasn't created the output folder at this point.
+        new_wn["create_directories"].setValue(True)
+    
+        # copy across select knob values from the Shotgun Write node:
+        for knob_name in ["tile_color", "postage_stamp", "label"]:
+            new_wn[knob_name].setValue(sg_wn[knob_name].value())
+    
+        # Store Toolkit specific information on write node
+        # so that we can reverse this process later
+
+        # profile
+        knob = nuke.String_Knob("tk_profile_name")
+        knob.setValue(sg_wn["profile_name"].value())
+        new_wn.addKnob(knob)
         
-            # templates
-            knob = nuke.String_Knob("tk_render_template")
-            knob.setValue(sg_wn["render_template"].value())
-            new_wn.addKnob(knob)
-            
-            knob = nuke.String_Knob("tk_publish_template")
-            knob.setValue(sg_wn["publish_template"].value())
-            new_wn.addKnob(knob)
-            
-            knob = nuke.String_Knob("tk_proxy_render_template")
-            knob.setValue(sg_wn["proxy_render_template"].value())
-            new_wn.addKnob(knob)
-            
-            knob = nuke.String_Knob("tk_proxy_publish_template")
-            knob.setValue(sg_wn["proxy_publish_template"].value())
-            new_wn.addKnob(knob)
+        # output
+        knob = nuke.String_Knob("tk_output")
+        knob.setValue(sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].value())
+        new_wn.addKnob(knob)
         
-            # delete original node:
-            nuke.delete(sg_wn)
+        # use node name for output
+        knob = nuke.Boolean_Knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
+        knob.setValue(sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].value())
+        new_wn.addKnob(knob)
+    
+        # templates
+        knob = nuke.String_Knob("tk_render_template")
+        knob.setValue(sg_wn["render_template"].value())
+        new_wn.addKnob(knob)
         
-            # rename new node:
-            new_wn.setName(node_name)
-            new_wn.setXpos(node_pos[0])
-            new_wn.setYpos(node_pos[1])
+        knob = nuke.String_Knob("tk_publish_template")
+        knob.setValue(sg_wn["publish_template"].value())
+        new_wn.addKnob(knob)
+        
+        knob = nuke.String_Knob("tk_proxy_render_template")
+        knob.setValue(sg_wn["proxy_render_template"].value())
+        new_wn.addKnob(knob)
+        
+        knob = nuke.String_Knob("tk_proxy_publish_template")
+        knob.setValue(sg_wn["proxy_publish_template"].value())
+        new_wn.addKnob(knob)
+    
+        # delete original node:
+        nuke.delete(sg_wn)
+    
+        # rename new node:
+        new_wn.setName(node_name)
+        new_wn.setXpos(node_pos[0])
+        new_wn.setYpos(node_pos[1])
             
-    def convert_nuke_to_sg_write_nodes(self):
+    def convert_nuke_to_sg_write_nodes(self, nodes=list()):
         """
         Utility function to convert all Nuke Write nodes to Shotgun
         Write nodes (only converts Write nodes that were previously
@@ -489,88 +498,97 @@ class TankWriteNodeHandler(object):
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
-        
-        # get write nodes:
-        write_nodes = nuke.allNodes(group=nuke.root(), filter="Write", recurseGroups = True)
+
+        if nodes:
+             # filter list to only write nodes:
+            write_nodes = [x for x in nodes if x.Class() == "Write"]
+        else:
+            # get write nodes:
+            write_nodes = nuke.allNodes(group=nuke.root(), filter="Write", recurseGroups = True)
+
         for wn in write_nodes:
+            self.convert_nuke_to_sg_write_node(wn)
+
+    def convert_nuke_to_sg_write_node(self, node):
+        wn = node
+
+        # look for additional toolkit knobs:
+        profile_knob = wn.knob("tk_profile_name")
+        output_knob = wn.knob("tk_output")
+        use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
+        render_template_knob = wn.knob("tk_render_template")
+        publish_template_knob = wn.knob("tk_publish_template")
+        proxy_render_template_knob = wn.knob("tk_proxy_render_template")
+        proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
+    
+        if (not profile_knob
+            or not output_knob
+            or not use_name_as_output_knob
+            or not render_template_knob
+            or not publish_template_knob
+            or not proxy_render_template_knob
+            or not proxy_publish_template_knob):
+            # can't convert to a Shotgun Write Node as we have missing parameters!
+            return
+
+        # set as selected:
+        wn.setSelected(True)
+        node_name = wn.name()
+        node_pos = (wn.xpos(), wn.ypos())
         
-            # look for additional toolkit knobs:
-            profile_knob = wn.knob("tk_profile_name")
-            output_knob = wn.knob("tk_output")
-            use_name_as_output_knob = wn.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME)
-            render_template_knob = wn.knob("tk_render_template")
-            publish_template_knob = wn.knob("tk_publish_template")
-            proxy_render_template_knob = wn.knob("tk_proxy_render_template")
-            proxy_publish_template_knob = wn.knob("tk_proxy_publish_template")
+        # create new Shotgun Write node:
+        new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+        new_sg_wn.setSelected(False)
+
+        # copy across file & proxy knobs as well as all cached templates:
+        new_sg_wn["cached_path"].setValue(wn["file"].value())
+        new_sg_wn["tk_cached_proxy_path"].setValue(wn["proxy"].value())
+        new_sg_wn["render_template"].setValue(render_template_knob.value())
+        new_sg_wn["publish_template"].setValue(publish_template_knob.value())
+        new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
+        new_sg_wn["proxy_publish_template"].setValue(proxy_publish_template_knob.value())
         
-            if (not profile_knob
-                or not output_knob
-                or not use_name_as_output_knob
-                or not render_template_knob
-                or not publish_template_knob
-                or not proxy_render_template_knob
-                or not proxy_publish_template_knob):
-                # can't convert to a Shotgun Write Node as we have missing parameters!
+        # set the profile & output - this will cause the paths to be reset:
+        # Note, we don't call the method __set_profile() as we don't want to
+        # run all the normal logic that runs as part of switching the profile.
+        # Instead we want this node to be rebuilt as close as possible to the
+        # original before it was converted to a regular Nuke write node.
+        profile_name = profile_knob.value()
+        new_sg_wn["profile_name"].setValue(profile_name)
+        new_sg_wn["tk_profile_list"].setValue(profile_name)
+        new_sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].setValue(output_knob.value())
+        new_sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].setValue(use_name_as_output_knob.value())
+
+        # make sure file_type is set properly:
+        int_wn = new_sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
+        int_wn["file_type"].setValue(wn["file_type"].value())
+
+        # copy across and knob values from the internal write node.
+        for knob_name, knob in wn.knobs().iteritems():
+            # skip knobs we don't want to copy:
+            if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
+                            "name", "xpos", "ypos", "disable", "tile_color", "postage_stamp",
+                            "label"]:
                 continue
-
-            # set as selected:
-            wn.setSelected(True)
-            node_name = wn.name()
-            node_pos = (wn.xpos(), wn.ypos())
             
-            # create new Shotgun Write node:
-            new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
-            new_sg_wn.setSelected(False)
-
-            # copy across file & proxy knobs as well as all cached templates:
-            new_sg_wn["cached_path"].setValue(wn["file"].value())
-            new_sg_wn["tk_cached_proxy_path"].setValue(wn["proxy"].value())
-            new_sg_wn["render_template"].setValue(render_template_knob.value())
-            new_sg_wn["publish_template"].setValue(publish_template_knob.value())
-            new_sg_wn["proxy_render_template"].setValue(proxy_render_template_knob.value())
-            new_sg_wn["proxy_publish_template"].setValue(proxy_publish_template_knob.value())
+            if knob_name in int_wn.knobs():
+                try:
+                    int_wn[knob_name].setValue(knob.value())
+                except TypeError:
+                    # ignore type errors:
+                    pass
+    
+        # explicitly copy some settings to the new Shotgun Write Node instead:
+        for knob_name in ["disable", "tile_color", "postage_stamp"]:
+            new_sg_wn[knob_name].setValue(wn[knob_name].value())
             
-            # set the profile & output - this will cause the paths to be reset:
-            # Note, we don't call the method __set_profile() as we don't want to
-            # run all the normal logic that runs as part of switching the profile.
-            # Instead we want this node to be rebuilt as close as possible to the
-            # original before it was converted to a regular Nuke write node.
-            profile_name = profile_knob.value()
-            new_sg_wn["profile_name"].setValue(profile_name)
-            new_sg_wn["tk_profile_list"].setValue(profile_name)
-            new_sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].setValue(output_knob.value())
-            new_sg_wn[TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME].setValue(use_name_as_output_knob.value())
-
-            # make sure file_type is set properly:
-            int_wn = new_sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
-            int_wn["file_type"].setValue(wn["file_type"].value())
-
-            # copy across and knob values from the internal write node.
-            for knob_name, knob in wn.knobs().iteritems():
-                # skip knobs we don't want to copy:
-                if knob_name in ["file_type", "file", "proxy", "beforeRender", "afterRender", 
-                              "name", "xpos", "ypos", "disable", "tile_color", "postage_stamp",
-                              "label"]:
-                    continue
-                
-                if knob_name in int_wn.knobs():
-                    try:
-                        int_wn[knob_name].setValue(knob.value())
-                    except TypeError:
-                        # ignore type errors:
-                        pass
-        
-            # explicitly copy some settings to the new Shotgun Write Node instead:
-            for knob_name in ["disable", "tile_color", "postage_stamp"]:
-                new_sg_wn[knob_name].setValue(wn[knob_name].value())
-                
-            # delete original node:
-            nuke.delete(wn)
-        
-            # rename new node:
-            new_sg_wn.setName(node_name)
-            new_sg_wn.setXpos(node_pos[0])
-            new_sg_wn.setYpos(node_pos[1])       
+        # delete original node:
+        nuke.delete(wn)
+    
+        # rename new node:
+        new_sg_wn.setName(node_name)
+        new_sg_wn.setXpos(node_pos[0])
+        new_sg_wn.setYpos(node_pos[1])       
 
 
     ################################################################################################
