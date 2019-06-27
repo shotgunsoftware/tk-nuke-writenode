@@ -39,6 +39,11 @@ class TankWriteNodeHandler(object):
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
 
+    SG_PYTHON_KNOBS = (
+        ("tk_before_render", "beforeRender"),
+        ("tk_after_render", "afterRender"),
+    )
+
     ################################################################################################
     # Construction
 
@@ -408,6 +413,10 @@ class TankWriteNodeHandler(object):
             int_wn = sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             new_wn["file_type"].setValue(int_wn["file_type"].value())
         
+            # Copy over Python Knobs
+            for sg_knob_name, wn_knob_name in self.SG_PYTHON_KNOBS:
+                new_wn[wn_knob_name].setValue(sg_wn[sg_knob_name].value())
+
             # copy across any knob values from the internal write node.
             for knob_name, knob in int_wn.knobs().iteritems():
                 # skip knobs we don't want to copy:
@@ -544,6 +553,10 @@ class TankWriteNodeHandler(object):
             # make sure file_type is set properly:
             int_wn = new_sg_wn.node(TankWriteNodeHandler.WRITE_NODE_NAME)
             int_wn["file_type"].setValue(wn["file_type"].value())
+
+            # Copy over Python Knobs
+            for sg_knob_name, wn_knob_name in self.SG_PYTHON_KNOBS:
+                new_sg_wn[sg_knob_name].setValue(wn[wn_knob_name].value())
 
             # copy across and knob values from the internal write node.
             for knob_name, knob in wn.knobs().iteritems():
