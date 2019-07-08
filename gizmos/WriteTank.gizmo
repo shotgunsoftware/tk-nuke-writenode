@@ -127,7 +127,13 @@ Gizmo {
     t "The path for this write node when rendering in proxy mode"
     +INVISIBLE 
  }
- 
+  addUserKnob {
+    1 channels_cache  
+    l "" 
+    t "Cache location for channels setting" 
+    +STARTLINE
+    +INVISIBLE
+ }
  addUserKnob {
     1 tk_channel_cache
     l "" 
