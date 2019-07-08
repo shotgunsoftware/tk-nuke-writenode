@@ -127,6 +127,7 @@ Gizmo {
     t "The path for this write node when rendering in proxy mode"
     +INVISIBLE 
  }
+ 
  addUserKnob {
     1 tk_channel_cache
     l "" 
@@ -319,7 +320,7 @@ Gizmo {
     l "Apply shot OCIO" 
     t "Choose to apply the embeded shot OCIO." 
     +STARTLINE
-    -INVISIBLE
+    +INVISIBLE
  }
  addUserKnob {
     26 ocio_warning 
@@ -327,6 +328,7 @@ Gizmo {
     T "" 
     t "Flag with the artist if the OCIO is not being applied."
     +STARTLINE 
+    +INVISIBLE    
  }
  addUserKnob {
    25 ""
