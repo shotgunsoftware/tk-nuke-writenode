@@ -1694,6 +1694,11 @@ class TankWriteNodeHandler(object):
             node.knob('exr_datatype').setVisible(True)
             node.knob('dpx_datatype').setVisible(False)
             profile_channel = "rgba"
+            try:
+                if node['channels_cache'].value() != "":
+                    profile_channel = node['channels_cache'].value()
+            except:
+                pass
             node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
             node.knob('auto_crop').setVisible(False)
             if (write_type == "Precomp" or 
@@ -1711,7 +1716,6 @@ class TankWriteNodeHandler(object):
             node.knob('dpx_datatype').setVisible(False)            
             node.knob('exr_datatype').setVisible(False)   
             node.knob('auto_crop').setVisible(False)                           
-            profile_channel = "rgb"
         else:
             nuke.tprint("No profile with that name")   
         
@@ -3102,7 +3106,13 @@ class TankWriteNodeHandler(object):
                                     % (grp.name(), knob_name, grp.name(), write_node.name(), knob_name))
                 
                 write_node.knob(knob_name).setValue(nuke.thisKnob().value())
-    
+            node_channel = node['channels'].value()
+        
+        # Add channels info to cahce for reopen reference
+        try:
+            node['channels_cache'].setValue(node_channel)
+        except:
+            pass
     def __get_current_script_path(self):
         """
         Get the current script path (if the current script has been saved).  This will
