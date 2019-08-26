@@ -64,11 +64,6 @@ configuration:
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
                     allows_empty: True
                     default_value: null
-                precomp_render_template:
-                    type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
-                    allows_empty: True
-                    default_value: null
                 element_render_template:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
@@ -78,11 +73,7 @@ configuration:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
-                cleanup_render_template:
-                    type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
-                    allows_empty: True
-                final_render_template:
+                smartvector_render_template:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
@@ -90,12 +81,7 @@ configuration:
                     type: template
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
-                    default_value: null
-                matte_render_template:
-                    type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
-                    allows_empty: True
-                    default_value: null              
+                    default_value: null         
                 tile_color:
                     type: list     
                     values:
