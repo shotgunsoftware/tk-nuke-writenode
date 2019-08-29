@@ -54,23 +54,11 @@ Gizmo {
     +INVISIBLE 
  }
  addUserKnob {
-    1 final_render_template
-    l "Sgtk Final Template" 
-    t "The Sgtk Final template associated with this node"
-    +INVISIBLE 
- }
- addUserKnob {
     1 test_render_template
     l "Sgtk Test Template" 
     t "The Sgtk test template associated with this node"
     +INVISIBLE 
  }
- addUserKnob {
-    1 matte_render_template
-    l "Sgtk Matte Template" 
-    t "The Sgtk matte template associated with this node"
-    +INVISIBLE 
- } 
  addUserKnob {
     6 tk_is_fully_constructed 
     l "Is Fully Constructed" 
