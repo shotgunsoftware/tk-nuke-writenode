@@ -2071,14 +2071,6 @@ class TankWriteNodeHandler(object):
         # reset the render path
         self.reset_render_path(node)
 
-                   
-        try:
-            dir_name = os.path.dirname(node['cached_path'].value())
-            os.makedirs(dir_name)
-            nuke.tprint("Created output folder %s" %(dir_name))
-        except:
-            pass
-
     def __wrap_text(self, t, line_length):
         """
         Wrap text to the line_length number of characters where possible
@@ -2746,7 +2738,7 @@ class TankWriteNodeHandler(object):
 
         user_name = self._app.context.user['name'].split()
         nuke.message(
-            "Hi %s" % str(user_name[0]) + "\n"
+            "%s!" % str(user_name[0]) + "\n"
             "\n"
             "Please be aware that this is a temporary location.\n"
             "Renders saved here will be removed at the end of the week.\n")
@@ -2835,33 +2827,30 @@ class TankWriteNodeHandler(object):
                 self.__set_output(node, node.knob("name").value())
         elif knob.name() == "write_type":
             if self._curr_entity_type == 'Shot':
-                if self.proj_info['name'] == "Breakdowns":
-                    pass
+                if write_type == "Version":
+                    node.knob('convert_to_write').setVisible(False)  
+                    self.__set_project_crop(node, True)
+                    self.__write_type_changed(node, False)
+                    self.__embedded_format_option(node, True)      
+                    if self.ctx_info.step['name'] == "Roto":
+                        self.__set_project_crop(node, False)
+                    if write_type_profile == "Dpx":
+                        node.node("Write1").knob("transfer").setValue('(auto detect)')      
+                elif write_type == "Test":
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    self.__test_write_message()
+                    self.__embedded_format_option(node, False)
                 else:
-                    if write_type == "Version":
-                        node.knob('convert_to_write').setVisible(False)  
-                        self.__set_project_crop(node, True)
-                        self.__write_type_changed(node, False)
-                        self.__embedded_format_option(node, True)      
-                        if self.ctx_info.step['name'] == "Roto":
-                            self.__set_project_crop(node, False)
-                        if write_type_profile == "Dpx":
-                            node.node("Write1").knob("transfer").setValue('(auto detect)')      
-                    elif write_type == "Test":
-                        self.__set_project_crop(node, False)
-                        self.__write_type_changed(node, True)
-                        self.__test_write_message()
-                        self.__embedded_format_option(node, False)
-                    else:
-                        node.knob('convert_to_write').setVisible(True) 
-                        self.__set_project_crop(node, False)
-                        self.__write_type_changed(node, True)
-                        write_type_profile = "Exr"   
-                        self.__embedded_format_option(node, False)
-                        try:
-                            node.node("Write1").knob("autocrop").setValue(True)
-                        except:
-                            pass
+                    node.knob('convert_to_write').setVisible(True) 
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    write_type_profile = "Exr"   
+                    self.__embedded_format_option(node, False)
+                    try:
+                        node.node("Write1").knob("autocrop").setValue(True)
+                    except:
+                        pass
                 
                 # Scans script for existing name clashes and renames accordingly
                 existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
