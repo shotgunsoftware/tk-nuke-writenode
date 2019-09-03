@@ -1840,12 +1840,12 @@ class TankWriteNodeHandler(object):
                 write_type == "Version"):                  
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                        nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
-                    else:
-                        nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
-                elif self.ctx_info.step['name'] != "Roto":  
-                    color_space = "linear"
-                elif (self.ctx_info.step['name'] == "Roto"):#and
+                    #     nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
+                    # else:
+                    #     nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
+                elif self.ctx_info.step['name'] != "Roto":
+                    color_space = self.proj_info['sg_color_space']
+                elif (self.ctx_info.step['name'] == "Roto"):
                     color_space = "linear"          
                     node.knob("project_crop_bool").setValue(False)      
                     self.__embedded_format_option(node, False) 
@@ -1856,16 +1856,8 @@ class TankWriteNodeHandler(object):
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
-            md.fromScript(self.__get_metadata(node))   
-
-            if (self.proj_info['name'] == "GOT8" and
-            write_type == "Version"):
-                node.node('lin_to_log_got')['disable'].setValue(False)
-                node.node('log_to_lin_got')['disable'].setValue(False)
-            else:
-                node.node('lin_to_log_got')['disable'].setValue(True)
-                node.node('log_to_lin_got')['disable'].setValue(True)                                
-
+            md.fromScript(self.__get_metadata(node))
+                          
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
