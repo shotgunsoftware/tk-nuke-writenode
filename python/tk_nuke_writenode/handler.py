@@ -1548,9 +1548,9 @@ class TankWriteNodeHandler(object):
             file_settings.update({'compression' : 'Zip (1 scanline)'})
             file_settings.update({'datatype' : '16 bit half'})
             nuke.tprint("Applying ZIP compression to %s output." % write_type)
-        elif write_type == "SmartVector":
-            self.__update_knob_value(node, 'exr_datatype', '32 bit half')            
-            file_settings.update({'datatype' : '32 bit half'})
+        # elif write_type == "SmartVector":
+        #     self.__update_knob_value(node, 'exr_datatype', '32 bit half')            
+        #     file_settings.update({'datatype' : '32 bit half'})
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
         # Make sure any invalid entries are removed from the profile list:
