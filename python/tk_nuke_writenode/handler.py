@@ -443,13 +443,9 @@ class TankWriteNodeHandler(object):
         project_group['name'].setValue(node_name)
         project_group_process = nuke.toNode(project_group['name'].value())
         project_group_process.begin()
-        input_node = nuke.createNode("Input", inpanel = False)
-        lin_to_log = nuke.createNode("Log2Lin", inpanel = False)
-        lin_to_log['name'].setValue("lin_to_log_got")        
+        input_node = nuke.createNode("Input", inpanel = False) 
         delivery_reformat = nuke.createNode("Reformat", inpanel = False)
         delivery_reformat['name'].setValue("delivery_reformat")
-        log_to_lin = nuke.createNode("Log2Lin", inpanel = False)
-        log_to_lin['name'].setValue("log_to_lin_got")
         project_tc = nuke.createNode("AddTimeCode", inpanel = False)
         project_tc['name'].setValue("project_tc")
         content_metadata = nuke.createNode("ModifyMetaData", inpanel = False)       
@@ -460,9 +456,7 @@ class TankWriteNodeHandler(object):
         matte_clamp['name'].setValue("matte_clamp")
         # matte_clamp['disable'].setValue(True)
         output_node = nuke.createNode("Output", inpanel = False)        
-        proj_group_nodes.append(lin_to_log)
         proj_group_nodes.append(delivery_reformat)
-        proj_group_nodes.append(log_to_lin)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)
         proj_group_nodes.append(shot_ocio)
@@ -526,9 +520,6 @@ class TankWriteNodeHandler(object):
             else:
                 node_name = sg_wn.name()+"_converted"
 
-            # Lin2Log
-            extra_node.node('lin_to_log_got')['disable'].setValue(sg_wn.node('lin_to_log_got')['disable'].value())
-            extra_node.node('lin_to_log_got')['operation'].setValue(sg_wn.node('lin_to_log_got')['operation'].value())
             # Embed crop      
             extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
             extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
@@ -536,9 +527,6 @@ class TankWriteNodeHandler(object):
             extra_node.node('delivery_reformat')['format'].setValue(sg_wn.node('delivery_reformat')['format'].value())
             extra_node.node('delivery_reformat')['pbb'].setValue(sg_wn.node('delivery_reformat')['pbb'].value())
             extra_node.node('delivery_reformat')['black_outside'].setValue(sg_wn.node('delivery_reformat')['black_outside'].value())      
-            # Log2Lin
-            extra_node.node('log_to_lin_got')['disable'].setValue(sg_wn.node('log_to_lin_got')['disable'].value())            
-            extra_node.node('log_to_lin_got')['operation'].setValue(sg_wn.node('log_to_lin_got')['operation'].value())
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
@@ -1840,12 +1828,12 @@ class TankWriteNodeHandler(object):
                 write_type == "Version"):                  
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                        nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
-                    else:
-                        nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
-                elif self.ctx_info.step['name'] != "Roto":  
-                    color_space = "linear"
-                elif (self.ctx_info.step['name'] == "Roto"):#and
+                    #     nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
+                    # else:
+                    #     nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
+                elif self.ctx_info.step['name'] != "Roto":
+                    color_space = self.proj_info['sg_color_space']
+                elif (self.ctx_info.step['name'] == "Roto"):
                     color_space = "linear"          
                     node.knob("project_crop_bool").setValue(False)      
                     self.__embedded_format_option(node, False) 
@@ -1856,16 +1844,8 @@ class TankWriteNodeHandler(object):
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
-            md.fromScript(self.__get_metadata(node))   
-
-            if (self.proj_info['name'] == "GOT8" and
-            write_type == "Version"):
-                node.node('lin_to_log_got')['disable'].setValue(False)
-                node.node('log_to_lin_got')['disable'].setValue(False)
-            else:
-                node.node('lin_to_log_got')['disable'].setValue(True)
-                node.node('log_to_lin_got')['disable'].setValue(True)                                
-
+            md.fromScript(self.__get_metadata(node))
+                          
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.

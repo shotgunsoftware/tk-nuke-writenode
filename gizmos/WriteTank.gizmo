@@ -569,11 +569,6 @@ Gizmo {
   xpos 195
   ypos -74
  }
- Log2Lin  {
-  name lin_to_log_got
-  operation lin2log
-  disable true   
- }
 Reformat {
   name project_reformat
   type "to format"
@@ -596,10 +591,6 @@ Reformat {
   pbb false  
   disable true
  }
- Log2Lin {
-  name log_to_lin_got
-  disable true   
- } 
  Clamp {
   name matte_clamp
   disable true
