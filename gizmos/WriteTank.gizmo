@@ -323,7 +323,7 @@ Gizmo {
     l "autocrop" 
     t "Choose to crop footage to the Project format." 
     +STARTLINE
-    -INVISIBLE
+    -INVISIBLE    
  }  
  addUserKnob {
     4 dpx_datatype 
@@ -590,6 +590,11 @@ Reformat {
   resize width
   pbb false  
   disable true
+ }
+ Crop {
+  name format_crop
+  reformat true
+  crop false
  }
  Clamp {
   name matte_clamp

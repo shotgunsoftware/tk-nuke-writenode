@@ -43,6 +43,7 @@ class TankWriteNodeHandler(object):
     EMBED_META_DATA = "content_meta_data"    
     EMBED_SHOT_OCIO = "shot_ocio"
     EMBED_DELIVERY_REFORMAT = "delivery_reformat"
+    EMBED_FORMAT_CROP = "format_crop"    
     EMBED_MATTE_CLAMP = "matte_clamp"    
     OUTPUT_KNOB_NAME = "tank_channel"
     USE_NAME_AS_OUTPUT_KNOB_NAME = "tk_use_name_as_channel"
@@ -446,6 +447,8 @@ class TankWriteNodeHandler(object):
         input_node = nuke.createNode("Input", inpanel = False) 
         delivery_reformat = nuke.createNode("Reformat", inpanel = False)
         delivery_reformat['name'].setValue("delivery_reformat")
+        format_crop = nuke.createNode("Crop", inpanel = False)
+        format_crop['name'].setValue("format_crop")        
         project_tc = nuke.createNode("AddTimeCode", inpanel = False)
         project_tc['name'].setValue("project_tc")
         content_metadata = nuke.createNode("ModifyMetaData", inpanel = False)       
@@ -454,9 +457,9 @@ class TankWriteNodeHandler(object):
         shot_ocio['name'].setValue("shot_ocio")
         matte_clamp = nuke.createNode("Clamp", inpanel = False)
         matte_clamp['name'].setValue("matte_clamp")
-        # matte_clamp['disable'].setValue(True)
         output_node = nuke.createNode("Output", inpanel = False)        
         proj_group_nodes.append(delivery_reformat)
+        proj_group_nodes.append(format_crop)
         proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)
         proj_group_nodes.append(shot_ocio)
@@ -520,13 +523,18 @@ class TankWriteNodeHandler(object):
             else:
                 node_name = sg_wn.name()+"_converted"
 
-            # Embed crop      
+            # Embed reformat      
             extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
             extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
             extra_node.node('delivery_reformat')['resize'].setValue(sg_wn.node('delivery_reformat')['resize'].value())
             extra_node.node('delivery_reformat')['format'].setValue(sg_wn.node('delivery_reformat')['format'].value())
             extra_node.node('delivery_reformat')['pbb'].setValue(sg_wn.node('delivery_reformat')['pbb'].value())
             extra_node.node('delivery_reformat')['black_outside'].setValue(sg_wn.node('delivery_reformat')['black_outside'].value())      
+            # Embed crop      
+            extra_node.node('format_crop')['disable'].setValue(sg_wn.node('format_crop')['disable'].value())
+            extra_node.node('format_crop')['box'].setValue(sg_wn.node('format_crop')['box'].value())
+            extra_node.node('format_crop')['reformat'].setValue(sg_wn.node('format_crop')['reformat'].value())
+            extra_node.node('format_crop')['crop'].setValue(sg_wn.node('format_crop')['crop'].value())
             # Embed tc
             extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
             extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
@@ -1711,6 +1719,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             # Update embeded time code
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
+            format_crop = node.node(TankWriteNodeHandler.EMBED_FORMAT_CROP)            
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
             shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)         
@@ -1742,7 +1751,9 @@ class TankWriteNodeHandler(object):
             # Set the embeded delivery reformat 
             if not (self.proj_info['sg_delivery_format_width'] and 
             self.proj_info['sg_delivery_format_height']):
-                node.node("delivery_reformat")['disable'].setValue(True)  
+                delivery_reformat['disable'].setValue(True)  
+                node.node("format_crop")['disable'].setValue(True)                  
+                
                 nuke.tprint("No delivery reformat info given on Projects.")
             else:       
                 # Set the project reformat first
@@ -1753,9 +1764,10 @@ class TankWriteNodeHandler(object):
                                                 int(self.proj_info['sg_pixel_aspect_ratio']))
                      
                 if write_type != "Version":
-                    node.node("delivery_reformat")['disable'].setValue(True)
+                    delivery_reformat['disable'].setValue(True)
+                    node.node("format_crop")['disable'].setValue(True)
                 else:
-                    # Add sG reformat settings
+                    # Add SG reformat settings
                     filter_match = next((f for f in delivery_reformat['filter'].values() if f == self.proj_info['sg_delivery_reformat_filter']), None)
                     if filter_match:
                         delivery_reformat['filter'].setValue(filter_match)                        
@@ -1765,7 +1777,10 @@ class TankWriteNodeHandler(object):
                
                     # Set the delivery_reformat node
                     delivery_reformat.knobs()["format"].setValue(delivery_format)
-                    node.node("delivery_reformat")['disable'].setValue(False)  
+                    crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                    format_crop['box'].setValue(crop_box_value)
+                    delivery_reformat['disable'].setValue(False)  
+                    format_crop['disable'].setValue(False)  
             
             # Set internal ocio if required
             color_space = None
@@ -2726,8 +2741,11 @@ class TankWriteNodeHandler(object):
     def __embedded_format_option(self, node, value):
         if value == True:
             node.node("delivery_reformat")['disable'].setValue(False)
+            node.node("format_crop")['disable'].setValue(False)
+
         elif value == False:
             node.node("delivery_reformat")['disable'].setValue(True)    
+            node.node("format_crop")['disable'].setValue(True)
 
     def __embedded_ocio_option(self, node, value):
         if value == True:
