@@ -1033,6 +1033,8 @@ class TankWriteNodeHandler(object):
         file_type = profile["file_type"]
         file_settings = profile["settings"]
         tile_color = profile["tile_color"]
+        use_node_name = profile["use_node_name"]
+        tank_channel = profile["tank_channel"]
         promote_write_knobs = profile.get("promote_write_knobs", [])
 
         # Make sure any invalid entries are removed from the profile list:
@@ -1043,6 +1045,25 @@ class TankWriteNodeHandler(object):
         # update both the list and the cached value for profile name:
         self.__update_knob_value(node, "profile_name", profile_name)
         self.__update_knob_value(node, "tk_profile_list", profile_name)
+
+        # Save the old output knob values
+        old_use_node_name = node.knob(TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME).value()
+        old_output_name = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value()
+
+        output_name = tank_channel
+        if use_node_name:
+            # Ensure that the output name matches the node name if
+            # that option is enabled on the node. This is primarily
+            # going to handle the situation where a node with "use name as
+            # output name" enabled is copied and pasted. When it is
+            # pasted the node will get a new name to avoid a collision
+            # and we need to make sure we update the output name to
+            # match that new name.
+            output_name = node.knob("name").value()
+
+        # update the output tank channel
+        self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, output_name)
+        self.__update_knob_value(node, TankWriteNodeHandler.USE_NAME_AS_OUTPUT_KNOB_NAME, use_node_name)
         
         # set the format
         self.__populate_format_settings(
@@ -1132,7 +1153,9 @@ class TankWriteNodeHandler(object):
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
-        if profile_name != old_profile_name:
+        # Also update if the use_node_name or tank_channel attrs have changed.
+        if profile_name != old_profile_name or use_node_name != old_use_node_name or \
+            output_name != old_output_name:
             self.reset_render_path(node)
 
     def __populate_initial_output_name(self, template, node):
