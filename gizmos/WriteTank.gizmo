@@ -569,17 +569,6 @@ Gizmo {
   xpos 195
   ypos -74
  }
-Reformat {
-  name project_reformat
-  type "to format"
-  resize none
-  filter "Impulse"
-  box_width 800
-  box_height 1
-  black_outside true
-  pbb false  
-  disable true    
- }
  Reformat {
   name delivery_reformat
   type "to format"
