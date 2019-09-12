@@ -97,17 +97,11 @@ class TankWriteNodeHandler(object):
                                             'sg_project_color_management'])
 
         self.shot_info = self.sg.find_one("Shot", 
-                                            [['id', 'is', self._entity['id']]],     
+                                            [['id', 'is', self._entity['id']]],
                                             ['name',
                                             'sg_main_plate',
-                                            'sg_without_ocio']) 
-        # self.software_info = self.sg.find_one("Software", 
-        #                                     [['id', 'is_not', 0],
-        #                                     ['code', 'is', 'RV']], 
-        #                                     ['code',
-        #                                     'windows_path',
-        #                                     "version_names"
-        #                                     ])         
+                                            'sg_without_ocio',
+                                            'sg_shot_mattes'])
                                           
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
@@ -849,9 +843,8 @@ class TankWriteNodeHandler(object):
             if (format_match.width()== format_width and
             format_match.height()== format_height and
             format_match.pixelAspect() == pixel_aspect_ratio):
-                print("Format already exists!")
+                pass
             else:
-                print("Adding format")
                 format_match = nuke.addFormat("%d %d %d %s" %(format_width, format_height, pixel_aspect_ratio, format_name))
         else:
             format_match = nuke.addFormat("%d %d %d %s" %(format_width, format_height, pixel_aspect_ratio,format_name))
@@ -1196,6 +1189,24 @@ class TankWriteNodeHandler(object):
 
     ################################################################################################
     # Private methods
+    def __test_mattes(self, node, step, steps_to_check_mattes):
+
+        """
+        Checks SG write input for all embedded channels.
+        Flag if additional mattes found.
+        """
+
+        if not self.shot_info["sg_shot_mattes"]:
+            nuke.tprint("No mattes assigned on SG. Skipping")
+        else:
+            nuke.tprint("Found the following mattes assigned on SG.")
+            write_type = self.get_node_write_type_name(node)   
+            if write_type == "Version":
+                for matte in self.shot_info["sg_shot_mattes"]:
+                    nuke.tprint(" - %s" %(matte['name']))
+
+            
+
 
     def __get_node_profile_settings(self, node):
         """
@@ -1356,7 +1367,7 @@ class TankWriteNodeHandler(object):
             if self._curr_entity_type == 'Shot':
                 fields ={
                       'Shot': curr_fields['Shot'],
-                      'Step': curr_fields['Step'],
+                      'task_name': curr_fields['task_name'],
                       'name': '',
                       'output': '',
                       'version': curr_fields['version']
@@ -1377,7 +1388,7 @@ class TankWriteNodeHandler(object):
             elif self._curr_entity_type == 'Asset':
                 fields ={
                       'Asset': curr_fields['Asset'],
-                      'Step': curr_fields['Step'],
+                      'task_name': curr_fields['task_name'],
                       'sg_asset_type': curr_fields['sg_asset_type'],
                       'name': '',
                       'output': '',
@@ -1814,7 +1825,7 @@ class TankWriteNodeHandler(object):
                                         node['shot_ocio_bool'].setValue(False)                               
                                         shot_ocio['disable'].setValue(True)                                           
                                     else:
-                                        nuke.tprint("Step is", self.ctx_info.step['name'])
+                                        nuke.tprint("task_name is", self.ctx_info.step['name'])
                                         if (self.ctx_info.step['name'] == 'Comp_Texture' or
                                         self.ctx_info.step['name'] == 'Comp_Warp'):
                                             node['shot_ocio_bool'].setValue(False)
@@ -1861,6 +1872,7 @@ class TankWriteNodeHandler(object):
             md = content_meta_data['metadata']
             md.fromScript(self.__get_metadata(node))
                           
+            self.__test_mattes(node, "", "")
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
