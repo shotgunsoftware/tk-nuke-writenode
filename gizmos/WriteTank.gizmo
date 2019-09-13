@@ -569,6 +569,10 @@ Gizmo {
   xpos 195
   ypos -74
  }
+ Shuffle {
+  name internal_shuffle
+  disable true
+ } 
  Reformat {
   name delivery_reformat
   type "to format"

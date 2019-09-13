@@ -43,6 +43,7 @@ class TankWriteNodeHandler(object):
     EMBED_META_DATA = "content_meta_data"    
     EMBED_SHOT_OCIO = "shot_ocio"
     EMBED_DELIVERY_REFORMAT = "delivery_reformat"
+    EMBED_SHUFFLE = "internal_shuffle"
     EMBED_FORMAT_CROP = "format_crop"    
     EMBED_MATTE_CLAMP = "matte_clamp"    
     OUTPUT_KNOB_NAME = "tank_channel"
@@ -439,6 +440,8 @@ class TankWriteNodeHandler(object):
         project_group_process = nuke.toNode(project_group['name'].value())
         project_group_process.begin()
         input_node = nuke.createNode("Input", inpanel = False) 
+        internal_shuffle = nuke.createNode("Shuffle", inpanel = False)
+        internal_shuffle['name'].setValue("internal_shuffle")
         delivery_reformat = nuke.createNode("Reformat", inpanel = False)
         delivery_reformat['name'].setValue("delivery_reformat")
         format_crop = nuke.createNode("Crop", inpanel = False)
@@ -452,6 +455,7 @@ class TankWriteNodeHandler(object):
         matte_clamp = nuke.createNode("Clamp", inpanel = False)
         matte_clamp['name'].setValue("matte_clamp")
         output_node = nuke.createNode("Output", inpanel = False)        
+        proj_group_nodes.append(internal_shuffle)        
         proj_group_nodes.append(delivery_reformat)
         proj_group_nodes.append(format_crop)
         proj_group_nodes.append(project_tc)
@@ -517,7 +521,9 @@ class TankWriteNodeHandler(object):
             else:
                 node_name = sg_wn.name()+"_converted"
 
-            # Embed reformat      
+            # Embed shuffle
+            extra_node.node('internal_shuffle')['disable'].setValue(sg_wn.node('internal_shuffle')['disable'].value())
+            # Embed reformat
             extra_node.node('delivery_reformat')['disable'].setValue(sg_wn.node('delivery_reformat')['disable'].value())
             extra_node.node('delivery_reformat')['filter'].setValue(sg_wn.node('delivery_reformat')['filter'].value())
             extra_node.node('delivery_reformat')['resize'].setValue(sg_wn.node('delivery_reformat')['resize'].value())
@@ -1188,26 +1194,7 @@ class TankWriteNodeHandler(object):
                 raise
 
     ################################################################################################
-    # Private methods
-    def __test_mattes(self, node, step, steps_to_check_mattes):
-
-        """
-        Checks SG write input for all embedded channels.
-        Flag if additional mattes found.
-        """
-
-        if not self.shot_info["sg_shot_mattes"]:
-            nuke.tprint("No mattes assigned on SG. Skipping")
-        else:
-            nuke.tprint("Found the following mattes assigned on SG.")
-            write_type = self.get_node_write_type_name(node)   
-            if write_type == "Version":
-                for matte in self.shot_info["sg_shot_mattes"]:
-                    nuke.tprint(" - %s" %(matte['name']))
-
-            
-
-
+    # Private methods           
     def __get_node_profile_settings(self, node):
         """
         Find the profile settings for the specified node
@@ -1730,6 +1717,7 @@ class TankWriteNodeHandler(object):
         if self._curr_entity_type == 'Shot':
             # Update embeded time code
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
+            internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
             format_crop = node.node(TankWriteNodeHandler.EMBED_FORMAT_CROP)            
             time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
@@ -1871,8 +1859,7 @@ class TankWriteNodeHandler(object):
 
             md = content_meta_data['metadata']
             md.fromScript(self.__get_metadata(node))
-                          
-            self.__test_mattes(node, "", "")
+
         # Reset the render path but only if the named profile has changed - this will only
         # be the case if the user has changed the profile through the UI so this will avoid
         # the node automatically updating without the user's knowledge.
