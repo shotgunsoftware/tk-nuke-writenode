@@ -236,6 +236,11 @@ Gizmo {
     M {Version Element Denoise SmartVector Test}
  }
  addUserKnob {
+   22 check_mattes 
+   l "Check mattes"
+   T "  "
+ } 
+ addUserKnob {
    22 write_type_info 
    l "Info"
    T "  "
