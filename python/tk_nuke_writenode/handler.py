@@ -15,8 +15,6 @@ import pickle
 import datetime
 import base64
 import re
-import subprocess
-import traceback
 import webbrowser
 
 import nuke
@@ -24,7 +22,6 @@ import nukescripts
 
 import tank
 from tank import TankError
-# from tank.platform import constants
 from tank.platform.qt import QtCore
 
 try:
@@ -264,7 +261,7 @@ class TankWriteNodeHandler(object):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
-        the current script path and configuraton
+        the current script path and configuration.
         """
         is_proxy = node.proxy()
         self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
@@ -1780,62 +1777,6 @@ class TankWriteNodeHandler(object):
                     delivery_reformat['disable'].setValue(False)  
                     format_crop['disable'].setValue(False)  
             
-            # Set internal ocio if required
-            color_space = None
-            if self.proj_info['sg_color_space']:
-                """
-                if (self.proj_info['sg_project_color_management'] == "OCIO" and not
-                self.shot_info['sg_without_ocio']):
-                    color_space = "acescg"
-                    ocio_warning = ""
-                    sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
-                    if not sg_info_nodes:
-                        nuke.message("Could not find SG Info node that is required for OCIO color setup.")
-                        shot_ocio['disable'].setValue(True)
-                    else:
-                        if len(sg_info_nodes)==1:
-                            main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
-                            if not main_plate_name:
-                                nuke.message("WARNING:\nOCIO is a requirement for this shot but required info cannot be found.")
-                                pass
-                            else:
-                                in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
-                                # Check of the colorspace exists within the embed shot ocio node
-                                if in_color_space:
-                                    nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
-                                    shot_ocio['in_colorspace'].setValue(main_plate_name)
-                                    shot_ocio['disable'].setValue(False)
-                                    ocio_warning += "<i style='color:lawngreen'><b>OCIO Found and set.</b><br><i>"
-                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
-                                    # Set OCIO based on task type
-                                    if write_type != "Version":
-                                        node['shot_ocio_bool'].setValue(False)                               
-                                        shot_ocio['disable'].setValue(True)                                           
-                                    else:
-                                        nuke.tprint("task_name is", self.ctx_info.step['name'])
-                                        if (self.ctx_info.step['name'] == 'Comp_Texture' or
-                                        self.ctx_info.step['name'] == 'Comp_Warp'):
-                                            node['shot_ocio_bool'].setValue(False)
-                                            shot_ocio['disable'].setValue(True)
-                                        else:
-                                            node['shot_ocio_bool'].setValue(True)
-                                            shot_ocio['disable'].setValue(False)
-                                else:
-                                    nuke.tprint("!!! Could not set internal OCIO in color value to %s" % main_plate_name)
-                                    shot_ocio['disable'].setValue(True)
-                                    node['shot_ocio_bool'].setValue(False)
-                                    ocio_warning += "<i style='color:red'><b>Warning. OCIO could not set!</b><br><i>"    
-                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
-                                
-                else:
-                    # Nuke default - disabling OCIO
-                    nuke.tprint("Disabling OCIO related settings.")
-                    color_space = self.proj_info['sg_color_space']
-                    node['shot_ocio_bool'].setValue(False)                               
-                    node['shot_ocio_bool'].setVisible(False)   
-                    shot_ocio['disable'].setValue(True)  
-                    node.knob("ocio_warning").setVisible(False)                         
-                """
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
