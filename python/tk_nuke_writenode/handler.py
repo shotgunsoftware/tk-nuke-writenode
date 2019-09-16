@@ -24,9 +24,15 @@ import nukescripts
 
 import tank
 from tank import TankError
-from tank.platform import constants
+# from tank.platform import constants
 from tank.platform.qt import QtCore
-from tank_vendor import shotgun_api3 as sgapi
+
+try:
+    from software.nuke.nuke_python import nuke_tools as nt
+    reload(nt)
+    ntools = nt.NukeTools()
+except:
+    nuke.tprint("Could not load studio tools")
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -96,13 +102,6 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space',
                                             'sg_project_color_management'])
-
-        self.shot_info = self.sg.find_one("Shot", 
-                                            [['id', 'is', self._entity['id']]],
-                                            ['name',
-                                            'sg_main_plate',
-                                            'sg_without_ocio',
-                                            'sg_shot_mattes'])
                                           
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
@@ -1194,7 +1193,7 @@ class TankWriteNodeHandler(object):
                 raise
 
     ################################################################################################
-    # Private methods           
+    # Private methods
     def __get_node_profile_settings(self, node):
         """
         Find the profile settings for the specified node
@@ -1471,7 +1470,7 @@ class TankWriteNodeHandler(object):
                                     be reset.  For example, if colorspace has been set in the profile and force
                                     is False then the knob won't get reset to the value from the profile.
         """
-        nuke.tprint("Setting profile for %s" %profile_name)
+        # nuke.tprint("Setting profile for %s" %profile_name)
         # can't change the profile if this isn't a valid profile:
         if profile_name not in self._profiles:
             # at the very least, try to restore the file format settings from the cached values:
@@ -2775,7 +2774,6 @@ class TankWriteNodeHandler(object):
         node = nuke.thisNode()
         knob = nuke.thisKnob()
         grp = nuke.thisGroup()
-
         if not self.__is_node_fully_constructed(node):
             # knobChanged will be called during script load for all knobs with non-default 
             # values.  We want to ignore these implicit changes so we make use of a knob to
@@ -2791,7 +2789,6 @@ class TankWriteNodeHandler(object):
             if write_type == "Version":
                 write_type_profile = self.proj_info['sg_delivery_fileset']['name'].capitalize()
 
-        
         # Main handler area for knob changed
         if knob.name() == "tk_profile_list":
             # change the profile for the specified node:
@@ -2891,6 +2888,22 @@ class TankWriteNodeHandler(object):
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.8.252/ssvfx-wiki-sphinx/workflow/nuke/nuke.html#sg-write-node"
             webbrowser.open_new_tab(write_type_url)     
+        elif knob.name() == "check_mattes":
+            if not ntools:
+                nuke.tprint("Could not find NukeTools") 
+            else:
+                self.shot_info = self.sg.find_one("Shot", 
+                                                [['id', 'is', self._entity['id']]],
+                                                ['name',
+                                                'id',
+                                                'sg_main_plate',
+                                                'sg_without_ocio',
+                                                'sg_shot_mattes'])                
+                try:
+                    ntools.test_channels(node, self.shot_info, ['rgb', 'rgba'])
+                except:
+                    pass
+                
         elif knob.name() == "project_crop_bool":   
             self.__embedded_format_option(node, knob.value())
             self.__set_project_crop_cache(node, knob.value())
