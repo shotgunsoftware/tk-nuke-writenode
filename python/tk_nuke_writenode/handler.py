@@ -412,7 +412,7 @@ class TankWriteNodeHandler(object):
 
         # set up all existing nodes:
         for n in self.get_nodes():
-            self.__setup_new_node(n)
+            self.setup_new_node(n)
         
     def remove_callbacks(self):
         """
@@ -477,6 +477,9 @@ class TankWriteNodeHandler(object):
         app = eng.apps["tk-nuke-writenode"]
         # Convert Shotgun write nodes to Nuke write nodes:
         app.convert_to_write_nodes()
+
+        :param create_folders: When set to true, it will create the folders on disk for the render and proxy paths.
+         Defaults to false.
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
@@ -571,6 +574,10 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+
+            # Set the nuke write node to have create directories ticked on by default
+            # As toolkit hasn't created the output folder at this point.
+            new_wn["create_directories"].setValue(True)
         
             # copy across select knob values from the Shotgun Write node:
             for knob_name in ["tile_color", "postage_stamp", "label"]:
@@ -914,27 +921,12 @@ class TankWriteNodeHandler(object):
         # was farm setups for a few clients. It's best if we just leave this
         # alone from now on, unless we someday have a better understanding of
         # what's going on and the consequences of changing the on_node_created
-        # behavior.        
-        current_node = nuke.thisNode()
+        # behavior.
 
-        # We're doing something different here. We have a situation where the
-        # logic in __setup_new_node might trigger an exception being raised in
-        # Nuke's framebuffer subprocess, which makes its way to the console. It
-        # doesn't break anything, but it's impossible to snuff it out since it
-        # is occurring in a different process from us here. What this is doing
-        # is staging the node created callback such that it's called slowly
-        # over a period of a couple hundred milliseconds, while giving Nuke's
-        # event loop the opportunity to iterate a couple times between phases
-        # execution. A side effect of this is that the render paths are sometimes
-        # not properly reset, most notably during some Snapshot restores. As
-        # a result, we also call the reset_render_path method to ensure everything
-        # is good there.
-        calling_function = yield
-        QtCore.QTimer.singleShot(100, calling_function.next)
-        yield
-        self.__setup_new_node(current_node)
-        self.reset_render_path(current_node)
-        yield
+        # self.__setup_new_node(current_node)
+        # self.reset_render_path(current_node)
+        
+        self.setup_new_node(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
         """
@@ -1776,7 +1768,7 @@ class TankWriteNodeHandler(object):
                     format_crop['box'].setValue(crop_box_value)
                     delivery_reformat['disable'].setValue(False)  
                     format_crop['disable'].setValue(False)  
-            
+                color_space = None      
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
@@ -2110,9 +2102,8 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
-
-
-            except TkComputePathError, e:
+                    
+            except TkComputePathError as e:
                 # update cache:
                 self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
                 
@@ -2502,8 +2493,8 @@ class TankWriteNodeHandler(object):
                             break
                         
         return path_is_locked     
-                
-    def __setup_new_node(self, node):
+
+    def setup_new_node(self, node):
         """
         Setup a node when it's created (either directly or as a result of loading a script).
         This allows us to dynamically populate the profile list.
@@ -2995,7 +2986,7 @@ class TankWriteNodeHandler(object):
             return
         
         # setup the new node:
-        self.__setup_new_node(node)
+        self.setup_new_node(node)
         
         # populate the initial output name based on the render template:
         write_type = self.get_node_write_type_name(node)        
