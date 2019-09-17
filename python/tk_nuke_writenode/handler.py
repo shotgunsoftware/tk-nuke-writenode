@@ -15,8 +15,6 @@ import pickle
 import datetime
 import base64
 import re
-import subprocess
-import traceback
 import webbrowser
 
 import nuke
@@ -24,12 +22,10 @@ import nukescripts
 
 import tank
 from tank import TankError
-# from tank.platform import constants
 from tank.platform.qt import QtCore
 
 try:
     from software.nuke.nuke_python import nuke_tools as nt
-    reload(nt)
     ntools = nt.NukeTools()
 except:
     nuke.tprint("Could not load studio tools")
@@ -64,10 +60,6 @@ class TankWriteNodeHandler(object):
         """
         self._app = app
         self._script_template = self._app.get_template("template_script_work")
-        # Context info
-        self._curr_entity_type = self._app.context.entity['type']        
-        self._project = self._app.context.project
-        self._entity = self._app.context.entity
 
         # cache the profiles:
         self._promoted_knobs = {}
@@ -86,7 +78,7 @@ class TankWriteNodeHandler(object):
 
         self.sg = self._app.engine.shotgun
         self.proj_info = self.sg.find_one("Project", 
-                                            [['id', 'is', self._project['id']]], 
+                                            [['id', 'is', self._app.context.project['id']]], 
                                             ['name',
                                             'sg_frame_rate', 
                                             'sg_data_type',
@@ -144,7 +136,7 @@ class TankWriteNodeHandler(object):
 
     def get_shot_frame_range(self):
 
-        if self._curr_entity_type  == "Shot":                                            
+        if self._app.context.entity['type']  == "Shot":                                            
             self.frame_range_app = self._app.engine.apps["tk-multi-setframerange"]
             self.frame_range = self.frame_range_app.get_frame_range_from_shotgun()
 
@@ -264,7 +256,7 @@ class TankWriteNodeHandler(object):
         """
         Reset the render path of the specified node.  This
         will force the render path to be updated based on
-        the current script path and configuraton
+        the current script path and configuration.
         """
         is_proxy = node.proxy()
         self.__update_render_path(node, force_reset=True, is_proxy=is_proxy)     
@@ -415,7 +407,7 @@ class TankWriteNodeHandler(object):
 
         # set up all existing nodes:
         for n in self.get_nodes():
-            self.__setup_new_node(n)
+            self.setup_new_node(n)
         
     def remove_callbacks(self):
         """
@@ -480,6 +472,9 @@ class TankWriteNodeHandler(object):
         app = eng.apps["tk-nuke-writenode"]
         # Convert Shotgun write nodes to Nuke write nodes:
         app.convert_to_write_nodes()
+
+        :param create_folders: When set to true, it will create the folders on disk for the render and proxy paths.
+         Defaults to false.
         """
         # clear current selection:
         nukescripts.clear_selection_recursive()
@@ -574,6 +569,10 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+
+            # Set the nuke write node to have create directories ticked on by default
+            # As toolkit hasn't created the output folder at this point.
+            new_wn["create_directories"].setValue(True)
         
             # copy across select knob values from the Shotgun Write node:
             for knob_name in ["tile_color", "postage_stamp", "label"]:
@@ -842,8 +841,7 @@ class TankWriteNodeHandler(object):
         Create a new one and return if not found
         """
         format_name = "%s_%s_%d" % (project_shortcode,format_type,format_width)
-        format_match = next((format for format in nuke.formats() if format.name() == format_name),None)
-
+        format_match = next((format_ for format_ in nuke.formats() if format_.name() == format_name),None)
         if format_match:
             if (format_match.width()== format_width and
             format_match.height()== format_height and
@@ -917,27 +915,10 @@ class TankWriteNodeHandler(object):
         # was farm setups for a few clients. It's best if we just leave this
         # alone from now on, unless we someday have a better understanding of
         # what's going on and the consequences of changing the on_node_created
-        # behavior.        
-        current_node = nuke.thisNode()
+        # behavior.
 
-        # We're doing something different here. We have a situation where the
-        # logic in __setup_new_node might trigger an exception being raised in
-        # Nuke's framebuffer subprocess, which makes its way to the console. It
-        # doesn't break anything, but it's impossible to snuff it out since it
-        # is occurring in a different process from us here. What this is doing
-        # is staging the node created callback such that it's called slowly
-        # over a period of a couple hundred milliseconds, while giving Nuke's
-        # event loop the opportunity to iterate a couple times between phases
-        # execution. A side effect of this is that the render paths are sometimes
-        # not properly reset, most notably during some Snapshot restores. As
-        # a result, we also call the reset_render_path method to ensure everything
-        # is good there.
-        calling_function = yield
-        QtCore.QTimer.singleShot(100, calling_function.next)
-        yield
-        self.__setup_new_node(current_node)
-        self.reset_render_path(current_node)
-        yield
+        self.setup_new_node(nuke.thisNode())
+        # self.reset_render_path(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
         """
@@ -1350,7 +1331,7 @@ class TankWriteNodeHandler(object):
             curr_fields = work_template.get_fields(script_path)
             context_path = None
 
-            if self._curr_entity_type == 'Shot':
+            if self._app.context.entity['type'] == 'Shot':
                 fields ={
                       'Shot': curr_fields['Shot'],
                       'task_name': curr_fields['task_name'],
@@ -1371,7 +1352,7 @@ class TankWriteNodeHandler(object):
 
                 context_path = context_info.apply_fields(fields)      
 
-            elif self._curr_entity_type == 'Asset':
+            elif self._app.context.entity['type'] == 'Asset':
                 fields ={
                       'Asset': curr_fields['Asset'],
                       'task_name': curr_fields['task_name'],
@@ -1711,9 +1692,9 @@ class TankWriteNodeHandler(object):
             write_type == "Version"):
             if self.proj_info['sg_delivery_fileset_compression']:
                 node.node("Write1").knob("compression").setValue(self.proj_info['sg_delivery_fileset_compression'])
-                nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
+                # nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
 
-        if self._curr_entity_type == 'Shot':
+        if self._app.context.entity['type'] == 'Shot':
             # Update embeded time code
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
@@ -1779,69 +1760,12 @@ class TankWriteNodeHandler(object):
                     format_crop['box'].setValue(crop_box_value)
                     delivery_reformat['disable'].setValue(False)  
                     format_crop['disable'].setValue(False)  
-            
-            # Set internal ocio if required
-            color_space = None
-            if self.proj_info['sg_color_space']:
-                """
-                if (self.proj_info['sg_project_color_management'] == "OCIO" and not
-                self.shot_info['sg_without_ocio']):
-                    color_space = "acescg"
-                    ocio_warning = ""
-                    sg_info_nodes = [n for n in self.get_nodes_by_class('SGInfoNode')]
-                    if not sg_info_nodes:
-                        nuke.message("Could not find SG Info node that is required for OCIO color setup.")
-                        shot_ocio['disable'].setValue(True)
-                    else:
-                        if len(sg_info_nodes)==1:
-                            main_plate_name = sg_info_nodes[0]['main_plate_name'].value()
-                            if not main_plate_name:
-                                nuke.message("WARNING:\nOCIO is a requirement for this shot but required info cannot be found.")
-                                pass
-                            else:
-                                in_color_space = next((color for color in shot_ocio['in_colorspace'].values() if main_plate_name in color), None)
-                                # Check of the colorspace exists within the embed shot ocio node
-                                if in_color_space:
-                                    nuke.tprint("Setting internal OCIO in_colorspace to: %s" % main_plate_name)
-                                    shot_ocio['in_colorspace'].setValue(main_plate_name)
-                                    shot_ocio['disable'].setValue(False)
-                                    ocio_warning += "<i style='color:lawngreen'><b>OCIO Found and set.</b><br><i>"
-                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
-                                    # Set OCIO based on task type
-                                    if write_type != "Version":
-                                        node['shot_ocio_bool'].setValue(False)                               
-                                        shot_ocio['disable'].setValue(True)                                           
-                                    else:
-                                        nuke.tprint("task_name is", self.ctx_info.step['name'])
-                                        if (self.ctx_info.step['name'] == 'Comp_Texture' or
-                                        self.ctx_info.step['name'] == 'Comp_Warp'):
-                                            node['shot_ocio_bool'].setValue(False)
-                                            shot_ocio['disable'].setValue(True)
-                                        else:
-                                            node['shot_ocio_bool'].setValue(True)
-                                            shot_ocio['disable'].setValue(False)
-                                else:
-                                    nuke.tprint("!!! Could not set internal OCIO in color value to %s" % main_plate_name)
-                                    shot_ocio['disable'].setValue(True)
-                                    node['shot_ocio_bool'].setValue(False)
-                                    ocio_warning += "<i style='color:red'><b>Warning. OCIO could not set!</b><br><i>"    
-                                    self.__update_knob_value(node, "ocio_warning", "".join(self.__wrap_text(ocio_warning, 100)))
-                                
-                else:
-                    # Nuke default - disabling OCIO
-                    nuke.tprint("Disabling OCIO related settings.")
-                    color_space = self.proj_info['sg_color_space']
-                    node['shot_ocio_bool'].setValue(False)                               
-                    node['shot_ocio_bool'].setVisible(False)   
-                    shot_ocio['disable'].setValue(True)  
-                    node.knob("ocio_warning").setVisible(False)                         
-                """
+                color_space = None      
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
                 write_type == "Version"):                  
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                    #     nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
                     # else:
                     #     nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
                 elif self.ctx_info.step['name'] != "Roto":
@@ -1854,6 +1778,7 @@ class TankWriteNodeHandler(object):
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
+                # nuke.tprint("--- Setting default colorspace value of %s." % color_space)
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
@@ -2169,9 +2094,8 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path
                     render_path = self.__compute_render_path_from(node, render_template, width, height, output_name)
-
-
-            except TkComputePathError, e:
+                    
+            except TkComputePathError as e:
                 # update cache:
                 self.__node_computed_path_settings_cache[(node, is_proxy)] = (cache_entry, str(e), "")
                 
@@ -2561,8 +2485,8 @@ class TankWriteNodeHandler(object):
                             break
                         
         return path_is_locked     
-                
-    def __setup_new_node(self, node):
+
+    def setup_new_node(self, node):
         """
         Setup a node when it's created (either directly or as a result of loading a script).
         This allows us to dynamically populate the profile list.
@@ -2637,7 +2561,7 @@ class TankWriteNodeHandler(object):
 
         # set the write type for creation of correct output
         write_type = self.get_node_write_type_name(node)        
-        if self._curr_entity_type == 'Shot':
+        if self._app.context.entity['type'] == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
@@ -2662,7 +2586,7 @@ class TankWriteNodeHandler(object):
                         else:    
                             node.knob("project_crop_bool").setValue(True)
                             self.__embedded_format_option(node, True)
-        if self._curr_entity_type == 'Asset':
+        if self._app.context.entity['type'] == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.knob('project_crop_bool').setVisible(False)
@@ -2756,12 +2680,10 @@ class TankWriteNodeHandler(object):
 
     def __set_project_crop_cache(self, node, bool_value):
 
-        if bool_value == True:
-            nuke.tprint("Enabling project reformat and caching.")            
+        if bool_value == True:   
             node['tk_project_format_cache'].setValue("True")
         elif bool_value == False:
             node['tk_project_format_cache'].setValue("False")
-            nuke.tprint("Disabling project reformat and caching.")
 
     def __on_knob_changed(self):
         """
@@ -2820,7 +2742,7 @@ class TankWriteNodeHandler(object):
                 # update output to reflect the node name:
                 self.__set_output(node, node.knob("name").value())
         elif knob.name() == "write_type":
-            if self._curr_entity_type == 'Shot':
+            if self._app.context.entity['type'] == 'Shot':
                 if write_type == "Version":
                     node.knob('convert_to_write').setVisible(False)  
                     self.__set_project_crop(node, True)
@@ -2863,7 +2785,7 @@ class TankWriteNodeHandler(object):
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
-            elif self._curr_entity_type == 'Asset':
+            elif self._app.context.entity['type'] == 'Asset':
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2889,16 +2811,21 @@ class TankWriteNodeHandler(object):
             write_type_url = "http://10.80.8.252/ssvfx-wiki-sphinx/workflow/nuke/nuke.html#sg-write-node"
             webbrowser.open_new_tab(write_type_url)     
         elif knob.name() == "check_mattes":
+            self.shot_info = None
+            
             if not ntools:
                 nuke.tprint("Could not find NukeTools") 
             else:
+                
                 self.shot_info = self.sg.find_one("Shot", 
-                                                [['id', 'is', self._entity['id']]],
+                                                [['id', 'is', self._app.context.entity['id']]],
                                                 ['name',
                                                 'id',
                                                 'sg_main_plate',
                                                 'sg_without_ocio',
-                                                'sg_shot_mattes'])                
+                                                'sg_shot_mattes'])
+                                                
+                nuke.tprint("Got info from entity: %d" %(self._app.context.entity['id']))
                 try:
                     ntools.test_channels(node, self.shot_info, ['rgb', 'rgba'])
                 except:
@@ -3054,7 +2981,7 @@ class TankWriteNodeHandler(object):
             return
         
         # setup the new node:
-        self.__setup_new_node(node)
+        self.setup_new_node(node)
         
         # populate the initial output name based on the render template:
         write_type = self.get_node_write_type_name(node)        
