@@ -325,7 +325,8 @@ class NukeWriteNode(tank.platform.Application):
             # as these aren't supported when converting back
             # todo: We should check the settings and then scan the scene to see if any SG write nodes use promoted knobs
             write_nodes = self.get_setting("write_nodes")
-            promoted_knob_write_nodes = next((a_node for a_node in write_nodes if a_node['promote_write_knobs']), None)
+            if write_nodes:
+                promoted_knob_write_nodes = next((a_node for a_node in write_nodes if a_node['promote_write_knobs']), None)
 
             if not promoted_knob_write_nodes:
                 # no presets use promoted knobs so we are OK to register the menus.

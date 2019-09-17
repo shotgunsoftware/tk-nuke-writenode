@@ -26,7 +26,6 @@ from tank.platform.qt import QtCore
 
 try:
     from software.nuke.nuke_python import nuke_tools as nt
-    reload(nt)
     ntools = nt.NukeTools()
 except:
     nuke.tprint("Could not load studio tools")
@@ -846,8 +845,7 @@ class TankWriteNodeHandler(object):
         Create a new one and return if not found
         """
         format_name = "%s_%s_%d" % (project_shortcode,format_type,format_width)
-        format_match = next((format for format in nuke.formats() if format.name() == format_name),None)
-
+        format_match = next((format_ for format_ in nuke.formats() if format_.name() == format_name),None)
         if format_match:
             if (format_match.width()== format_width and
             format_match.height()== format_height and
@@ -923,10 +921,8 @@ class TankWriteNodeHandler(object):
         # what's going on and the consequences of changing the on_node_created
         # behavior.
 
-        # self.__setup_new_node(current_node)
-        # self.reset_render_path(current_node)
-        
         self.setup_new_node(nuke.thisNode())
+        # self.reset_render_path(nuke.thisNode())
 
     def on_compute_path_gizmo_callback(self):
         """
@@ -1774,7 +1770,6 @@ class TankWriteNodeHandler(object):
                 write_type == "Version"):                  
                     if color_space not in node.knob('colorspace').values():
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                    #     nuke.tprint("--- Could not get color space info. Setting default value of %s." % color_space)
                     # else:
                     #     nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
                 elif self.ctx_info.step['name'] != "Roto":
@@ -1787,6 +1782,7 @@ class TankWriteNodeHandler(object):
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
+                nuke.tprint("--- Setting default colorspace value of %s." % color_space)
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
