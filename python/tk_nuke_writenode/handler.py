@@ -60,10 +60,6 @@ class TankWriteNodeHandler(object):
         """
         self._app = app
         self._script_template = self._app.get_template("template_script_work")
-        # Context info
-        self._curr_entity_type = self._app.context.entity['type']        
-        self._project = self._app.context.project
-        self._entity = self._app.context.entity
 
         # cache the profiles:
         self._promoted_knobs = {}
@@ -82,7 +78,7 @@ class TankWriteNodeHandler(object):
 
         self.sg = self._app.engine.shotgun
         self.proj_info = self.sg.find_one("Project", 
-                                            [['id', 'is', self._project['id']]], 
+                                            [['id', 'is', self._app.context.project['id']]], 
                                             ['name',
                                             'sg_frame_rate', 
                                             'sg_data_type',
@@ -140,7 +136,7 @@ class TankWriteNodeHandler(object):
 
     def get_shot_frame_range(self):
 
-        if self._curr_entity_type  == "Shot":                                            
+        if self._app.context.entity['type']  == "Shot":                                            
             self.frame_range_app = self._app.engine.apps["tk-multi-setframerange"]
             self.frame_range = self.frame_range_app.get_frame_range_from_shotgun()
 
@@ -1335,7 +1331,7 @@ class TankWriteNodeHandler(object):
             curr_fields = work_template.get_fields(script_path)
             context_path = None
 
-            if self._curr_entity_type == 'Shot':
+            if self._app.context.entity['type'] == 'Shot':
                 fields ={
                       'Shot': curr_fields['Shot'],
                       'task_name': curr_fields['task_name'],
@@ -1356,7 +1352,7 @@ class TankWriteNodeHandler(object):
 
                 context_path = context_info.apply_fields(fields)      
 
-            elif self._curr_entity_type == 'Asset':
+            elif self._app.context.entity['type'] == 'Asset':
                 fields ={
                       'Asset': curr_fields['Asset'],
                       'task_name': curr_fields['task_name'],
@@ -1696,9 +1692,9 @@ class TankWriteNodeHandler(object):
             write_type == "Version"):
             if self.proj_info['sg_delivery_fileset_compression']:
                 node.node("Write1").knob("compression").setValue(self.proj_info['sg_delivery_fileset_compression'])
-                nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
+                # nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
 
-        if self._curr_entity_type == 'Shot':
+        if self._app.context.entity['type'] == 'Shot':
             # Update embeded time code
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
@@ -1782,7 +1778,7 @@ class TankWriteNodeHandler(object):
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
-                nuke.tprint("--- Setting default colorspace value of %s." % color_space)
+                # nuke.tprint("--- Setting default colorspace value of %s." % color_space)
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
@@ -2565,7 +2561,7 @@ class TankWriteNodeHandler(object):
 
         # set the write type for creation of correct output
         write_type = self.get_node_write_type_name(node)        
-        if self._curr_entity_type == 'Shot':
+        if self._app.context.entity['type'] == 'Shot':
             if self.proj_info['name'] == "Breakdowns":
                 node.knob('project_crop_bool').setVisible(False)                       
                 node.knob('shot_ocio_bool').setVisible(False)                   
@@ -2590,7 +2586,7 @@ class TankWriteNodeHandler(object):
                         else:    
                             node.knob("project_crop_bool").setValue(True)
                             self.__embedded_format_option(node, True)
-        if self._curr_entity_type == 'Asset':
+        if self._app.context.entity['type'] == 'Asset':
             if write_type == "Version":
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.knob('project_crop_bool').setVisible(False)
@@ -2684,12 +2680,10 @@ class TankWriteNodeHandler(object):
 
     def __set_project_crop_cache(self, node, bool_value):
 
-        if bool_value == True:
-            nuke.tprint("Enabling project reformat and caching.")            
+        if bool_value == True:   
             node['tk_project_format_cache'].setValue("True")
         elif bool_value == False:
             node['tk_project_format_cache'].setValue("False")
-            nuke.tprint("Disabling project reformat and caching.")
 
     def __on_knob_changed(self):
         """
@@ -2748,7 +2742,7 @@ class TankWriteNodeHandler(object):
                 # update output to reflect the node name:
                 self.__set_output(node, node.knob("name").value())
         elif knob.name() == "write_type":
-            if self._curr_entity_type == 'Shot':
+            if self._app.context.entity['type'] == 'Shot':
                 if write_type == "Version":
                     node.knob('convert_to_write').setVisible(False)  
                     self.__set_project_crop(node, True)
@@ -2791,7 +2785,7 @@ class TankWriteNodeHandler(object):
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
-            elif self._curr_entity_type == 'Asset':
+            elif self._app.context.entity['type'] == 'Asset':
                 if write_type== "Version":
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2817,16 +2811,21 @@ class TankWriteNodeHandler(object):
             write_type_url = "http://10.80.8.252/ssvfx-wiki-sphinx/workflow/nuke/nuke.html#sg-write-node"
             webbrowser.open_new_tab(write_type_url)     
         elif knob.name() == "check_mattes":
+            self.shot_info = None
+            
             if not ntools:
                 nuke.tprint("Could not find NukeTools") 
             else:
+                
                 self.shot_info = self.sg.find_one("Shot", 
-                                                [['id', 'is', self._entity['id']]],
+                                                [['id', 'is', self._app.context.entity['id']]],
                                                 ['name',
                                                 'id',
                                                 'sg_main_plate',
                                                 'sg_without_ocio',
-                                                'sg_shot_mattes'])                
+                                                'sg_shot_mattes'])
+                                                
+                nuke.tprint("Got info from entity: %d" %(self._app.context.entity['id']))
                 try:
                     ntools.test_channels(node, self.shot_info, ['rgb', 'rgba'])
                 except:
