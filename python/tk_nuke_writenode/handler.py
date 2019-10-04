@@ -2753,6 +2753,7 @@ class TankWriteNodeHandler(object):
                     if write_type_profile == "Dpx":
                         node.node("Write1").knob("transfer").setValue('(auto detect)')      
                 elif write_type == "Test":
+                    node.knob('convert_to_write').setVisible(True)
                     self.__set_project_crop(node, False)
                     self.__write_type_changed(node, True)
                     self.__test_write_message()
