@@ -94,7 +94,8 @@ class TankWriteNodeHandler(object):
                                             'sg_delivery_fileset_compression',
                                             'sg_color_space',
                                             'sg_project_color_management'])
-                                          
+        self.shot_info = None                                        
+
         self.ctx_info = self._app.context                                               
         self.get_shot_frame_range()
    
@@ -1453,6 +1454,14 @@ class TankWriteNodeHandler(object):
         """
         # nuke.tprint("Setting profile for %s" %profile_name)
         # can't change the profile if this isn't a valid profile:
+        self.shot_info = self.sg.find_one("Shot", 
+                                        [['id', 'is', self._app.context.entity['id']]],
+                                        ['name',
+                                        'id',
+                                        'sg_main_plate',
+                                        'sg_without_ocio',
+                                        'sg_shot_mattes'])
+
         if profile_name not in self._profiles:
             # at the very least, try to restore the file format settings from the cached values:
             self.__apply_cached_file_format_settings(node)
@@ -1646,6 +1655,11 @@ class TankWriteNodeHandler(object):
         
         # set the channel info based on the profile type
         profile_channel = "rgba"
+        if not self.shot_info['sg_shot_mattes']:
+            pass
+        else:
+            nuke.tprint("Found assigned mattes on SG. Setting channels to all")
+            profile_channel = "all"
         if profile_name == "Dpx":
             node.knob('dpx_datatype').setVisible(True)            
             node.knob('exr_datatype').setVisible(False)   
@@ -1655,7 +1669,7 @@ class TankWriteNodeHandler(object):
         elif profile_name == "Exr":
             node.knob('exr_datatype').setVisible(True)
             node.knob('dpx_datatype').setVisible(False)
-            profile_channel = "rgba"
+
             try:
                 if node['channels_cache'].value() != "":
                     profile_channel = node['channels_cache'].value()
@@ -1664,7 +1678,7 @@ class TankWriteNodeHandler(object):
             node.node(TankWriteNodeHandler.WRITE_NODE_NAME)['metadata'].setValue('all metadata')
             node.knob('auto_crop').setVisible(False)
             if write_type == "Element":
-                    profile_channel = "rgba"
+                    profile_channel = "all"
                     node.knob('auto_crop').setVisible(True)
                     node.knob('auto_crop').setValue(True)
                     node.node("Write1").knob("autocrop").setValue(True)    
@@ -2811,21 +2825,11 @@ class TankWriteNodeHandler(object):
             write_type_url = "http://10.80.8.252/ssvfx-wiki-sphinx/workflow/nuke/nuke.html#sg-write-node"
             webbrowser.open_new_tab(write_type_url)     
         elif knob.name() == "check_mattes":
-            self.shot_info = None
             
             if not ntools:
                 nuke.tprint("Could not find NukeTools") 
             else:
-                
-                self.shot_info = self.sg.find_one("Shot", 
-                                                [['id', 'is', self._app.context.entity['id']]],
-                                                ['name',
-                                                'id',
-                                                'sg_main_plate',
-                                                'sg_without_ocio',
-                                                'sg_shot_mattes'])
-                                                
-                nuke.tprint("Got info from entity: %d" %(self._app.context.entity['id']))
+                                                                
                 try:
                     ntools.test_channels(node, self.shot_info, ['rgb', 'rgba'])
                 except:
