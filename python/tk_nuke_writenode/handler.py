@@ -1655,11 +1655,17 @@ class TankWriteNodeHandler(object):
         
         # set the channel info based on the profile type
         profile_channel = "rgba"
-        if not self.shot_info['sg_shot_mattes']:
-            pass
+
+        context = self._app.context.entity['type']
+        if context != 'Asset':
+            if not self.shot_info['sg_shot_mattes']:
+                pass
+            else:
+                nuke.tprint("Found assigned mattes on SG. Setting channels to all")
+                profile_channel = "all"
         else:
-            nuke.tprint("Found assigned mattes on SG. Setting channels to all")
-            profile_channel = "all"
+            pass
+            
         if profile_name == "Dpx":
             node.knob('dpx_datatype').setVisible(True)            
             node.knob('exr_datatype').setVisible(False)   
@@ -1793,6 +1799,84 @@ class TankWriteNodeHandler(object):
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
                 
                 # nuke.tprint("--- Setting default colorspace value of %s." % color_space)
+                node['colorspace'].setValue(color_space)
+
+            md = content_meta_data['metadata']
+            md.fromScript(self.__get_metadata(node))
+
+        elif self._app.context.entity['type'] == 'Asset':
+            # Update embeded time code
+            delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
+            internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
+            format_crop = node.node(TankWriteNodeHandler.EMBED_FORMAT_CROP)            
+            content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
+            shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)         
+            matte_clamp = node.node(TankWriteNodeHandler.EMBED_MATTE_CLAMP)
+            proj_fps = self.proj_info['sg_frame_rate']
+            timecode = "01:00:00:01"
+
+            # Checks for time/frame information, just in case
+            try:
+                time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
+                # Timecode settings
+                if not self.frame_range[0]:
+                    print "No frame range values found on SG"
+                    shot_frame_range_start = 1
+                    use_start_frame = False
+                    use_meta_data = True
+                else:
+                    shot_frame_range_start = self.frame_range[0]
+                    use_start_frame = True
+                    use_meta_data = False
+                
+                time_code.knobs()["startcode"].setValue(timecode)
+                if proj_fps:
+                    time_code.knobs()["fps"].setValue(float(proj_fps))
+                time_code.knobs()["useFrame"].setValue(use_start_frame)
+                time_code.knobs()["frame"].setValue(shot_frame_range_start)
+                time_code.knobs()["metafps"].setValue(use_meta_data)
+            except:
+                pass
+
+            # Set the embeded delivery reformat 
+            if not (self.proj_info['sg_delivery_format_width'] and 
+            self.proj_info['sg_delivery_format_height']):
+                delivery_reformat['disable'].setValue(True)  
+                node.node("format_crop")['disable'].setValue(True)                  
+                
+                nuke.tprint("No delivery reformat info given on Projects.")
+            else:       
+                # Set the project reformat first
+                delivery_format = self.add_format(self.proj_info['sg_short_name'],
+                                                "delivery",
+                                                int(self.proj_info['sg_delivery_format_width']), 
+                                                int(self.proj_info['sg_delivery_format_height']), 
+                                                int(self.proj_info['sg_pixel_aspect_ratio']))
+                     
+                if write_type != "Version":
+                    delivery_reformat['disable'].setValue(True)
+                    node.node("format_crop")['disable'].setValue(True)
+                else:
+                    # Add SG reformat settings
+                    filter_match = next((f for f in delivery_reformat['filter'].values() if f == self.proj_info['sg_delivery_reformat_filter']), None)
+                    if filter_match:
+                        delivery_reformat['filter'].setValue(filter_match)                        
+                    resize_match = next((r for r in delivery_reformat['resize'].values() if r == self.proj_info['sg_delivery_reformat_type']), None)
+                    if resize_match:
+                        delivery_reformat['resize'].setValue(resize_match)
+               
+                    # Set the delivery_reformat node
+                    delivery_reformat.knobs()["format"].setValue(delivery_format)
+                    crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                    format_crop['box'].setValue(crop_box_value)
+                    delivery_reformat['disable'].setValue(False)  
+                    format_crop['disable'].setValue(False)  
+                color_space = None      
+                # Set colorspace based of SG values
+                color_space = "linear"          
+                node.knob("project_crop_bool").setValue(False)      
+                self.__embedded_format_option(node, False) 
+
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
@@ -2600,8 +2684,22 @@ class TankWriteNodeHandler(object):
                         else:    
                             node.knob("project_crop_bool").setValue(True)
                             self.__embedded_format_option(node, True)
-        if self._app.context.entity['type'] == 'Asset':
+        elif self._app.context.entity['type'] == 'Asset':
             if write_type == "Version":
+                node.knob('convert_to_write').setVisible(False)
+
+                if node['tk_project_format_cache'].value() == "False":
+                    node.knob("project_crop_bool").setValue(False)
+                    self.__embedded_format_option(node, False)
+
+                elif node['tk_project_format_cache'].value() == "True":
+                    node.knob("project_crop_bool").setValue(True)
+                    self.__embedded_format_option(node, True)
+
+                else:    
+                    node.knob("project_crop_bool").setValue(True)
+                    self.__embedded_format_option(node, True)
+
                 node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)      
                 node.knob('project_crop_bool').setVisible(False)
         # ensure that the correct entry is selected from the list:
@@ -2799,28 +2897,84 @@ class TankWriteNodeHandler(object):
                 self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
                 self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
+
+            # Asset Context is (basically) a clone of Shot Context
+            # but with some added knob adjustments
             elif self._app.context.entity['type'] == 'Asset':
                 if write_type== "Version":
+                    node.knob('convert_to_write').setVisible(False)  
+                    self.__set_project_crop(node, True)
+                    self.__write_type_changed(node, False)
+                    self.__embedded_format_option(node, True)      
+                    if self.ctx_info.step['name'] == "Roto":
+                        self.__set_project_crop(node, False)
+                    if write_type_profile == "Dpx":
+                        node.node("Write1").knob("transfer").setValue('(auto detect)')     
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                 elif write_type == "Element":
+                    node.knob('convert_to_write').setVisible(True) 
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    write_type_profile = "Exr"   
+                    self.__embedded_format_option(node, False)
+                    try:
+                        node.node("Write1").knob("autocrop").setValue(True)
+                    except:
+                        pass
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                     write_type_profile =  "Exr"
                 elif write_type == "Denoise":
+                    node.knob('convert_to_write').setVisible(True) 
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    write_type_profile = "Exr"   
+                    self.__embedded_format_option(node, False)
+                    try:
+                        node.node("Write1").knob("autocrop").setValue(True)
+                    except:
+                        pass
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                  
                 elif write_type == "SmartVector":
+                    node.knob('convert_to_write').setVisible(True) 
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    write_type_profile = "Exr"   
+                    self.__embedded_format_option(node, False)
+                    try:
+                        node.node("Write1").knob("autocrop").setValue(True)
+                    except:
+                        pass
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
                 elif write_type == "Test":
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    self.__embedded_format_option(node, False)
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)                 
-                    self.__test_write_message()                            
+                    self.__test_write_message()
+                                       
+                # Scans script for existing name clashes and renames accordingly
+                existing_node_names = [n.name() for n in nuke.allNodes(group=nuke.root())]
+                new_output_name = ""
+                postfix = 1
+                while True:
+                    new_name = "%s%d" % (knob.value(), postfix)
+                    if new_name not in existing_node_names:
+                        node.knob("name").setValue(new_name)
+                        break
+                    else:
+                        postfix += 1
+
+                self.__set_output(node, new_output_name)
                 # Updates the predefined profile based on the write type
-                self.__update_knob_value(node, "tk_profile_list", write_type_profile)                
+                self.__update_knob_value(node, "tk_profile_list", write_type_profile)                 
                 # reset profile
-                self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)                      
+                self.__set_profile(node, write_type_profile, write_type, reset_all_settings=True)
+
         elif knob.name() == "write_type_info":
             write_type_url = "http://10.80.8.252/ssvfx-wiki-sphinx/workflow/nuke/nuke.html#sg-write-node"
             webbrowser.open_new_tab(write_type_url)     

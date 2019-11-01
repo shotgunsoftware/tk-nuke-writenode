@@ -34,3 +34,4 @@ nosetests.xml
 .project
 .pydevproject
 gizmos/tab_stats.dat
+python/tk_nuke_writenode/handler.py.functional
