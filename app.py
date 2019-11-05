@@ -269,11 +269,13 @@ class NukeWriteNode(tank.platform.Application):
         if continue_with_convert:
             self.__write_node_handler.convert_nuke_to_sg_write_nodes()
 
-    def create_new_write_node(self, profile_name):
+    def create_new_write_node(self, profile_name, write_type):
         """
         Creates a Shotgun write node using the provided profile_name.  
         """
-        self.__write_node_handler.create_new_node(profile_name)
+        new_node = self.__write_node_handler.create_new_node(profile_name, write_type)
+
+        return new_node
 
     # Private methods
     def __add_write_node_commands(self, context=None):
