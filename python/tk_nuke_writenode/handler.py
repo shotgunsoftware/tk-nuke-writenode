@@ -1228,6 +1228,10 @@ class TankWriteNodeHandler(object):
             template = self.__get_template(node, "smartvector_render_template")
             if template or not fallback_to_render:            
                 return template
+        elif write_type == "STMap":
+            template = self.__get_template(node, "stmap_render_template")
+            if template or not fallback_to_render:            
+                return template                
         elif write_type == "Test":
             template = self.__get_template(node, "test_render_template")
             if template or not fallback_to_render:
@@ -1347,7 +1351,9 @@ class TankWriteNodeHandler(object):
                 elif write_type == "Denoise": 
                     context_info = self._app.tank.templates['shot_render_global']
                 elif write_type == "SmartVector": 
-                    context_info = self._app.tank.templates['shot_render_global']               
+                    context_info = self._app.tank.templates['shot_render_global']
+                elif write_type == "STMap": 
+                    context_info = self._app.tank.templates['shot_render_global']                         
                 else:
                     context_info = self._app.tank.templates['shot_render_global']  
 
@@ -1369,7 +1375,9 @@ class TankWriteNodeHandler(object):
                 elif write_type == "Denoise": 
                     context_info = self._app.tank.templates['asset_render_global']
                 elif write_type == "SmartVector": 
-                    context_info = self._app.tank.templates['asset_render_global']              
+                    context_info = self._app.tank.templates['asset_render_global']
+                elif write_type == "STMap": 
+                    context_info = self._app.tank.templates['asset_render_global']                         
                 else:
                     context_info = self._app.tank.templates['asset_render_global']  
 
@@ -1531,9 +1539,12 @@ class TankWriteNodeHandler(object):
             file_settings.update({'compression' : 'Zip (1 scanline)'})
             file_settings.update({'datatype' : '16 bit half'})
             nuke.tprint("Applying ZIP compression to %s output." % write_type)
-        # elif write_type == "SmartVector":
-        #     self.__update_knob_value(node, 'exr_datatype', '32 bit half')            
-        #     file_settings.update({'datatype' : '32 bit half'})
+        elif write_type == "SmartVector":
+            self.__update_knob_value(node, 'exr_datatype', '16 bit half')            
+            file_settings.update({'datatype' : '16 bit half'})        
+        elif write_type == "STMap":
+            self.__update_knob_value(node, 'exr_datatype', '32 bit float')            
+            file_settings.update({'datatype' : '32 bit float'})
 
         promote_write_knobs = profile.get("promote_write_knobs", [])
         # Make sure any invalid entries are removed from the profile list:
@@ -1638,6 +1649,8 @@ class TankWriteNodeHandler(object):
                 default_value = 2231304447
             elif write_type == "SmartVector":
                 default_value = 4278254335
+            elif write_type == "STMap":
+                default_value = 2857762815L
             elif write_type == "Test":
                 default_value = 4278190081          
             else:
@@ -1692,7 +1705,12 @@ class TankWriteNodeHandler(object):
                     profile_channel = "all"
                     node.knob('auto_crop').setVisible(True)
                     node.knob('auto_crop').setValue(True)
-                    node.node("Write1").knob("autocrop").setValue(True)                                        
+                    node.node("Write1").knob("autocrop").setValue(True)     
+            if write_type == "STMap":
+                    profile_channel = "all"
+                    node.knob('auto_crop').setVisible(True)
+                    node.knob('auto_crop').setValue(True)
+                    node.node("Write1").knob("autocrop").setValue(True)                                                                             
             if self.ctx_info.step['name'] == "Roto":
                 profile_channel = "all"                                           
                 node.knob('auto_crop').setVisible(True) 
@@ -2949,6 +2967,18 @@ class TankWriteNodeHandler(object):
                         pass
                     self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
                     node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                
+                elif write_type == "STMap":
+                    node.knob('convert_to_write').setVisible(True) 
+                    self.__set_project_crop(node, False)
+                    self.__write_type_changed(node, True)
+                    write_type_profile = "Exr"   
+                    self.__embedded_format_option(node, False)
+                    try:
+                        node.node("Write1").knob("autocrop").setValue(True)
+                    except:
+                        pass
+                    self.__update_knob_value(node, TankWriteNodeHandler.OUTPUT_KNOB_NAME, "")   
+                    node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(False)                      
                 elif write_type == "Test":
                     self.__set_project_crop(node, False)
                     self.__write_type_changed(node, True)
