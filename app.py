@@ -286,8 +286,9 @@ class NukeWriteNode(tank.platform.Application):
         context = context or self.context
         write_type = "Version"
         profile_list = []
-        write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
+        write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png").replace("\\","/")
         profile_set = set(self.__write_node_handler.profile_names)
+
         # Remove fileset types nt associated with Project
         if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
             nuke.tprint("No fileset specified. Loading defaults...")
@@ -305,8 +306,6 @@ class NukeWriteNode(tank.platform.Application):
                 nuke.tprint("Profile name not in list!")
                 profile_list = self.__write_node_handler.profile_names
         
-            nuke.tprint("- Project fileset(s): " + str(profile_list))
-
         for profile_name in profile_list:
             # add to toolbar menu
             cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
@@ -315,8 +314,8 @@ class NukeWriteNode(tank.platform.Application):
                 cb_fn, 
                 dict(
                     type="node",
-                    icon=write_node_icon,
                     context=context,
+                    icon=write_node_icon
                 )
             )
 

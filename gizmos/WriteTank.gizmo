@@ -50,9 +50,15 @@ Gizmo {
  addUserKnob {
     1 smartvector_render_template
     l "Sgtk SmartVector Template" 
-    t "The Sgtk cleanup template associated with this node"
+    t "The SmartVector template associated with this node"
     +INVISIBLE 
  }
+ addUserKnob {
+    1 stmap_render_template
+    l "Sgtk STMap Template" 
+    t "The STMap template associated with this node"
+    +INVISIBLE 
+ } 
  addUserKnob {
     1 test_render_template
     l "Sgtk Test Template" 
@@ -233,7 +239,7 @@ Gizmo {
     4 write_type 
     l "SG Write Type" 
     t "Select the type of node you require this to be." 
-    M {Version Element Denoise SmartVector Test}
+    M {Version Element Denoise SmartVector STMap Test}
  }
  addUserKnob {
    22 check_mattes 
