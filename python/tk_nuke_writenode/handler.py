@@ -1801,11 +1801,11 @@ class TankWriteNodeHandler(object):
                 color_space = None      
                 # Set colorspace based of SG values
                 if (self.ctx_info.step['name'] != "Roto" and
-                write_type == "Version"):                  
-                    if color_space not in node.knob('colorspace').values():
+                write_type == "Version"):        
+                    if self.proj_info['sg_color_space']:
+                        color_space = self.proj_info['sg_color_space']
+                    else:
                         color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                    # else:
-                    #     nuke.tprint("--- Setting colorspace to %s from Projects page." % color_space)
                 elif self.ctx_info.step['name'] != "Roto":
                     color_space = self.proj_info['sg_color_space']
                 elif (self.ctx_info.step['name'] == "Roto"):
