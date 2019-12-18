@@ -1770,7 +1770,7 @@ class TankWriteNodeHandler(object):
             self.proj_info['sg_delivery_format_height']):
                 delivery_reformat['disable'].setValue(True)  
                 node.node("format_crop")['disable'].setValue(True)                  
-                
+                node.knob("project_crop_bool").setValue(False)
                 nuke.tprint("No delivery reformat info given on Projects.")
             else:       
                 # Set the project reformat first
@@ -1791,32 +1791,41 @@ class TankWriteNodeHandler(object):
                     resize_match = next((r for r in delivery_reformat['resize'].values() if r == self.proj_info['sg_delivery_reformat_type']), None)
                     if resize_match:
                         delivery_reformat['resize'].setValue(resize_match)
-               
                     # Set the delivery_reformat node
                     delivery_reformat.knobs()["format"].setValue(delivery_format)
                     crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
                     format_crop['box'].setValue(crop_box_value)
                     delivery_reformat['disable'].setValue(False)  
                     format_crop['disable'].setValue(False)  
-                color_space = None      
-                # Set colorspace based of SG values
-                if (self.ctx_info.step['name'] != "Roto" and
-                write_type == "Version"):        
-                    if self.proj_info['sg_color_space']:
-                        color_space = self.proj_info['sg_color_space']
+
+            color_space = None      
+            # Set colorspace based of SG values
+            if (self.ctx_info.step['name'] != "Roto" and
+            write_type == "Version"):        
+                if self.proj_info['sg_color_space']:
+                    if self.proj_info['sg_color_space'] == "raw":
+                        node['raw'].setValue(True)
                     else:
-                        color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                elif self.ctx_info.step['name'] != "Roto":
-                    color_space = self.proj_info['sg_color_space']
-                elif (self.ctx_info.step['name'] == "Roto"):
-                    color_space = "linear"          
-                    node.knob("project_crop_bool").setValue(False)      
-                    self.__embedded_format_option(node, False) 
-                    nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
+                        color_space = self.proj_info['sg_color_space']
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-                
-                # nuke.tprint("--- Setting default colorspace value of %s." % color_space)
+            elif self.ctx_info.step['name'] != "Roto":
+                if self.proj_info['sg_color_space']:
+                    if self.proj_info['sg_color_space'] == "raw":
+                        node['raw'].setValue(True)
+                    else:
+                        color_space = self.proj_info['sg_color_space']
+                else:
+                    color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
+            elif self.ctx_info.step['name'] == "Roto":
+                color_space = "linear"          
+                node.knob("project_crop_bool").setValue(False)      
+                self.__embedded_format_option(node, False) 
+                nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
+            else:
+                color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
+            
+            if color_space:
                 node['colorspace'].setValue(color_space)
 
             md = content_meta_data['metadata']
