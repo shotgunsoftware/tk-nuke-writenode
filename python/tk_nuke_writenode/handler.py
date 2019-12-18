@@ -1772,6 +1772,9 @@ class TankWriteNodeHandler(object):
                 node.node("format_crop")['disable'].setValue(True)                  
                 node.knob("project_crop_bool").setValue(False)
                 nuke.tprint("No delivery reformat info given on Projects.")
+            elif self.proj_info['name'] == "Blue Bayou":
+                node.knob("project_crop_bool").setValue(False)
+                node.node("format_crop")['disable'].setValue(True)
             else:       
                 # Set the project reformat first
                 delivery_format = self.add_format(self.proj_info['sg_short_name'],
