@@ -1523,7 +1523,7 @@ class TankWriteNodeHandler(object):
         
         # Apply datatype info based on context
         if file_type == "exr" and write_type == "Version":
-            if self.ctx_info.step['name'] == "Roto":
+            if self.ctx_info.step['name'] == "roto":
                 nuke.tprint("Task context is " + self.ctx_info.step['name']+
                     ". Applying ZIP compression to "+ write_type +" output.")
                 self.__update_knob_value(node, 'exr_datatype', '16 bit half')
@@ -1711,7 +1711,7 @@ class TankWriteNodeHandler(object):
                     node.knob('auto_crop').setVisible(True)
                     node.knob('auto_crop').setValue(True)
                     node.node("Write1").knob("autocrop").setValue(True)                                                                             
-            if self.ctx_info.step['name'] == "Roto":
+            if self.ctx_info.step['name'] == "roto":
                 profile_channel = "all"                                           
                 node.knob('auto_crop').setVisible(True) 
                 node.knob('auto_crop').setValue(True)    
@@ -1727,7 +1727,8 @@ class TankWriteNodeHandler(object):
 
         # Sets project specific fileset compression
         if (file_type== "exr" and 
-            write_type == "Version"):
+            write_type == "Version" and 
+            self.ctx_info.step['name'] != "roto"):
             if self.proj_info['sg_delivery_fileset_compression']:
                 node.node("Write1").knob("compression").setValue(self.proj_info['sg_delivery_fileset_compression'])
                 # nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
@@ -1803,7 +1804,7 @@ class TankWriteNodeHandler(object):
 
             color_space = None      
             # Set colorspace based of SG values
-            if (self.ctx_info.step['name'] != "Roto" and
+            if (self.ctx_info.step['name'] != "roto" and
             write_type == "Version"):        
                 if self.proj_info['sg_color_space']:
                     if self.proj_info['sg_color_space'] == "raw":
@@ -1812,7 +1813,7 @@ class TankWriteNodeHandler(object):
                         color_space = self.proj_info['sg_color_space']
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-            elif self.ctx_info.step['name'] != "Roto":
+            elif self.ctx_info.step['name'] != "roto":
                 if self.proj_info['sg_color_space']:
                     if self.proj_info['sg_color_space'] == "raw":
                         node['raw'].setValue(True)
@@ -1820,11 +1821,11 @@ class TankWriteNodeHandler(object):
                         color_space = self.proj_info['sg_color_space']
                 else:
                     color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
-            elif self.ctx_info.step['name'] == "Roto":
-                color_space = "linear"          
+            elif self.ctx_info.step['name'] == "roto":
+                # color_space = "linear"
                 node.knob("project_crop_bool").setValue(False)      
                 self.__embedded_format_option(node, False) 
-                nuke.tprint("--- Setting colorspace to %s for Roto" % color_space)
+                nuke.tprint("--- Setting colorspace to %s for roto" % color_space)
             else:
                 color_space = next((color for color in node.knob('colorspace').values() if 'default' in color), None)
             
@@ -2696,8 +2697,8 @@ class TankWriteNodeHandler(object):
             else:
                 if write_type == "Version":
                     node.knob('convert_to_write').setVisible(False) 
-                    if self.ctx_info.step['name'] == "Roto":
-                        nuke.tprint("Creating Roto SG Write node")
+                    if self.ctx_info.step['name'] == "roto":
+                        nuke.tprint("Creating roto SG Write node")
                         self.__update_knob_value(node, "tk_profile_list", "Exr")
                         node.knob('write_type').setValues(['Version', 'Denoise'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
@@ -2890,7 +2891,7 @@ class TankWriteNodeHandler(object):
                     self.__set_project_crop(node, True)
                     self.__write_type_changed(node, False)
                     self.__embedded_format_option(node, True)      
-                    if self.ctx_info.step['name'] == "Roto":
+                    if self.ctx_info.step['name'] == "roto":
                         self.__set_project_crop(node, False)
                     if write_type_profile == "Dpx":
                         node.node("Write1").knob("transfer").setValue('(auto detect)')      
@@ -2936,7 +2937,7 @@ class TankWriteNodeHandler(object):
                     self.__set_project_crop(node, True)
                     self.__write_type_changed(node, False)
                     self.__embedded_format_option(node, True)      
-                    if self.ctx_info.step['name'] == "Roto":
+                    if self.ctx_info.step['name'] == "roto":
                         self.__set_project_crop(node, False)
                     if write_type_profile == "Dpx":
                         node.node("Write1").knob("transfer").setValue('(auto detect)')     
