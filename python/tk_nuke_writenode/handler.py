@@ -1796,11 +1796,19 @@ class TankWriteNodeHandler(object):
                     if resize_match:
                         delivery_reformat['resize'].setValue(resize_match)
                     # Set the delivery_reformat node
-                    delivery_reformat.knobs()["format"].setValue(delivery_format)
-                    crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
-                    format_crop['box'].setValue(crop_box_value)
-                    delivery_reformat['disable'].setValue(False)  
-                    format_crop['disable'].setValue(False)  
+                    if self.ctx_info.step['name'] == "cleanup":
+                        node.knob("project_crop_bool").setValue(False)
+                        delivery_reformat.knobs()["format"].setValue(delivery_format)
+                        crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                        format_crop['box'].setValue(crop_box_value)                        
+                        delivery_reformat['disable'].setValue(True)  
+                        format_crop['disable'].setValue(True)  
+                    else:
+                        delivery_reformat.knobs()["format"].setValue(delivery_format)
+                        crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                        format_crop['box'].setValue(crop_box_value)
+                        delivery_reformat['disable'].setValue(False)  
+                        format_crop['disable'].setValue(False)  
 
             color_space = None      
             # Set colorspace based of SG values
