@@ -1672,7 +1672,7 @@ class TankWriteNodeHandler(object):
         context = self._app.context.entity['type']
         if context != 'Asset':
             if not self.shot_info['sg_shot_mattes']:
-                pass
+                profile_channel = "rgb"
             else:
                 nuke.tprint("Found assigned mattes on SG. Setting channels to all")
                 profile_channel = "all"
@@ -1773,9 +1773,9 @@ class TankWriteNodeHandler(object):
                 node.node("format_crop")['disable'].setValue(True)                  
                 node.knob("project_crop_bool").setValue(False)
                 nuke.tprint("No delivery reformat info given on Projects.")
-            elif self.proj_info['name'] == "Blue Bayou":
-                node.knob("project_crop_bool").setValue(False)
-                node.node("format_crop")['disable'].setValue(True)
+            # elif self.proj_info['name'] == "Blue Bayou":
+            #     node.knob("project_crop_bool").setValue(False)
+            #     node.node("format_crop")['disable'].setValue(True)
             else:       
                 # Set the project reformat first
                 delivery_format = self.add_format(self.proj_info['sg_short_name'],
