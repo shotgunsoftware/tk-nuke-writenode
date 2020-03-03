@@ -1518,6 +1518,8 @@ class TankWriteNodeHandler(object):
         elif profile_name == "Dpx":
             if self.proj_info['sg_data_type']:            
                 self.__update_knob_value(node, 'dpx_datatype', self.proj_info['sg_data_type'])
+                file_settings.update({'datatype' : self.proj_info['sg_data_type']})     
+                nuke.tprint("Set datatype to %s" % self.proj_info['sg_data_type'])           
             else:
                 self.__update_knob_value(node, 'dpx_datatype', dpx_datatype)
         
