@@ -29,11 +29,12 @@ version 6.3
 ##########################################################################################
 
 Gizmo {
+ name sgWrite1
  note_font Verdana
  mapsize {0.15 0.15}
  addUserKnob {
-    20 tank_tab 
-    l "Shotgun Write"
+    20 tank_tab
+    l "sgWrite"
  }
  addUserKnob {
     4 tk_profile_list 
@@ -417,7 +418,7 @@ Gizmo {
 }
  Input {
   inputs 0
-  name Input1
+  name Input
   xpos 195
   ypos -74
  }
