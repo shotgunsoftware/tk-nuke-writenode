@@ -153,7 +153,9 @@ class NukeWriteNode(tank.platform.Application):
         """
         Return the render template for the specified node
         """
-        return self.__write_node_handler.get_render_template(node)
+        write_type = self.__write_node_handler.get_node_write_type_name(node)        
+
+        return self.__write_node_handler.get_render_template(node, write_type)
     
     def get_node_publish_template(self, node):
         """
@@ -204,7 +206,8 @@ class NukeWriteNode(tank.platform.Application):
         """
         self.__write_node_handler.reset_render_path(node)
 
-    def convert_to_write_nodes(self, show_warning=False):
+    def convert_to_write_nodes(self, selected_node=None, show_warning=False):
+
         """
         Convert all Shotgun write nodes found in the current Script to regular
         Nuke Write nodes.  Additional toolkit information will be stored on 
@@ -215,6 +218,7 @@ class NukeWriteNode(tank.platform.Application):
         :param create_folders: Optional bool that sets whether the operation will create the required output folders;
          defaults to False
         """
+        self.__write_node_handler.convert_sg_to_nuke_write_nodes(selected_node=None)
 
         # By default we want to convert the write nodes, unless the warning is shown and the user chooses to abort.
         continue_with_convert = True
@@ -265,33 +269,53 @@ class NukeWriteNode(tank.platform.Application):
         if continue_with_convert:
             self.__write_node_handler.convert_nuke_to_sg_write_nodes()
 
-    def create_new_write_node(self, profile_name):
+    def create_new_write_node(self, profile_name, write_type):
         """
         Creates a Shotgun write node using the provided profile_name.  
         """
-        self.__write_node_handler.create_new_node(profile_name)
+        new_node = self.__write_node_handler.create_new_node(profile_name, write_type)
+
+        return new_node
 
     # Private methods
-    #
     def __add_write_node_commands(self, context=None):
         """
         Creates write node menu entries for all write node configurations
         and the convert to and from Shotgun write node actions if configured to do so.
         """
         context = context or self.context
+        write_type = "Version"
+        profile_list = []
+        write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png").replace("\\","/")
+        profile_set = set(self.__write_node_handler.profile_names)
 
-        write_node_icon = os.path.join(self.disk_location, "resources", "tk2_write.png")
+        # Remove fileset types nt associated with Project
+        if not self.__write_node_handler.proj_info['sg_delivery_fileset']:
+            nuke.tprint("No fileset specified. Loading defaults...")
+            profile_list = self.__write_node_handler.profile_names
+        else:
+            if any(self.__write_node_handler.proj_info['sg_delivery_fileset']['name'] in s.lower() for s in self.__write_node_handler.profile_names):
+                if context.step['name'] != 'Roto':
+                    match_set = {"Jpeg", self.__write_node_handler.proj_info['sg_delivery_fileset']['name'].title()}
+                else:
+                    nuke.tprint("Context is " + context.step['name'] + ".")
+                    match_set = {"Jpeg", "Exr"}
 
-        for profile_name in self.__write_node_handler.profile_names:
+                profile_list = list(match_set.intersection(profile_set))
+            else:
+                nuke.tprint("Profile name not in list!")
+                profile_list = self.__write_node_handler.profile_names
+        
+        for profile_name in profile_list:
             # add to toolbar menu
-            cb_fn = lambda pn=profile_name: self.__write_node_handler.create_new_node(pn)
+            cb_fn = lambda pn=profile_name,wt=write_type: self.__write_node_handler.create_new_node(pn,wt)
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
+                "%s" % profile_name,
                 cb_fn, 
                 dict(
                     type="node",
-                    icon=write_node_icon,
                     context=context,
+                    icon=write_node_icon
                 )
             )
 
@@ -302,7 +326,8 @@ class NukeWriteNode(tank.platform.Application):
             # as these aren't supported when converting back
             # todo: We should check the settings and then scan the scene to see if any SG write nodes use promoted knobs
             write_nodes = self.get_setting("write_nodes")
-            promoted_knob_write_nodes = next((a_node for a_node in write_nodes if a_node['promote_write_knobs']), None)
+            if write_nodes:
+                promoted_knob_write_nodes = next((a_node for a_node in write_nodes if a_node['promote_write_knobs']), None)
 
             if not promoted_knob_write_nodes:
                 # no presets use promoted knobs so we are OK to register the menus.

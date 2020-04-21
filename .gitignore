@@ -33,3 +33,5 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+gizmos/tab_stats.dat
+python/tk_nuke_writenode/handler.py.functional
