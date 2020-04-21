@@ -1235,8 +1235,7 @@ class TankWriteNodeHandler(object):
         elif write_type == "Test":
             template = self.__get_template(node, "test_render_template")
             if template or not fallback_to_render:
-                return template
-             
+                return template    
         else:
             return self.__get_template(node, "render_template") 
     
@@ -1775,42 +1774,47 @@ class TankWriteNodeHandler(object):
                 node.node("format_crop")['disable'].setValue(True)                  
                 node.knob("project_crop_bool").setValue(False)
                 nuke.tprint("No delivery reformat info given on Projects.")
-            # elif self.proj_info['name'] == "Blue Bayou":
-            #     node.knob("project_crop_bool").setValue(False)
-            #     node.node("format_crop")['disable'].setValue(True)
             else:       
-                # Set the project reformat first
-                delivery_format = self.add_format(self.proj_info['sg_short_name'],
-                                                "delivery",
-                                                int(self.proj_info['sg_delivery_format_width']), 
-                                                int(self.proj_info['sg_delivery_format_height']), 
-                                                int(self.proj_info['sg_pixel_aspect_ratio']))
-                     
-                if write_type != "Version":
-                    delivery_reformat['disable'].setValue(True)
-                    node.node("format_crop")['disable'].setValue(True)
+                if (self.proj_info['sg_delivery_format_width'] == self.proj_info['sg_format_width']
+                and self.proj_info['sg_delivery_format_height'] == self.proj_info['sg_format_height']):
+                    nuke.tprint("Delvery Format is the same as Project Format - disabling!")
+                    delivery_reformat['disable'].setValue(True)  
+                    node.node("format_crop")['disable'].setValue(True)                  
+                    node.knob("project_crop_bool").setValue(False)  
+                    node.knob('project_crop_bool').setVisible(False)  
                 else:
-                    # Add SG reformat settings
-                    filter_match = next((f for f in delivery_reformat['filter'].values() if f == self.proj_info['sg_delivery_reformat_filter']), None)
-                    if filter_match:
-                        delivery_reformat['filter'].setValue(filter_match)                        
-                    resize_match = next((r for r in delivery_reformat['resize'].values() if r == self.proj_info['sg_delivery_reformat_type']), None)
-                    if resize_match:
-                        delivery_reformat['resize'].setValue(resize_match)
-                    # Set the delivery_reformat node
-                    if self.ctx_info.step['name'] == "cleanup":
-                        node.knob("project_crop_bool").setValue(False)
-                        delivery_reformat.knobs()["format"].setValue(delivery_format)
-                        crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
-                        format_crop['box'].setValue(crop_box_value)                        
-                        delivery_reformat['disable'].setValue(True)  
-                        format_crop['disable'].setValue(True)  
+                    # Set the project reformat first
+                    delivery_format = self.add_format(self.proj_info['sg_short_name'],
+                                                    "delivery",
+                                                    int(self.proj_info['sg_delivery_format_width']), 
+                                                    int(self.proj_info['sg_delivery_format_height']), 
+                                                    int(self.proj_info['sg_pixel_aspect_ratio']))
+                        
+                    if write_type != "Version":
+                        delivery_reformat['disable'].setValue(True)
+                        node.node("format_crop")['disable'].setValue(True)
                     else:
-                        delivery_reformat.knobs()["format"].setValue(delivery_format)
-                        crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
-                        format_crop['box'].setValue(crop_box_value)
-                        delivery_reformat['disable'].setValue(False)  
-                        format_crop['disable'].setValue(False)  
+                        # Add SG reformat settings
+                        filter_match = next((f for f in delivery_reformat['filter'].values() if f == self.proj_info['sg_delivery_reformat_filter']), None)
+                        if filter_match:
+                            delivery_reformat['filter'].setValue(filter_match)                                           
+                        resize_match = next((r for r in delivery_reformat['resize'].values() if r == self.proj_info['sg_delivery_reformat_type']), None)
+                        if resize_match:
+                            delivery_reformat['resize'].setValue(resize_match)
+                        # Set the delivery_reformat node
+                        if self.ctx_info.step['name'] == "cleanup":
+                            node.knob("project_crop_bool").setValue(False)
+                            delivery_reformat.knobs()["format"].setValue(delivery_format)
+                            crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                            format_crop['box'].setValue(crop_box_value)                                              
+                            delivery_reformat['disable'].setValue(True)  
+                            format_crop['disable'].setValue(True)
+                        else:
+                            delivery_reformat.knobs()["format"].setValue(delivery_format)
+                            crop_box_value = (0,0, delivery_format.width(), delivery_format.height())
+                            format_crop['box'].setValue(crop_box_value)
+                            delivery_reformat['disable'].setValue(False)    
+                            format_crop['disable'].setValue(False)
 
             color_space = None      
             # Set colorspace based of SG values
