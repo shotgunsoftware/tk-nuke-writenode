@@ -323,7 +323,7 @@ class TankWriteNodeHandler(object):
                          end=frame_to_render, 
                          incr=1, 
                          views=[first_view])
-        except Exception, e:
+        except Exception as e:
             self._app.log_warning("Thumbnail could not be generated: %s" % e)
             # remove the temp file
             try:
@@ -672,7 +672,7 @@ class TankWriteNodeHandler(object):
                              % (("proxy " if is_proxy else ""), render_path))
                 else:
                     render_dir = os.path.dirname(files[0])
-            except Exception, e:
+            except Exception as e:
                 nuke.message("Unable to jump to file system:\n\n%s" % e)                
         
         # if we have a valid render path then show it:      
@@ -985,7 +985,7 @@ class TankWriteNodeHandler(object):
         try:
             # file_settings_str is a pickled dictionary so convert it back to a dictionary:
             file_settings = pickle.loads(file_settings_str) or {}
-        except Exception, e:
+        except Exception as e:
             self._app.log_warning("Failed to extract cached file settings from node '%s' - %s" 
                               % node.name(), e)
         
@@ -1725,7 +1725,7 @@ class TankWriteNodeHandler(object):
         path = ""
         try:
             path = render_template.apply_fields(fields)
-        except TankError, e:
+        except TankError as e:
             raise TkComputePathError(str(e))
         
         # make slahes uniform:
