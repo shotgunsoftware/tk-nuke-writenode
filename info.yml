@@ -1,11 +1,11 @@
 # Copyright (c) 2013 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # Metadata defining the behaviour and requirements for this app
@@ -31,10 +31,10 @@ configuration:
                      differenciates different write nodes). If you are doing stereo
                      rendering and want to use Nuke's %V flag, include an 'eye' field.
                      This will be replaced by %V in the paths when the Shotgun Write node
-                     computes them.  Finally, you need the templates 'proxy_render_template' 
-                     and 'proxy_publish_template' these have the same requirements as the regular 
+                     computes them.  Finally, you need the templates 'proxy_render_template'
+                     and 'proxy_publish_template' these have the same requirements as the regular
                      render and pubish templates but are used when rendering in proxy mode.  If
-                     these are missing (set to null) then the regular templates will be used 
+                     these are missing (set to null) then the regular templates will be used
                      instead."
         allows_empty: True
         values:
@@ -56,7 +56,7 @@ configuration:
                     fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
                 proxy_render_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *                    
+                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
                     default_value: null
                 proxy_publish_template:
@@ -65,7 +65,7 @@ configuration:
                     allows_empty: True
                     default_value: null
                 tile_color:
-                    type: list     
+                    type: list
                     values:
                         type: int
                     description:    "Specify a list of 3 values in the range 0-255 that represent the RGB values to be
@@ -99,7 +99,7 @@ configuration:
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
 
-# More verbose description of this item 
+# More verbose description of this item
 display_name: "Write Node"
 description: "Support for the Shotgun Write Node in Nuke."
 
@@ -113,4 +113,3 @@ supported_engines: [tk-nuke]
 
 # the frameworks required to run this app
 frameworks:
-    
