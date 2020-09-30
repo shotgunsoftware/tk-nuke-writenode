@@ -2714,7 +2714,7 @@ class TankWriteNodeHandler(object):
                     if self.ctx_info.step['name'] == "roto":
                         nuke.tprint("Creating roto SG Write node")
                         self.__update_knob_value(node, "tk_profile_list", "Exr")
-                        node.knob('write_type').setValues(['Version', 'Denoise'])
+                        node.knob('write_type').setValues(['Version', 'Denoise', 'Element'])
                         node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).setEnabled(True)
                         node.knob("project_crop_bool").setValue(False)
                         self.__embedded_format_option(node, False)   
