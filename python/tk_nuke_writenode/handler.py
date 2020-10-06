@@ -41,7 +41,6 @@ class TankWriteNodeHandler(object):
     SG_WRITE_NODE_CLASS = "WriteTank"
     SG_WRITE_DEFAULT_NAME = "Version"
     WRITE_NODE_NAME = "Write1"
-    EMBED_TIME_CODE = "project_tc"
     EMBED_META_DATA = "content_meta_data"    
     EMBED_SHOT_OCIO = "shot_ocio"
     EMBED_DELIVERY_REFORMAT = "delivery_reformat"
@@ -438,8 +437,6 @@ class TankWriteNodeHandler(object):
         delivery_reformat['name'].setValue("delivery_reformat")
         format_crop = nuke.createNode("Crop", inpanel = False)
         format_crop['name'].setValue("format_crop")        
-        project_tc = nuke.createNode("AddTimeCode", inpanel = False)
-        project_tc['name'].setValue("project_tc")
         content_metadata = nuke.createNode("ModifyMetaData", inpanel = False)       
         content_metadata['name'].setValue("content_meta_data")     
         shot_ocio = nuke.createNode("OCIOColorSpace", inpanel = False)       
@@ -450,7 +447,6 @@ class TankWriteNodeHandler(object):
         proj_group_nodes.append(internal_shuffle)        
         proj_group_nodes.append(delivery_reformat)
         proj_group_nodes.append(format_crop)
-        proj_group_nodes.append(project_tc)
         proj_group_nodes.append(content_metadata)
         proj_group_nodes.append(shot_ocio)
         proj_group_nodes.append(matte_clamp)
@@ -530,12 +526,6 @@ class TankWriteNodeHandler(object):
             extra_node.node('format_crop')['box'].setValue(sg_wn.node('format_crop')['box'].value())
             extra_node.node('format_crop')['reformat'].setValue(sg_wn.node('format_crop')['reformat'].value())
             extra_node.node('format_crop')['crop'].setValue(sg_wn.node('format_crop')['crop'].value())
-            # Embed tc
-            extra_node.node('project_tc')['startcode'].setValue(sg_wn.node('project_tc')['startcode'].value())
-            extra_node.node('project_tc')['fps'].setValue(sg_wn.node('project_tc')['fps'].value())
-            extra_node.node('project_tc')['metafps'].setValue(sg_wn.node('project_tc')['metafps'].value())
-            extra_node.node('project_tc')['useFrame'].setValue(sg_wn.node('project_tc')['useFrame'].value())
-            extra_node.node('project_tc')['frame'].setValue(sg_wn.node('project_tc')['frame'].value())
             # Embed metadata
             md = extra_node.node('content_meta_data')['metadata']
             md.fromScript(self.__get_metadata(sg_wn))  
@@ -1735,38 +1725,14 @@ class TankWriteNodeHandler(object):
                 # nuke.tprint("Setting Version compression from SG Project values to : " + self.proj_info['sg_delivery_fileset_compression'])
 
         if self._app.context.entity['type'] == 'Shot':
-            # Update embeded time code
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
             format_crop = node.node(TankWriteNodeHandler.EMBED_FORMAT_CROP)            
-            time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
             content_meta_data = node.node(TankWriteNodeHandler.EMBED_META_DATA)
             shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)         
             matte_clamp = node.node(TankWriteNodeHandler.EMBED_MATTE_CLAMP)
             proj_fps = self.proj_info['sg_frame_rate']
-            timecode = "01:00:00:01"
-
-
-            
-            # Timecode settings
-            if not self.frame_range[0]:
-                print "No frame range values found on SG"
-                shot_frame_range_start = 1
-                use_start_frame = False
-                use_meta_data = True
-            else:
-                shot_frame_range_start = self.frame_range[0]
-                use_start_frame = True
-                use_meta_data = False
-            
-            time_code.knobs()["startcode"].setValue(timecode)
-            if proj_fps:
-                time_code.knobs()["fps"].setValue(float(proj_fps))
-            time_code.knobs()["useFrame"].setValue(use_start_frame)
-            time_code.knobs()["frame"].setValue(shot_frame_range_start)
-            time_code.knobs()["metafps"].setValue(use_meta_data)
-
-
+        
             # Set the embeded delivery reformat 
             if not (self.proj_info['sg_delivery_format_width'] and 
             self.proj_info['sg_delivery_format_height']):
@@ -1850,7 +1816,7 @@ class TankWriteNodeHandler(object):
             md.fromScript(self.__get_metadata(node))
 
         elif self._app.context.entity['type'] == 'Asset':
-            # Update embeded time code
+
             delivery_reformat = node.node(TankWriteNodeHandler.EMBED_DELIVERY_REFORMAT)
             internal_shuffle = node.node(TankWriteNodeHandler.EMBED_SHUFFLE)
             format_crop = node.node(TankWriteNodeHandler.EMBED_FORMAT_CROP)            
@@ -1858,30 +1824,6 @@ class TankWriteNodeHandler(object):
             shot_ocio = node.node(TankWriteNodeHandler.EMBED_SHOT_OCIO)         
             matte_clamp = node.node(TankWriteNodeHandler.EMBED_MATTE_CLAMP)
             proj_fps = self.proj_info['sg_frame_rate']
-            timecode = "01:00:00:01"
-
-            # Checks for time/frame information, just in case
-            try:
-                time_code = node.node(TankWriteNodeHandler.EMBED_TIME_CODE)
-                # Timecode settings
-                if not self.frame_range[0]:
-                    print "No frame range values found on SG"
-                    shot_frame_range_start = 1
-                    use_start_frame = False
-                    use_meta_data = True
-                else:
-                    shot_frame_range_start = self.frame_range[0]
-                    use_start_frame = True
-                    use_meta_data = False
-                
-                time_code.knobs()["startcode"].setValue(timecode)
-                if proj_fps:
-                    time_code.knobs()["fps"].setValue(float(proj_fps))
-                time_code.knobs()["useFrame"].setValue(use_start_frame)
-                time_code.knobs()["frame"].setValue(shot_frame_range_start)
-                time_code.knobs()["metafps"].setValue(use_meta_data)
-            except:
-                pass
 
             # Set the embeded delivery reformat 
             if not (self.proj_info['sg_delivery_format_width'] and 
