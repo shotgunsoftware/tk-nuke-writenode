@@ -11,7 +11,6 @@
 import os
 import sys
 import tempfile
-import pickle
 import datetime
 import base64
 import re
@@ -19,9 +18,11 @@ import re
 import nuke
 import nukescripts
 
-import tank
-from tank import TankError
-from tank.platform import constants
+import sgtk
+from sgtk import TankError
+from sgtk.util import pickle
+from tank_vendor import six
+
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -429,7 +430,7 @@ class TankWriteNodeHandler(object):
             new_wn["file_type"].setValue(int_wn["file_type"].value())
 
             # copy across any knob values from the internal write node.
-            for knob_name, knob in int_wn.knobs().iteritems():
+            for knob_name, knob in int_wn.knobs().items():
                 # skip knobs we don't want to copy:
                 if knob_name in [
                     "file_type",
@@ -590,7 +591,7 @@ class TankWriteNodeHandler(object):
             int_wn["file_type"].setValue(wn["file_type"].value())
 
             # copy across and knob values from the internal write node.
-            for knob_name, knob in wn.knobs().iteritems():
+            for knob_name, knob in wn.knobs().items():
                 # skip knobs we don't want to copy:
                 if knob_name in [
                     "file_type",
@@ -733,17 +734,16 @@ class TankWriteNodeHandler(object):
 
         # if we have a valid render path then show it:
         if render_dir:
-            system = sys.platform
 
             # run the app
-            if system == "linux2":
+            if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % render_dir
-            elif system == "darwin":
+            elif sgtk.util.is_macos():
                 cmd = "open '%s'" % render_dir
-            elif system == "win32":
+            elif sgtk.util.is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % render_dir
             else:
-                raise Exception("Platform '%s' is not supported." % system)
+                raise Exception("Platform '%s' is not supported." % sys.platform)
 
             self._app.log_debug("Executing command '%s'" % cmd)
             exit_code = os.system(cmd)
@@ -1328,7 +1328,7 @@ class TankWriteNodeHandler(object):
             knobs_to_skip.extend(promoted_write_knobs)
 
         # now apply file format settings
-        for setting_name, setting_value in file_settings.iteritems():
+        for setting_name, setting_value in file_settings.items():
             if setting_name in knobs_to_skip:
                 # skip this setting:
                 continue
@@ -1716,7 +1716,7 @@ class TankWriteNodeHandler(object):
         fields = template.get_fields(file_name)
 
         # make sure we don't look for any eye - %V or SEQ - %04d stuff
-        frames = self._app.tank.paths_from_template(template, fields, ["SEQ", "eye"])
+        frames = self._app.sgtk.paths_from_template(template, fields, ["SEQ", "eye"])
 
         return frames
 
@@ -1949,7 +1949,7 @@ class TankWriteNodeHandler(object):
 
                 path_is_locked = len(new_fields) != len(prev_fields)
                 if not path_is_locked:
-                    for name, value in new_fields.iteritems():
+                    for name, value in new_fields.items():
                         if name not in prev_fields:
                             path_is_locked = True
                             break
@@ -2218,7 +2218,9 @@ class TankWriteNodeHandler(object):
             )
             knob_changes = pickle.dumps(nk_data)
             self.__update_knob_value(
-                n, "tk_write_node_settings", unicode(base64.b64encode(knob_changes)),
+                n,
+                "tk_write_node_settings",
+                six.ensure_text(base64.b64encode(knob_changes)),
             )
 
     def __on_user_create(self):
