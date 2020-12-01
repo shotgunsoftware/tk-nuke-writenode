@@ -11,6 +11,7 @@
 import os
 import sys
 import tempfile
+import pickle
 import datetime
 import base64
 import re
@@ -20,7 +21,6 @@ import nukescripts
 
 import sgtk
 from sgtk import TankError
-from sgtk.util import pickle
 from tank_vendor import six
 
 
@@ -1047,7 +1047,7 @@ class TankWriteNodeHandler(object):
         file_settings = {}
         try:
             # file_settings_str is a pickled dictionary so convert it back to a dictionary:
-            file_settings = pickle.loads(file_settings_str) or {}
+            file_settings = sgtk.util.pickle.loads(file_settings_str) or {}
         except Exception as e:
             self._app.log_warning(
                 "Failed to extract cached file settings from node '%s' - %s"
@@ -1127,7 +1127,7 @@ class TankWriteNodeHandler(object):
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
         self.__update_knob_value(
-            node, "tk_file_type_settings", pickle.dumps(file_settings)
+            node, "tk_file_type_settings", sgtk.util.pickle.dumps(file_settings)
         )
 
         # Hide the promoted knobs that might exist from the previously
@@ -1363,7 +1363,8 @@ class TankWriteNodeHandler(object):
             tcl_settings = node.knob("tk_write_node_settings").value()
 
             if tcl_settings:
-                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
+                decoded_settings = base64.b64decode(tcl_settings)
+                knob_settings = pickle.loads(six.ensure_binary(decoded_settings))
                 # We're going to filter out everything that isn't one of our
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
@@ -2216,7 +2217,7 @@ class TankWriteNodeHandler(object):
             nk_data = write_node.writeKnobs(
                 nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
             )
-            knob_changes = pickle.dumps(nk_data)
+            knob_changes = pickle.dumps(nk_data, protocol=0)
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
