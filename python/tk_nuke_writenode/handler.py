@@ -19,9 +19,10 @@ import re
 import nuke
 import nukescripts
 
-import tank
-from tank import TankError
-from tank.platform import constants
+import sgtk
+from sgtk import TankError
+from tank_vendor import six
+
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -429,7 +430,7 @@ class TankWriteNodeHandler(object):
             new_wn["file_type"].setValue(int_wn["file_type"].value())
 
             # copy across any knob values from the internal write node.
-            for knob_name, knob in int_wn.knobs().iteritems():
+            for knob_name, knob in int_wn.knobs().items():
                 # skip knobs we don't want to copy:
                 if knob_name in [
                     "file_type",
@@ -590,7 +591,7 @@ class TankWriteNodeHandler(object):
             int_wn["file_type"].setValue(wn["file_type"].value())
 
             # copy across and knob values from the internal write node.
-            for knob_name, knob in wn.knobs().iteritems():
+            for knob_name, knob in wn.knobs().items():
                 # skip knobs we don't want to copy:
                 if knob_name in [
                     "file_type",
@@ -733,17 +734,16 @@ class TankWriteNodeHandler(object):
 
         # if we have a valid render path then show it:
         if render_dir:
-            system = sys.platform
 
             # run the app
-            if system == "linux2":
+            if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % render_dir
-            elif system == "darwin":
+            elif sgtk.util.is_macos():
                 cmd = "open '%s'" % render_dir
-            elif system == "win32":
+            elif sgtk.util.is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % render_dir
             else:
-                raise Exception("Platform '%s' is not supported." % system)
+                raise Exception("Platform '%s' is not supported." % sys.platform)
 
             self._app.log_debug("Executing command '%s'" % cmd)
             exit_code = os.system(cmd)
@@ -1047,7 +1047,7 @@ class TankWriteNodeHandler(object):
         file_settings = {}
         try:
             # file_settings_str is a pickled dictionary so convert it back to a dictionary:
-            file_settings = pickle.loads(file_settings_str) or {}
+            file_settings = sgtk.util.pickle.loads(file_settings_str) or {}
         except Exception as e:
             self._app.log_warning(
                 "Failed to extract cached file settings from node '%s' - %s"
@@ -1127,7 +1127,7 @@ class TankWriteNodeHandler(object):
         # they get serialized with the script:
         self.__update_knob_value(node, "tk_file_type", file_type)
         self.__update_knob_value(
-            node, "tk_file_type_settings", pickle.dumps(file_settings)
+            node, "tk_file_type_settings", sgtk.util.pickle.dumps(file_settings)
         )
 
         # Hide the promoted knobs that might exist from the previously
@@ -1328,7 +1328,7 @@ class TankWriteNodeHandler(object):
             knobs_to_skip.extend(promoted_write_knobs)
 
         # now apply file format settings
-        for setting_name, setting_value in file_settings.iteritems():
+        for setting_name, setting_value in file_settings.items():
             if setting_name in knobs_to_skip:
                 # skip this setting:
                 continue
@@ -1363,7 +1363,8 @@ class TankWriteNodeHandler(object):
             tcl_settings = node.knob("tk_write_node_settings").value()
 
             if tcl_settings:
-                knob_settings = pickle.loads(str(base64.b64decode(tcl_settings)))
+                decoded_settings = base64.b64decode(tcl_settings)
+                knob_settings = pickle.loads(six.ensure_binary(decoded_settings))
                 # We're going to filter out everything that isn't one of our
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
@@ -1716,7 +1717,7 @@ class TankWriteNodeHandler(object):
         fields = template.get_fields(file_name)
 
         # make sure we don't look for any eye - %V or SEQ - %04d stuff
-        frames = self._app.tank.paths_from_template(template, fields, ["SEQ", "eye"])
+        frames = self._app.sgtk.paths_from_template(template, fields, ["SEQ", "eye"])
 
         return frames
 
@@ -1949,7 +1950,7 @@ class TankWriteNodeHandler(object):
 
                 path_is_locked = len(new_fields) != len(prev_fields)
                 if not path_is_locked:
-                    for name, value in new_fields.iteritems():
+                    for name, value in new_fields.items():
                         if name not in prev_fields:
                             path_is_locked = True
                             break
@@ -2216,9 +2217,11 @@ class TankWriteNodeHandler(object):
             nk_data = write_node.writeKnobs(
                 nuke.WRITE_NON_DEFAULT_ONLY | nuke.TO_SCRIPT | nuke.TO_VALUE
             )
-            knob_changes = pickle.dumps(nk_data)
+            knob_changes = pickle.dumps(nk_data, protocol=0)
             self.__update_knob_value(
-                n, "tk_write_node_settings", unicode(base64.b64encode(knob_changes)),
+                n,
+                "tk_write_node_settings",
+                six.ensure_text(base64.b64encode(knob_changes)),
             )
 
     def __on_user_create(self):
