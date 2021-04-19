@@ -231,7 +231,7 @@ class TankWriteNodeHandler(object):
         # make sure that the file is a proper tank work path
         if not self._script_template.validate(curr_filename):
             nuke.message(
-                "This file is not a Shotgun work file. Please use Shotgun Save-As in order "
+                "This file is not a SG work file. Please use SG Save-As in order "
                 "to save the file as a valid work file."
             )
             return
@@ -250,7 +250,7 @@ class TankWriteNodeHandler(object):
             else:
                 postfix += 1
 
-        self._app.log_debug("Created Shotgun Write Node %s" % node.name())
+        self._app.log_debug("Created SG Write Node %s" % node.name())
 
         # set the profile:
         self.__set_profile(node, profile_name, reset_all_settings=True)
@@ -962,7 +962,7 @@ class TankWriteNodeHandler(object):
         # this will be displayed on the node in the graph
         # useful to tell what type of node it is
         pn = node.knob("profile_name").value()
-        label = "Shotgun Write %s" % pn
+        label = "SG Write %s" % pn
         self.__update_knob_value(node, "label", label)
 
         # get the render path:
@@ -1307,7 +1307,7 @@ class TankWriteNodeHandler(object):
         # and read it back to check that the value is what we expect
         if write_node.knob("file_type").value() != file_type:
             self._app.log_error(
-                "Shotgun write node configuration refers to an invalid file "
+                "SG write node configuration refers to an invalid file "
                 "format '%s'! Reverting to auto-detect mode instead." % file_type
             )
             write_node.knob("file_type").setValue("  ")
@@ -1585,7 +1585,7 @@ class TankWriteNodeHandler(object):
                     path_warning += (
                         "<br>".join(
                             self.__wrap_text(
-                                "The path does not match the current Shotgun Work Area.  You can "
+                                "The path does not match the current SG Work Area.  You can "
                                 "still render but you will not be able to publish this node.",
                                 60,
                             )
@@ -1861,7 +1861,7 @@ class TankWriteNodeHandler(object):
         ):
             fields = self._script_template.get_fields(curr_filename)
         if not fields:
-            raise TkComputePathError("The current script is not a Shotgun Work File!")
+            raise TkComputePathError("The current script is not a SG Work File!")
 
         # Force use of %d format for nuke renders:
         fields["SEQ"] = "FORMAT: %d"
