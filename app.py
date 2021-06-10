@@ -293,7 +293,7 @@ class NukeWriteNode(tank.platform.Application):
                 pn
             )
             self.engine.register_command(
-                "%s [ShotGrid]" % profile_name,
+                "%s [Shotgun]" % profile_name,
                 cb_fn,
                 dict(type="node", icon=write_node_icon, context=context,),
             )
