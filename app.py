@@ -226,7 +226,7 @@ class NukeWriteNode(tank.platform.Application):
             res = QtGui.QMessageBox.question(
                 None,
                 "Convert All SG Write Nodes?",
-                "This will convert all Shotgun write nodes to standard write nodes."
+                "This will convert all ShotGrid write nodes to standard write nodes."
                 "\nOK to proceed?",
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
             )
@@ -257,7 +257,7 @@ class NukeWriteNode(tank.platform.Application):
             res = QtGui.QMessageBox.question(
                 None,
                 "Convert All Write Nodes?",
-                "This will convert any Shotgun Write Nodes that have been converted "
+                "This will convert any ShotGrid Write Nodes that have been converted "
                 "into standard write nodes back to their original form."
                 "\nOK to proceed?",
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
@@ -293,7 +293,7 @@ class NukeWriteNode(tank.platform.Application):
                 pn
             )
             self.engine.register_command(
-                "%s [Shotgun]" % profile_name,
+                "%s [ShotGrid]" % profile_name,
                 cb_fn,
                 dict(type="node", icon=write_node_icon, context=context,),
             )

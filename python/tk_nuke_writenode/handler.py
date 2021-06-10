@@ -35,7 +35,7 @@ class TankWriteNodeHandler(object):
     """
 
     SG_WRITE_NODE_CLASS = "WriteTank"
-    SG_WRITE_DEFAULT_NAME = "ShotgunWrite"
+    SG_WRITE_DEFAULT_NAME = "ShotGridWrite"
     WRITE_NODE_NAME = "Write1"
 
     OUTPUT_KNOB_NAME = "tank_channel"
@@ -1711,7 +1711,7 @@ class TankWriteNodeHandler(object):
         if not template.validate(file_name):
             raise Exception(
                 "Could not resolve the files on disk for node %s."
-                "The path '%s' is not recognized by Shotgun!" % (node.name(), file_name)
+                "The path '%s' is not recognized by ShotGrid!" % (node.name(), file_name)
             )
 
         fields = template.get_fields(file_name)
