@@ -33,7 +33,7 @@ Gizmo {
  mapsize {0.15 0.15}
  addUserKnob {
     20 tank_tab
-    l "Shotgun Write"
+    l "ShotGrid Write"
  }
  addUserKnob {
     4 tk_profile_list
