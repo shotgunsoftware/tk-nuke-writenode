@@ -1711,7 +1711,8 @@ class TankWriteNodeHandler(object):
         if not template.validate(file_name):
             raise Exception(
                 "Could not resolve the files on disk for node %s."
-                "The path '%s' is not recognized by ShotGrid!" % (node.name(), file_name)
+                "The path '%s' is not recognized by ShotGrid!"
+                % (node.name(), file_name)
             )
 
         fields = template.get_fields(file_name)
