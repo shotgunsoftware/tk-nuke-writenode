@@ -6,8 +6,8 @@ version 6.3
 #
 # addUserKnob syntax
 # ------------------
-# <id> - this is the id of the knob type to add.  A full list can be found here:
-#     http://docs.thefoundry.co.uk/nuke/63/ndkdevguide/knobs-and-handles/knobtypes.html
+# <id> - this is the id of the knob type to add. A full list can be found here:
+#     https://learn.foundry.com/nuke/developers/63/ndkdevguide/knobs-and-handles/knobtypes.html
 #
 # <name> - name of the knob used when querying it in nuke, e.g. node.knob("<name>")
 #
@@ -22,8 +22,8 @@ version 6.3
 # Additional knob flags
 # ---------------------
 # These are set/removed by doing +/-FLAG_NAME, e.g. +STARTLINE to ensure the knob starts a
-# new line in the property editor.  A full list of flags can be found here:
-#     http://docs.thefoundry.co.uk/nuke/63/ndkdevguide/knobs-and-handles/knobflags.html
+# new line in the property editor. A full list of flags can be found here:
+#     https://learn.foundry.com/nuke/developers/63/ndkdevguide/knobs-and-handles/knobflags.html
 #
 ##########################################################################################
 ##########################################################################################
