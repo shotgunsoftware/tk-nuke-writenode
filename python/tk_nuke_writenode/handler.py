@@ -1534,21 +1534,15 @@ class TankWriteNodeHandler(object):
 
                 # render path could not be computed for some reason - display warning
                 # to the user in the property editor:
-                path_warning += (
+                path_warning += "{0}<br><br>&nbsp;&nbsp;&nbsp;{1}<br>".format(
                     "<br>".join(
                         self.__wrap_text(
                             "The render path is currently frozen because Toolkit could not "
                             "determine a valid path!  This was due to the following problem:",
                             60,
                         )
-                    )
-                    + "<br>"
-                )
-                path_warning += "<br>"
-                path_warning += (
-                    "&nbsp;&nbsp;&nbsp;"
-                    + " <br>&nbsp;&nbsp;&nbsp;".join(self.__wrap_text(str(e), 57))
-                    + " <br>"
+                    ),
+                    " <br>&nbsp;&nbsp;&nbsp;".join(self.__wrap_text(str(e), 57)),
                 )
 
                 if cached_path:
