@@ -1120,7 +1120,11 @@ class TankWriteNodeHandler(object):
 
         # set the format
         self.__populate_format_settings(
-            node, file_type, file_settings, reset_all_settings, promote_write_knobs,
+            node,
+            file_type,
+            file_settings,
+            reset_all_settings,
+            promote_write_knobs,
         )
 
         # cache the type and settings on the root node so that
