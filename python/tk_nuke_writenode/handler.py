@@ -709,7 +709,7 @@ class TankWriteNodeHandler(object):
         if render_path:
             # the above method returns nuke style slashes, so ensure these
             # are pointing correctly
-            render_path = render_path.replace("/", os.path.sep)
+            render_path = render_path.replace(os.path.sep, "/")
 
             dir_name = os.path.dirname(render_path)
             if os.path.exists(dir_name):
@@ -980,7 +980,7 @@ class TankWriteNodeHandler(object):
             file_name = cached_path_preview["file_name"]
         else:
             # normalize the path for os platform
-            norm_path = path.replace("/", os.sep)
+            norm_path = path.replace(os.path.sep, "/")
 
             # get the file name
             file_name = os.path.basename(norm_path)
@@ -2175,7 +2175,7 @@ class TankWriteNodeHandler(object):
 
         if script_path:
             # convert to os-style slashes:
-            script_path = script_path.replace("/", os.path.sep)
+            script_path = script_path.replace(os.path.sep, "/")
 
         return script_path
 
@@ -2200,7 +2200,7 @@ class TankWriteNodeHandler(object):
             last_known_path = knob.value()
             if last_known_path:
                 # correct slashes for compare:
-                last_known_path = last_known_path.replace("/", os.path.sep)
+                last_known_path = last_known_path.replace(os.path.sep, "/")
 
             if last_known_path != save_file_path:
                 # we're saving to a new file so reset the render path:
