@@ -295,11 +295,7 @@ class NukeWriteNode(tank.platform.Application):
             self.engine.register_command(
                 "%s [Shotgun]" % profile_name,
                 cb_fn,
-                dict(
-                    type="node",
-                    icon=write_node_icon,
-                    context=context,
-                ),
+                dict(type="node", icon=write_node_icon, context=context,),
             )
 
         # Show the convert actions in the Menu if configured to do so
