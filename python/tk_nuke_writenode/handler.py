@@ -415,8 +415,9 @@ class TankWriteNodeHandler(object):
             node_pos = (sg_wn.xpos(), sg_wn.ypos())
 
             # create new regular Write node:
-            new_wn = nuke.createNode("Write")
-            new_wn.setSelected(False)
+            with nuke.root():
+                new_wn = nuke.createNode("Write", inpanel=False)
+                new_wn.setSelected(False)
 
             # copy across file & proxy knobs (if we've defined a proxy template):
             new_wn["file"].setValue(sg_wn["cached_path"].evaluate())
@@ -441,6 +442,7 @@ class TankWriteNodeHandler(object):
                     "name",
                     "xpos",
                     "ypos",
+                    "colorspace",
                 ]:
                     continue
 
@@ -450,6 +452,13 @@ class TankWriteNodeHandler(object):
                     except TypeError:
                         # ignore type errors:
                         pass
+
+            # copy color space knob
+            cs = int_wn["colorspace"].value()
+            # handle default value where cs would be something like: 'default (linear)'
+            if cs.startswith("default (") and cs.endswith(")"):
+                cs = cs[9:-1]
+            new_wn["colorspace"].setValue(cs)
 
             # Set the nuke write node to have create directories ticked on by default
             # As toolkit hasn't created the output folder at this point.
@@ -553,10 +562,14 @@ class TankWriteNodeHandler(object):
             # set as selected:
             wn.setSelected(True)
             node_name = wn.name()
+            # rename node to avoid conflict
+            wn.setName('__' + node_name)
             node_pos = (wn.xpos(), wn.ypos())
 
             # create new Shotgun Write node:
-            new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS)
+            new_sg_wn = nuke.createNode(TankWriteNodeHandler.SG_WRITE_NODE_CLASS, inpanel=False)
+            # rename new node here (fix missing promote knobs):
+            new_sg_wn.setName(node_name)
             new_sg_wn.setSelected(False)
 
             # copy across file & proxy knobs as well as all cached templates:
@@ -623,8 +636,6 @@ class TankWriteNodeHandler(object):
             # delete original node:
             nuke.delete(wn)
 
-            # rename new node:
-            new_sg_wn.setName(node_name)
             new_sg_wn.setXpos(node_pos[0])
             new_sg_wn.setYpos(node_pos[1])
 
