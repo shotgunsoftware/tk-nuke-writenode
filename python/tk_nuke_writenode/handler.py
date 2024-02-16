@@ -35,7 +35,7 @@ class TankWriteNodeHandler(object):
     """
 
     SG_WRITE_NODE_CLASS = "WriteTank"
-    SG_WRITE_DEFAULT_NAME = "ShotGridWrite"
+    SG_WRITE_DEFAULT_NAME = "FlowProductionTrackingWrite"
     WRITE_NODE_NAME = "Write1"
 
     OUTPUT_KNOB_NAME = "tank_channel"
