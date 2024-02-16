@@ -242,7 +242,7 @@ class NukeWriteNode(tank.platform.Application):
     def convert_from_write_nodes(self, show_warning=False):
         """
         Convert all regular Nuke Write nodes that have previously been converted
-        from Shotgun Write nodes, back into Shotgun Write nodes.
+        from Flow Production Tracking Write nodes, back into Flow Production Tracking Write nodes.
 
         :param show_warning: Optional bool that sets whether a warning box should be displayed to the user;
          defaults to False.
