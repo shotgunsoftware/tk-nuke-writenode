@@ -295,7 +295,7 @@ class NukeWriteNode(tank.platform.Application):
                 pn
             )
             self.engine.register_command(
-                "%s [Flow Production Tracking]" % profile_name,
+                profile_name,
                 cb_fn,
                 dict(
                     type="node",
