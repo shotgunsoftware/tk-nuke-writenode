@@ -22,11 +22,6 @@ import nukescripts
 import sgtk
 from sgtk import TankError
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 
 # Special exception raised when the work file cannot be resolved.
 class TkComputePathError(TankError):
@@ -1371,7 +1366,7 @@ class TankWriteNodeHandler(object):
 
             if tcl_settings:
                 decoded_settings = base64.b64decode(tcl_settings)
-                knob_settings = pickle.loads(sgutils.ensure_binary(decoded_settings))
+                knob_settings = pickle.loads(decoded_settings)
                 # We're going to filter out everything that isn't one of our
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
@@ -2228,7 +2223,7 @@ class TankWriteNodeHandler(object):
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
-                sgutils.ensure_text(base64.b64encode(knob_changes)),
+                base64.b64encode(knob_changes).decode(),
             )
 
     def __on_user_create(self):
