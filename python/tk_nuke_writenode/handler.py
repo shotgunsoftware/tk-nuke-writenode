@@ -927,7 +927,7 @@ class TankWriteNodeHandler(object):
         """
         Update the value for the specified knob on the specified node
         but only if it is different to the current value to avoid
-        unneccesarily invalidating the cache
+        unnecessarily invalidating the cache
         """
         current_value = node.knob(name).value()
         if new_value != current_value:
