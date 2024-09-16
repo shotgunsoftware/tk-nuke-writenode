@@ -21,7 +21,10 @@ import nukescripts
 
 import sgtk
 from sgtk import TankError
-from tank_vendor import six
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 
 # Special exception raised when the work file cannot be resolved.
@@ -1370,7 +1373,7 @@ class TankWriteNodeHandler(object):
 
             if tcl_settings:
                 decoded_settings = base64.b64decode(tcl_settings)
-                knob_settings = pickle.loads(six.ensure_binary(decoded_settings))
+                knob_settings = pickle.loads(sgutils.ensure_binary(decoded_settings))
                 # We're going to filter out everything that isn't one of our
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
@@ -2125,7 +2128,7 @@ class TankWriteNodeHandler(object):
                 self.__set_output(node, node.knob("name").value())
 
         else:
-            # Propogate changes to certain knobs from the gizmo/group to the
+            # Propagate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
             #
             # The normal mechanism of linking these knobs can't be used because the
@@ -2228,7 +2231,7 @@ class TankWriteNodeHandler(object):
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
-                six.ensure_text(base64.b64encode(knob_changes)),
+                sgutils.ensure_text(base64.b64encode(knob_changes)),
             )
 
     def __on_user_create(self):
