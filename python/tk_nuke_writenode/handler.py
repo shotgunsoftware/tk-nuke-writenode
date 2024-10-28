@@ -21,7 +21,6 @@ import nukescripts
 
 import sgtk
 from sgtk import TankError
-from tank_vendor import six
 
 
 # Special exception raised when the work file cannot be resolved.
@@ -408,7 +407,6 @@ class TankWriteNodeHandler(object):
         # get write nodes:
         sg_write_nodes = self.get_nodes()
         for sg_wn in sg_write_nodes:
-
             # set as selected:
             sg_wn.setSelected(True)
             node_name = sg_wn.name()
@@ -526,7 +524,6 @@ class TankWriteNodeHandler(object):
             group=nuke.root(), filter="Write", recurseGroups=True
         )
         for wn in write_nodes:
-
             # look for additional toolkit knobs:
             profile_knob = wn.knob("tk_profile_name")
             output_knob = wn.knob("tk_output")
@@ -734,7 +731,6 @@ class TankWriteNodeHandler(object):
 
         # if we have a valid render path then show it:
         if render_dir:
-
             # run the app
             if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % render_dir
@@ -931,7 +927,7 @@ class TankWriteNodeHandler(object):
         """
         Update the value for the specified knob on the specified node
         but only if it is different to the current value to avoid
-        unneccesarily invalidating the cache
+        unnecessarily invalidating the cache
         """
         current_value = node.knob(name).value()
         if new_value != current_value:
@@ -1370,7 +1366,7 @@ class TankWriteNodeHandler(object):
 
             if tcl_settings:
                 decoded_settings = base64.b64decode(tcl_settings)
-                knob_settings = pickle.loads(six.ensure_binary(decoded_settings))
+                knob_settings = pickle.loads(decoded_settings)
                 # We're going to filter out everything that isn't one of our
                 # promoted write node knobs. This will allow us to make sure
                 # that those knobs are set to the correct value, regardless
@@ -1628,7 +1624,6 @@ class TankWriteNodeHandler(object):
             # isn't in proxy mode!  Because we only want to update the UI to represent the 'actual'
             # state then we check for that here:
             if is_proxy == node.proxy():
-
                 # update warning displayed to the user:
                 if path_warning:
                     path_warning = (
@@ -2125,7 +2120,7 @@ class TankWriteNodeHandler(object):
                 self.__set_output(node, node.knob("name").value())
 
         else:
-            # Propogate changes to certain knobs from the gizmo/group to the
+            # Propagate changes to certain knobs from the gizmo/group to the
             # encapsulated Write node.
             #
             # The normal mechanism of linking these knobs can't be used because the
@@ -2228,7 +2223,7 @@ class TankWriteNodeHandler(object):
             self.__update_knob_value(
                 n,
                 "tk_write_node_settings",
-                six.ensure_text(base64.b64encode(knob_changes)),
+                base64.b64encode(knob_changes).decode(),
             )
 
     def __on_user_create(self):
