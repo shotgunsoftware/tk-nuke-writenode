@@ -36,16 +36,63 @@ Gizmo {
     l "Flow Production Tracking Write"
  }
  addUserKnob {
+    26 ""
+    l ""
+    +STARTLINE
+ }
+ addUserKnob {
     4 tk_profile_list
     l "Profile"
     M {}
     t "Select the Profile to use for this node"
     +DO_NOT_WRITE
  }
+addUserKnob {
+    26 ""
+    l ""
+    +STARTLINE
+ }
+ addUserKnob {
+    26 user_info_01
+    l "- "
+    T "For Reviews, write <font color='lime green'><b>REVIEW</b></font> in the Output box."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
+ addUserKnob {
+    26 user_info_02
+    l "- "
+    T "For Diagnostics, write <font color='orange'><b>DIAGNOSTIC</b></font> in the Output box."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
+ addUserKnob {
+    26 user_info_03
+    l "- "
+    T "For DI deliveries, write <font color='gainsboro'><b>LAYERPACK</b></font> in the Output box."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
+ addUserKnob {
+    26 user_info_04
+    l "- "
+    T "For Precomps, write <font color='powder blue'><b>PrecompCustomName</b></font> in the Output box."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
+ addUserKnob {
+    26 user_info_05
+    l "- "
+    T "For Elements such as lens flares, write <font color='salmon'><b>ElementCustomName</b></font> in the Output box."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
+addUserKnob {
+    26 user_info_06
+    l "- "
+    T "Write <font color='light pink'><b>TechCustomName</b></font> in the Output box for any tech dailies, <br>custom contactsheets, and misc items you want to review."
+    t "The output name for this Write Node to help identify it when you have more than one output in your scene."
+ }
  addUserKnob {
     1 tank_channel
     l "Output"
     t "Choose an output name for this Write Node to help identify it when you have more than one output in your scene."
+    T "REVIEW"
     +STARTLINE
  }
  addUserKnob {
@@ -54,7 +101,7 @@ Gizmo {
     t "Use the node name in place of the output name"
     -STARTLINE
  }
- addUserKnob {
+addUserKnob {
     6 tk_is_fully_constructed
     l "Is Fully Constructed"
     t "Internal - Gets set to True in 'onCreate'.  All 'knobChanged' calls before this are ignored"
