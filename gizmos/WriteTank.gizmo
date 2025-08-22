@@ -73,7 +73,7 @@ addUserKnob {
  addUserKnob {
     26 user_info_04
     l "- "
-    T "For Precomps, write <font color='powder blue'><b>PrecompCustomName</b></font> in the Output box."
+    T "For Precomps, write <font color='powder blue'><b>PRECOMP</b></font> in the Output box."
     t "The output name for this Write Node to help identify it when you have more than one output in your scene."
  }
  addUserKnob {
