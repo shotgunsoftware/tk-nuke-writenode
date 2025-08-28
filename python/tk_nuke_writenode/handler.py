@@ -465,6 +465,11 @@ class TankWriteNodeHandler(object):
             knob.setValue(sg_wn["profile_name"].value())
             new_wn.addKnob(knob)
 
+            # cds_output_tag
+            knob = nuke.String_Knob("cds_output_tag")
+            knob.setValue(sg_wn["cds_output_tag"].value())
+            new_wn.addKnob(knob)
+
             # output
             knob = nuke.String_Knob("tk_output")
             knob.setValue(sg_wn[TankWriteNodeHandler.OUTPUT_KNOB_NAME].value())
@@ -1496,6 +1501,7 @@ class TankWriteNodeHandler(object):
                     width,
                     height,
                     output_name,
+                    cds_tag
                 ) = self.__gather_render_settings(node, is_proxy)
 
                 # experimental settings cache to avoid re-computing the path if nothing has changed...
@@ -1507,6 +1513,7 @@ class TankWriteNodeHandler(object):
                     "ctx": self._app.context,
                     "width": width,
                     "height": height,
+                    'cds_tag': cds_tag,
                     "output": output_name,
                     "script_path": script_path,
                 }
@@ -1523,7 +1530,7 @@ class TankWriteNodeHandler(object):
                 else:
                     # compute the render path:
                     render_path = self.__compute_render_path_from(
-                        node, render_template, width, height, output_name
+                        node, render_template, width, height, output_name, cds_tag
                     )
 
             except TkComputePathError as e:
@@ -1787,6 +1794,7 @@ class TankWriteNodeHandler(object):
         render_template = self.__get_render_template(node, is_proxy)
         width = height = 0
         output_name = ""
+        cds_tag = ""
 
         if is_proxy:
             if not render_template:
@@ -1808,8 +1816,10 @@ class TankWriteNodeHandler(object):
             # check for 'channel' for backwards compatibility
             if "output" in render_template.keys or "channel" in render_template.keys:
                 output_name = node.knob(TankWriteNodeHandler.OUTPUT_KNOB_NAME).value()
+            if "cds_tag" in render_template.keys:
+                cds_tag = node.knob('cds_output_tag').value()
 
-        return (render_template, width, height, output_name)
+        return (render_template, width, height, output_name, cds_tag)
 
     def __compute_render_path(self, node, is_proxy=False):
         """
@@ -1821,17 +1831,17 @@ class TankWriteNodeHandler(object):
         """
 
         # gather the render settings to use:
-        render_template, width, height, output_name = self.__gather_render_settings(
+        render_template, width, height, output_name, cds_tag = self.__gather_render_settings(
             node, is_proxy
         )
 
         # compute the render path:
         return self.__compute_render_path_from(
-            node, render_template, width, height, output_name
+            node, render_template, width, height, output_name, cds_tag
         )
 
     def __compute_render_path_from(
-        self, node, render_template, width, height, output_name
+        self, node, render_template, width, height, output_name, cds_tag
     ):
         """
         Computes the render path for a node using the specified settings
@@ -1881,6 +1891,10 @@ class TankWriteNodeHandler(object):
         fields["MM"] = today.month
         fields["DD"] = today.day
 
+        #cds_output_tag = node['cds_output_tag'].value()
+        #output_name = f'{cds_output_tag}_{output_name}'
+        #output_name = f'{cds_output_tag}'
+
         # validate the output name - be backwards compatible with 'channel' as well
         for key_name in ["output", "channel"]:
             if key_name in fields:
@@ -1901,6 +1915,24 @@ class TankWriteNodeHandler(object):
                         )
                     fields[key_name] = output_name
 
+        print(f'{render_template=}')
+        print(f'{render_template.keys=}')
+
+        if 'cds_tag' in render_template.keys:
+            if not cds_tag:
+                if not render_template.is_optional(key_name):
+                    raise TkComputePathError(
+                        "A valid output name is required by this profile for the '%s' field!"
+                        % key_name
+                    )
+            else:
+                if not render_template.keys["cds_tag"].validate(cds_tag):
+                    raise TkComputePathError(
+                        "The cds_tag '%s' contains illegal characters!"
+                        % cds_tag
+                    )
+                fields['cds_tag'] = cds_tag
+
         # update with additional fields from the context:
         fields.update(self._app.context.as_template_fields(render_template))
 
@@ -1910,9 +1942,10 @@ class TankWriteNodeHandler(object):
             path = render_template.apply_fields(fields)
         except TankError as e:
             raise TkComputePathError(str(e))
-
+        print(f'{cds_tag=}')
         # make slahes uniform:
         path = path.replace(os.path.sep, "/")
+        print(f'{path=}')
 
         return path
 
@@ -2094,6 +2127,14 @@ class TankWriteNodeHandler(object):
             # change the profile for the specified node:
             new_profile_name = knob.value()
             self.__set_profile(node, new_profile_name, reset_all_settings=True)
+
+        elif knob.name() == "cds_output_tag":
+            tag_value = knob.value()
+            if tag_value != "PRECOMP":
+                self.__set_output(node, 'main')
+                #self.reset_render_path(node)
+            else:
+                self.__set_output(node, 'LayerName')
 
         elif knob.name() == TankWriteNodeHandler.OUTPUT_KNOB_NAME:
             # internal cached output has been changed!
