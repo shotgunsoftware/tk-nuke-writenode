@@ -50,18 +50,18 @@ configuration:
                     type: tank_type
                 render_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [YYYY], [MM], [DD], *
+                    fields: context, version, [SEQ], [channel], [output], [name], [width], [height], [eye], [YYYY], [MM], [DD], *
                 publish_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
+                    fields: context, version, [SEQ], [channel], [output], [name], [width], [height], [eye], [TankType], *
                 proxy_render_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], *
+                    fields: context, version, [SEQ], [channel], [output], [name], [width], [height], [eye], *
                     allows_empty: True
                     default_value: null
                 proxy_publish_template:
                     type: template
-                    fields: context, version, SEQ, [channel], [output], [name], [width], [height], [eye], [TankType], *
+                    fields: context, version, [SEQ], [channel], [output], [name], [width], [height], [eye], [TankType], *
                     allows_empty: True
                     default_value: null
                 tile_color:
