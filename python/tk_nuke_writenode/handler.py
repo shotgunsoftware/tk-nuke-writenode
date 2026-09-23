@@ -1904,6 +1904,16 @@ class TankWriteNodeHandler(object):
         # update with additional fields from the context:
         fields.update(self._app.context.as_template_fields(render_template))
 
+        # update with file extension if required
+        if (
+            (profile := self.__get_node_profile_settings(node))
+            and (ext_field := str(profile.get("ext_field") or "extension"))
+            and ext_field in render_template.keys
+            and ext_field not in fields
+            and (file_type := profile.get("file_type"))
+        ):
+            fields[ext_field] = file_type
+
         # generate the render path:
         path = ""
         try:
