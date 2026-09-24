@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from collections.abc import Iterable, Iterator
 import os
 import sys
 import tempfile
@@ -386,6 +387,41 @@ class TankWriteNodeHandler(object):
             self.__on_user_create, nodeClass=TankWriteNodeHandler.SG_WRITE_NODE_CLASS
         )
 
+    def _convert_tracked(
+        self, title_prefix: str, nodes: Iterable[nuke.Node]
+    ) -> Iterator[nuke.Node]:
+        """Iterate over the given nodes tracked in a Nuke progress task."""
+        roster = tuple(nodes)
+        total = len(roster)
+        task = nuke.ProgressTask(f"{title_prefix} Nuke Write nodes")
+        try:
+            for count, node in enumerate(roster):
+                if task.isCancelled():
+                    break
+                full_name: str = node.fullName()
+                task.setMessage(f"{count}/{total} {full_name}")
+                task.setProgress(int(100 * (count / total)))
+                try:
+                    yield node
+                except Exception:
+                    paragraphs = [
+                        f"Failed to convert {full_name!r}",
+                        "Check Terminal/Error panel for technical details.",
+                    ]
+                    if nuke.exists(full_name):
+                        nuke.toNode(full_name).selectOnly()
+                        nuke.zoomToFitSelected()
+                        paragraphs.append(
+                            "It's now selected in the node graph, consider deleting "
+                            "it if it looks broken."
+                        )
+                    message = "\n\n".join(paragraphs)
+                    nuke.alert(message)
+                    nuke.error(message)
+                    raise
+        finally:
+            del task
+
     def convert_sg_to_nuke_write_nodes(self):
         """
         Utility function to convert all Flow Production Tracking Write
@@ -406,7 +442,7 @@ class TankWriteNodeHandler(object):
 
         # get write nodes:
         sg_write_nodes = self.get_nodes()
-        for sg_wn in sg_write_nodes:
+        for sg_wn in self._convert_tracked("To", sg_write_nodes):
             # set as selected:
             sg_wn.setSelected(True)
             node_name = sg_wn.name()
@@ -523,7 +559,7 @@ class TankWriteNodeHandler(object):
         write_nodes = nuke.allNodes(
             group=nuke.root(), filter="Write", recurseGroups=True
         )
-        for wn in write_nodes:
+        for wn in self._convert_tracked("From", write_nodes):
             # look for additional toolkit knobs:
             profile_knob = wn.knob("tk_profile_name")
             output_knob = wn.knob("tk_output")
