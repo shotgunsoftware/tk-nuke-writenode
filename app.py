@@ -24,6 +24,8 @@ class NukeWriteNode(tank.platform.Application):
         """
         Called as the application is being initialized
         """
+        self.__hook = self.create_hook_instance(self.get_setting("hook"))
+
         # import module and create handler
         tk_nuke_writenode = self.import_module("tk_nuke_writenode")
         self.__write_node_handler = tk_nuke_writenode.TankWriteNodeHandler(self)
@@ -38,6 +40,16 @@ class NukeWriteNode(tank.platform.Application):
 
         # add callbacks:
         self.__write_node_handler.add_callbacks()
+
+    @property
+    def hook(self) -> tank.Hook:
+        """Write node hook instance."""
+        return self.__hook
+
+    @property
+    def handler(self):
+        """Write node handler instance."""
+        return self.__write_node_handler
 
     @property
     def context_change_allowed(self):
@@ -117,7 +129,7 @@ class NukeWriteNode(tank.platform.Application):
         Note: Legacy version with old 'Tank Type' name - use
         get_node_published_file_type instead!
         """
-        return self.__write_node_handler.get_node_tank_type(node)
+        return self.get_node_published_file_type(node)
 
     def get_node_published_file_type(self, node):
         """
