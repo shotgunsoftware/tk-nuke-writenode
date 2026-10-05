@@ -193,6 +193,13 @@ Gizmo {
     t "Copies the current render/proxy path to the clipboard"
     -STARTLINE
  }
+ addUserKnob {
+    22 create_read_nodes
+    l "Create Read Nodes"
+    T "import nuke\nif hasattr(nuke, \"_shotgun_write_node_handler\"):\n    nuke._shotgun_write_node_handler.hook.create_read_nodes(nuke.thisNode())"
+    t "Create Read nodes for this write node."
+    -STARTLINE
+ }
 
  addUserKnob {
     26 ""
