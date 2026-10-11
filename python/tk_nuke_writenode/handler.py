@@ -127,13 +127,19 @@ class TankWriteNodeHandler(object):
         """
         return node.knob("profile_name").value()
 
+    def get_node_profile_settings(self, node: nuke.Node) -> dict:
+        """Get node's current profile's settings.
+
+        Returned dictionary will be empty if no valid settings found.
+        """
+        settings = self.__get_node_profile_settings(node)
+        return settings if settings and isinstance(settings, dict) else {}
+
     def get_node_tank_type(self, node):
         """
         Return the tank type for the specified node
         """
-        settings = self.__get_node_profile_settings(node)
-        if settings:
-            return settings["tank_type"]
+        return self.get_node_profile_settings(node).get("tank_type")
 
     def get_render_template(self, node):
         """

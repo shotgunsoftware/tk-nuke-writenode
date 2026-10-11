@@ -40,6 +40,11 @@ class NukeWriteNode(tank.platform.Application):
         self.__write_node_handler.add_callbacks()
 
     @property
+    def handler(self):
+        """Write node handler instance."""
+        return self.__write_node_handler
+
+    @property
     def context_change_allowed(self):
         """
         Specifies that context changes are allowed.
@@ -117,7 +122,7 @@ class NukeWriteNode(tank.platform.Application):
         Note: Legacy version with old 'Tank Type' name - use
         get_node_published_file_type instead!
         """
-        return self.__write_node_handler.get_node_tank_type(node)
+        return self.get_node_published_file_type(node)
 
     def get_node_published_file_type(self, node):
         """
