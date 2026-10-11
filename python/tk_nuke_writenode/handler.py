@@ -74,6 +74,11 @@ class TankWriteNodeHandler(object):
         """
         return self._profile_names
 
+    @property
+    def hook(self) -> sgtk.Hook:
+        """Return the hook instance associated with this handler's app instance."""
+        return self._app.hook
+
     ################################################################################################
     # Public methods
 
@@ -127,13 +132,19 @@ class TankWriteNodeHandler(object):
         """
         return node.knob("profile_name").value()
 
+    def get_node_profile_settings(self, node: nuke.Node) -> dict:
+        """Get node's current profile's settings.
+
+        Returned dictionary will be empty if no valid settings found.
+        """
+        settings = self.__get_node_profile_settings(node)
+        return settings if settings and isinstance(settings, dict) else {}
+
     def get_node_tank_type(self, node):
         """
         Return the tank type for the specified node
         """
-        settings = self.__get_node_profile_settings(node)
-        if settings:
-            return settings["tank_type"]
+        return self.get_node_profile_settings(node).get("tank_type")
 
     def get_render_template(self, node):
         """
@@ -254,6 +265,7 @@ class TankWriteNodeHandler(object):
         # set the profile:
         self.__set_profile(node, profile_name, reset_all_settings=True)
 
+        self.hook.post_create_new_node(node, profile_name)
         return node
 
     def process_placeholder_nodes(self):
@@ -1220,6 +1232,8 @@ class TankWriteNodeHandler(object):
         # the node automatically updating without the user's knowledge.
         if profile_name != old_profile_name:
             self.reset_render_path(node)
+            self.hook.post_profile_changed(node, old_profile_name, profile_name)
+        self.hook.post_profile_set(node, profile_name)
 
     def __populate_initial_output_name(self, template, node):
         """

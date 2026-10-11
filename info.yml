@@ -91,6 +91,16 @@ configuration:
                       Flow Production Tracking -> Context menu"
         default_value: False
 
+    hook:
+        type: hook
+        default_value: "{self}/writenode.py"
+        description: |-
+            Hook with methods to configure additional behaviors:
+
+            - `post_create_new_node` called when handler created a new write node.
+            - `post_profile_changed` called when the write node's profile changes.
+            - `post_profile_set` called when the write node's profile is set, regardless of whether it changed.
+
     template_script_work:
         type: template
         description: "A reference to a template which locates a nuke script work file on disk. This
