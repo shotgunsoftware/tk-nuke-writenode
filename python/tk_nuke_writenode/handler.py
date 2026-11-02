@@ -1511,12 +1511,16 @@ class TankWriteNodeHandler(object):
         Update the render path and the various feedback knobs based on the current
         context and other node settings.
 
-        :param node:        The Flow Production Tracking Write node to update the path for
-        :param force_reset: Force the path to be reset regardless of any cached
-                            values
-        :param is_proxy:    If True then update the proxy render path, otherwise
-                            just update the normal render path.
-        :returns:           The updated render path
+        While the node is incomplete, size comes from the cached path only. If that
+        path cannot yield width/height, keep the cached path instead of raising or
+        writing a 0x0 folder (AutomatikVFX/tk-nuke-writenode#12).
+
+        :param nuke.Node node: The Flow Production Tracking Write node to update
+        :param bool force_reset: Force the path to be reset regardless of any cached values
+        :param bool is_proxy: If True then update the proxy render path
+
+        :returns: The updated render path
+        :rtype: str
         """
         try:
             # get the cached path without evaluating:
@@ -1577,7 +1581,31 @@ class TankWriteNodeHandler(object):
                     "script_path": script_path,
                 }
 
-                if (
+                # While the node is still being set up, size must come from the cached
+                # path (#10). Soft-read returns (0, 0) when that path cannot yield
+                # width/height (proxy↔full mismatch, template without size keys, etc.).
+                # Raising killed app init (#12). Computing with 0x0 would rewrite the
+                # saved folder on force_reset. Keep the cached path for this pass.
+                keep_cached_during_setup = (
+                    not self.__is_node_fully_constructed(node)
+                    and cached_path
+                    and not (width and height)
+                )
+
+                if keep_cached_during_setup:
+                    render_path = cached_path
+                    path_warning += (
+                        "<br>".join(
+                            self.__wrap_text(
+                                "Toolkit could not read width/height from the cached "
+                                "render path while the node was loading, so the path "
+                                "was left unchanged.",
+                                60,
+                            )
+                        )
+                        + "<br>"
+                    )
+                elif (
                     (not force_reset)
                     and old_cache_entry
                     and cache_entry == old_cache_entry
@@ -1850,14 +1878,44 @@ class TankWriteNodeHandler(object):
         #        "w:", scaled_format.width(), "h:", scaled_format.height())
         return (scaled_format.width(), scaled_format.height())
 
+    def __get_cached_dimensions(self, node, render_template, is_proxy=False):
+        """
+        Read width and height from the node's cached render path without asking the node.
+
+        Soft on purpose: a path that does not fit the current template, or a template
+        without width/height keys, returns (0, 0) instead of raising. Calling code must
+        not force-reset into a 0x0 folder when that happens — see __update_render_path
+        and AutomatikVFX/tk-nuke-writenode#12.
+
+        :param nuke.Node node: The current Flow Production Tracking Write node
+        :param render_template: Template used to compute this render path, or None
+        :param bool is_proxy: If True then read tk_cached_proxy_path
+
+        :returns: (width, height), or (0, 0) when the size cannot be read
+        :rtype: tuple[int, int]
+        """
+        cached_path = node.knob(
+            "tk_cached_proxy_path" if is_proxy else "cached_path"
+        ).value()
+        if not render_template or not cached_path:
+            return 0, 0
+
+        try:
+            fields = render_template.get_fields(cached_path)
+        except TankError:
+            return 0, 0
+        return fields.get("width", 0), fields.get("height", 0)
+
     def __gather_render_settings(self, node, is_proxy=False):
         """
         Gather the render template, width, height and output name required
         to compute the render path for the specified node.
 
-        :param node:         The current Flow Production Tracking Write node
-        :param is_proxy:     If True then compute the proxy path, otherwise compute the standard render path
-        :returns:            Tuple containing (render template, width, height, output name)
+        :param nuke.Node node: The current Flow Production Tracking Write node
+        :param bool is_proxy: If True then compute the proxy path, otherwise the standard render path
+
+        :returns: (render template, width, height, output name)
+        :rtype: tuple
         """
         render_template = self.__get_render_template(node, is_proxy)
         width = height = 0
@@ -1880,12 +1938,14 @@ class TankWriteNodeHandler(object):
             # Don't ask the node for its size while it is set up from a script (onCreate
             # on script load). That validates the whole upstream tree mid-load, and Reads
             # on a default colorspace then resolve without the default colorspace
-            # mappers. Use the size from the cached path instead. A new node has no
+            # mappers. Use the size from the cached path instead. Soft-read: a bad
+            # cache/template pair must not unload the app (#12). A new node has no
             # cached path yet and isn't created mid-load, so it asks the node as before.
             # A terminal session (the farm) renders to the saved path anyway.
             # See https://github.com/AutomatikVFX/tk-nuke-writenode/issues/10
-            fields = render_template.get_fields(cached_path)
-            width, height = fields["width"], fields["height"]
+            width, height = self.__get_cached_dimensions(
+                node, render_template, is_proxy
+            )
         elif is_proxy:
             # width & height are set to the proxy dimensions:
             width, height = self.__calculate_proxy_dimensions(node)
