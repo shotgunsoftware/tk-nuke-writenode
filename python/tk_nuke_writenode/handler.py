@@ -17,6 +17,10 @@ from .create_dialog import WriteNodePanel
 # standard toolkit logger
 logger = sgtk.platform.get_logger(__name__)
 
+# Hidden knob on the ShotGrid write node that holds the path that was
+# rendered the last time (local or farm).
+LAST_RENDERED_KNOB = "lastRenderedPath"
+
 
 class NukeWriteNodeHandler(object):
     """
@@ -213,7 +217,10 @@ class NukeWriteNodeHandler(object):
     def read_from_write(self, node):
         """Create read node from node.
 
-        Will add a read node with the latest render underneath the node.
+        Will add a read node with the last render of this node underneath
+        it. The path that was actually rendered is stored on the node when
+        rendering, because the script (and with it the write path) is
+        versioned up after a farm submission.
 
         Args:
             node (attribute): node to create read node from
@@ -222,61 +229,166 @@ class NukeWriteNodeHandler(object):
         # Make sure we are in nuke root level
         with nuke.root():
 
-            # Get render path
-            render_path = node["file"].value()
+            current_path = node["file"].value()
+            last_rendered_path = self.get_last_rendered_path(node)
 
-            if render_path == "":
+            if not current_path and not last_rendered_path:
                 nuke.message(
                     "This write node has not rendered yet, please render"
-                    " before create a read from this write node."
+                    " before creating a read from this write node."
                 )
                 return
 
-            # Check for publish status
-            is_published = self.get_published_status(node)
+            # Paths to try, most likely first. Older versions are only
+            # scanned when nothing else is found (nodes rendered before
+            # the rendered path was stored on the node).
+            candidates = []
+            for path in (last_rendered_path, current_path):
+                if path and path not in candidates:
+                    candidates.append(path)
 
-            # If it is published, use publish path
-            if is_published:
-                render_path = self.__get_published_path(node, render_path)
+            result = None
+            for path in candidates:
+                result = self.__find_render(node, path)
+                if result:
+                    break
 
-            # Get directory for render
-            render_directory = os.path.dirname(render_path)
+            if not result and current_path:
+                result = self.__find_previous_version_render(
+                    node, current_path
+                )
 
-            # Get frame sequences from directory, we will use this function
-            # to get the first and last frame to set the read node
-            frame_sequences = self.__get_frame_sequences(render_directory)
+            if not result:
+                nuke.message(
+                    "Could not find any rendered frames for %s.\n\n"
+                    "Last rendered path:\n%s"
+                    % (node.name(), last_rendered_path or current_path)
+                )
+                return
 
-            # Iterate trough all found frame sequences
-            for frame_sequence in frame_sequences:
-                sequence_path = frame_sequence[0].replace(os.sep, "/")
+            render_path, frames = result
 
-                # If sequence path matches render path we know this is the one
-                if sequence_path == render_path:
+            # Create read node
+            read_node = nuke.createNode("Read")
 
-                    # Create read node
-                    read_node = nuke.createNode("Read")
+            # Set path
+            read_node["file"].fromUserText(render_path)
 
-                    # Set path
-                    read_node["file"].fromUserText(render_path)
+            # Set colorspace
+            read_node["colorspace"].setValue(self.get_colorspace(node))
 
-                    # Set colorspace
-                    read_node["colorspace"].setValue(self.get_colorspace(node))
+            # Set parameters
+            start_frame = int(min(frames))
+            last_frame = int(max(frames))
 
-                    # Set parameters
-                    start_frame = int(min(frame_sequence[1]))
-                    last_frame = int(max(frame_sequence[1]))
+            read_node["first"].setValue(start_frame)
+            read_node["origfirst"].setValue(start_frame)
+            read_node["last"].setValue(last_frame)
+            read_node["origlast"].setValue(last_frame)
 
-                    read_node["first"].setValue(start_frame)
-                    read_node["origfirst"].setValue(start_frame)
-                    read_node["last"].setValue(last_frame)
-                    read_node["origlast"].setValue(last_frame)
+            # Set position
+            read_node["xpos"].setValue(node.xpos())
+            read_node["ypos"].setValue(node.ypos() + 50)
 
-                    # Set position
-                    xpos = node.xpos()
-                    ypos = node.ypos() + 50
+    def __find_render(self, node, render_path):
+        """Look for a rendered frame sequence for a work render path.
+        If the render has been published, the published path is used.
 
-                    read_node["xpos"].setValue(xpos)
-                    read_node["ypos"].setValue(ypos)
+        Args:
+            node (attribute): ShotGrid write node
+            render_path (str): work render path (with frame spec)
+
+        Returns:
+            tuple: (path, frame list) or None if nothing was found
+        """
+        paths = []
+        try:
+            if self.__is_published(render_path):
+                paths.append(self.__get_published_path(node, render_path))
+        except Exception as e:
+            logger.debug(
+                "Could not check publish for %s: %s" % (render_path, str(e))
+            )
+        paths.append(render_path)
+
+        for path in paths:
+            path = path.replace(os.sep, "/")
+            directory = os.path.dirname(path)
+            if not os.path.isdir(directory):
+                continue
+
+            for sequence_path, frames in self.__get_frame_sequences(
+                directory
+            ):
+                if sequence_path.replace(os.sep, "/") == path:
+                    return path, frames
+
+        return None
+
+    def __find_previous_version_render(self, node, render_path):
+        """Fallback: walk back through older versions of the render path
+        and return the newest one that has frames on disk.
+
+        Args:
+            node (attribute): ShotGrid write node
+            render_path (str): current work render path
+
+        Returns:
+            tuple: (path, frame list) or None if nothing was found
+        """
+        try:
+            render_template = self.get_node_render_template(node)
+            fields = render_template.get_fields(render_path)
+        except Exception as e:
+            logger.debug("Could not get fields for %s: %s" % (render_path, e))
+            return None
+
+        version = fields.get("version")
+        if not version:
+            return None
+
+        # Limit the search, every version may do a ShotGrid query
+        oldest_version = max(version - 25, 0)
+        for previous_version in range(version - 1, oldest_version, -1):
+            fields["version"] = previous_version
+            path = render_template.apply_fields(fields).replace(os.sep, "/")
+            result = self.__find_render(node, path)
+            if result:
+                return result
+
+        return None
+
+    def get_last_rendered_path(self, node):
+        """Get the path this node rendered to the last time.
+
+        Args:
+            node (attribute): ShotGrid write node
+
+        Returns:
+            str: last rendered path, empty string if unknown
+        """
+        knob = node.knobs().get(LAST_RENDERED_KNOB)
+        if knob is None:
+            return ""
+        return knob.value()
+
+    @staticmethod
+    def __store_rendered_path(node, render_path):
+        """Store the path that is being rendered on the node, so the read
+        can still be created after the script is versioned up.
+
+        Args:
+            node (attribute): ShotGrid write node
+            render_path (str): path being rendered
+        """
+        knob = node.knobs().get(LAST_RENDERED_KNOB)
+        if knob is None:
+            knob = nuke.String_Knob(
+                LAST_RENDERED_KNOB, "last rendered path"
+            )
+            knob.setFlag(nuke.INVISIBLE)
+            node.addKnob(knob)
+        knob.setValue(render_path)
 
     def convert_placeholder_nodes(self):
         """Search existing placeholder nodes, and creates write nodes
@@ -561,6 +673,12 @@ class NukeWriteNodeHandler(object):
             # Append write node to the rendered path
             image_sequences[render_path] = write_node
 
+            # Also map the last rendered path, the current path is already
+            # versioned up after a farm submission
+            last_rendered_path = self.get_last_rendered_path(write_node)
+            if last_rendered_path:
+                image_sequences[last_rendered_path] = write_node
+
         # Filter for all read nodes
         all_nodes = nuke.allNodes("Read")
 
@@ -683,41 +801,29 @@ class NukeWriteNodeHandler(object):
             bool: If there is a publish existing it will return
             "True", otherwise return a "False" value
         """
+        return self.__is_published(node["file"].value())
 
-        sg = self.sg
+    def __is_published(self, render_path):
+        """Check on ShotGrid if there is a publish on the project with the
+        same file name as the render path.
 
-        # Get file path for node
-        file_name = node["file"].value()
+        Args:
+            render_path (str): render path to check
 
-        # Get file name only
-        file_name = os.path.basename(file_name)
+        Returns:
+            bool: True if a publish with this name exists
+        """
+        file_name = os.path.basename(render_path)
 
-        # Get current project ID
         current_engine = sgtk.platform.current_engine()
-        current_context = current_engine.context
-        project_id = current_context.project["id"]
+        project_id = current_engine.context.project["id"]
 
-        # Create the filter to search on ShotGrid for
-        # publishes with the same file name
         filters = [
             ["project", "is", {"type": "Project", "id": project_id}],
             ["code", "is", file_name],
         ]
 
-        # Search on ShotGrid
-        published_file = sg.find_one("PublishedFile", filters)
-
-        # If there is no publish, it will return a None value.
-        # So set the variable is_published to "False"
-        if published_file is None:
-            is_published = False
-
-        # If the value is not None, there is a publish with the same name.
-        # So set the variable is_published to "True"
-        else:
-            is_published = True
-
-        return is_published
+        return self.sg.find_one("PublishedFile", filters) is not None
 
     @staticmethod
     def get_colorspace(node):
@@ -847,53 +953,6 @@ class NukeWriteNodeHandler(object):
 
         return write_node_settings
 
-    def __get_latest_version(self, node):
-        """This function will check on ShotGrid if there is a publish with
-        exactly the same name on the project.
-
-        Args:
-            node (attribute): node to retrieve publish status
-
-        Returns:
-            bool: If there is a publish existing it will return
-            "True", otherwise return a "False" value
-        """
-
-        sg = self.sg
-
-        # Get file path for node
-        file_name = node["file"].value()
-
-        # Get file name only
-        file_name = os.path.basename(file_name)
-
-        # Get current project ID
-        current_engine = sgtk.platform.current_engine()
-        current_context = current_engine.context
-        project_id = current_context.project["id"]
-
-        # Create the filter to search on ShotGrid for
-        # publishes with the same file name
-        filters = [
-            ["project", "is", {"type": "Project", "id": project_id}],
-            ["code", "is", file_name],
-        ]
-
-        # Search on ShotGrid
-        published_file = sg.find_one("PublishedFile", filters)
-
-        # If there is no publish, it will return a None value.
-        # So set the variable is_published to "False"
-        if published_file is None:
-            is_published = False
-
-        # If the value is not None, there is a publish with the same name.
-        # So set the variable is_published to "True"
-        else:
-            is_published = True
-
-        return is_published
-
     def __get_node_settings(self, node):
         """This function will go trough the dictionary to get the correct
         configuration dictionary matching the settings of the node
@@ -1004,6 +1063,10 @@ class NukeWriteNodeHandler(object):
                     # Prevent to change the channels knob
                     if not knob == "channels":
                         write_node[knob].setValue(setting)
+
+            # Remember what is rendered, the path changes when the
+            # script is versioned up after a farm submission
+            self.__store_rendered_path(node, render_path)
 
             # Make sure directory exists
             render_directory = os.path.dirname(render_path)
